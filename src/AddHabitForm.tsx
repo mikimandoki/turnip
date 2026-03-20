@@ -2,6 +2,13 @@ import { useState } from 'react';
 
 import type { Frequency, Habit } from './types';
 
+/**
+ * Validation logic: 
+ * - No empty name
+ * - times and periodLength >=1 
+ * - Times*unit must fit into length (no 8x a week)
+ */
+
 export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
   const [name, setName] = useState('');
   const [times, setTimes] = useState(1);

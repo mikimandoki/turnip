@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { Habit } from './types';
+import type { Frequency, Habit } from './types';
 
 import AddHabitForm from './AddHabitForm';
 
@@ -19,6 +19,24 @@ const DUMMY_HABITS: Habit[] = [
   },
 ];
 
+function describeFrequency(frequency: Frequency) {
+  const unit = frequency.periodLength === 1 ? frequency.periodUnit : `${frequency.periodLength} ${frequency.periodUnit}s`
+  if (frequency.times === 1 && frequency.periodLength === 1) {
+    switch (frequency.periodUnit) {
+      case 'day': 
+        return 'daily'
+      case 'month':
+        return 'monthly'
+      case 'week': 
+        return 'weekly'
+    };
+  } else if (frequency.times === 1) {
+    return `every ${unit}`
+  } else {
+    return `${frequency.times}x per ${unit}`
+  }
+}
+
 function HabitSquare({
   value,
   isDone,
@@ -29,11 +47,10 @@ function HabitSquare({
   onButtonClick: () => void;
 }) {
   const completionFlag = isDone ? '✅' : '❌';
-  const freq = `${value.frequency.times} times every ${value.frequency.periodLength} ${value.frequency.periodUnit}`;
   return (
     <>
       <button className='habitButton' onClick={onButtonClick}>
-        {value.name} {freq} {completionFlag}
+        {value.name} {describeFrequency(value.frequency)} {completionFlag}
       </button>
       <br />
     </>
