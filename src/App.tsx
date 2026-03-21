@@ -75,6 +75,17 @@ export default function App() {
       <div>
         <AddHabitForm onAdd={addHabit} />
       </div>
+      <div>
+        <button
+          onClick={() => {
+            localStorage.clear();
+            setHabits([]);
+            setCompletions({});
+          }}
+        >
+          Delete All
+        </button>
+      </div>
     </>
   );
 }
