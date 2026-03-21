@@ -25,4 +25,5 @@ export interface Frequency {
 export interface Completion {
   habitId: string;
   date: string; // ISO date string, e.g. "2026-03-19"
+  count: number; 
 }

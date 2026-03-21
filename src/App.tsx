@@ -1,9 +1,13 @@
+import { format, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
 import { useState } from 'react';
 
-import type { Frequency, Habit } from './types';
+import type { Completion, Frequency, Habit } from './types';
 
 import AddHabitForm from './AddHabitForm';
 import { loadFromStorage, saveToStorage } from './localStorage';
+
+const now = new Date()
+const today = toDateString(now)
 
 function describeFrequency(frequency: Frequency) {
   const unit =
@@ -23,6 +27,28 @@ function describeFrequency(frequency: Frequency) {
   } else {
     return `${times}every ${unit}`;
   }
+}
+
+function startDatePeriod(frequency: Frequency): string {
+  switch(frequency.periodUnit) {
+    case 'day':
+      return toDateString(startOfDay(now))
+    case 'week':
+      return toDateString(startOfWeek(now, {weekStartsOn: 1}))
+    case 'month':
+      return toDateString(startOfMonth(now))
+  }
+}
+
+function toDateString(date: Date): string {
+  return format(date, 'yyyy-MM-dd')
+}
+
+function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
+  const periodStart = startDatePeriod(habit.frequency)
+  return completions
+  .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
+  .reduce((sum, c) => sum + c.count, 0)
 }
 
 function HabitSquare({
@@ -46,15 +72,31 @@ function HabitSquare({
 }
 
 export default function App() {
-  const [completions, setCompletions] = useState<Record<string, boolean>>(() =>
-    loadFromStorage('completions', {})
+  const [completions, setCompletions] = useState<Completion[]>(() =>
+    loadFromStorage('completions', [])
   );
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
   function toggleCompletion(habitId: string) {
-    const updated = { ...completions, [habitId]: !completions[habitId] };
+    const existing = completions.find(c => c.habitId === habitId && c.date === today)
+    let updated: Completion[]
+    if (existing) {
+      updated = completions.map(c => 
+        c.habitId === habitId && c.date === today
+        ? { ...c, count: c.count + 1}
+        : c
+      )
+    } else {
+      updated = [...completions, { habitId, date: today, count: 1}]
+    }
     setCompletions(updated);
     saveToStorage('completions', updated);
   }
+
+  function habitCompleted(habit: Habit): boolean {
+    const completed = getCompletionsInPeriod(habit, completions)
+    return Boolean(completed >= habit.frequency.times)
+  }
+
   function addHabit(newHabit: Habit) {
     const updated = [...habits, newHabit];
     setHabits(updated);
@@ -67,7 +109,7 @@ export default function App() {
           <HabitSquare
             key={habit.id}
             value={habit}
-            isDone={completions[habit.id]}
+            isDone={habitCompleted(habit)}
             onButtonClick={() => toggleCompletion(habit.id)}
           />
         ))}
@@ -80,7 +122,7 @@ export default function App() {
           onClick={() => {
             localStorage.clear();
             setHabits([]);
-            setCompletions({});
+            setCompletions([]);
           }}
         >
           Delete All
