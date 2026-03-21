@@ -21,19 +21,18 @@ const DUMMY_HABITS: Habit[] = [
 
 function describeFrequency(frequency: Frequency) {
   const unit = frequency.periodLength === 1 ? frequency.periodUnit : `${frequency.periodLength} ${frequency.periodUnit}s`
-  if (frequency.times === 1 && frequency.periodLength === 1) {
+  const times = frequency.times === 1 ? '' : `${frequency.times}x `
+  if (frequency.periodLength === 1) {
     switch (frequency.periodUnit) {
       case 'day': 
-        return 'daily'
+        return `${times}daily`
       case 'month':
-        return 'monthly'
+        return `${times}monthly`
       case 'week': 
-        return 'weekly'
+        return `${times}weekly`
     };
-  } else if (frequency.times === 1) {
-    return `every ${unit}`
   } else {
-    return `${frequency.times}x per ${unit}`
+    return `${times}every ${unit}`
   }
 }
 

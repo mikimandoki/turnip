@@ -2,18 +2,29 @@ import { useState } from 'react';
 
 import type { Frequency, Habit } from './types';
 
-/**
- * Validation logic: 
- * - No empty name
- * - times and periodLength >=1 
- * - Times*unit must fit into length (no 8x a week)
- */
+function validateInputs(habit: Habit): string[] {
+  const errors: string[] = []; 
+  if (!habit.name.trim()) {
+    errors.push('Name is required')
+  }
+  if (habit.name.length > 50) {
+    errors.push('Habit name too long')
+  }
+  if (isNaN(habit.frequency.times) || isNaN(habit.frequency.periodLength)) { 
+    errors.push('Frequency must be a number')
+  }
+  if (habit.frequency.times < 1 || habit.frequency.periodLength < 1 ) {
+    errors.push('Frequency must be at least 1')
+  }
+  return errors;
+}
 
 export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
   const [name, setName] = useState('');
   const [times, setTimes] = useState(1);
   const [periodLength, setPeriodLength] = useState(1);
   const [periodUnit, setPeriodUnit] = useState<Frequency['periodUnit']>('day');
+  const [errors, setErrors] = useState<string[]>([])
   function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     const newHabit: Habit = {
@@ -22,11 +33,17 @@ export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
       frequency: { times, periodLength, periodUnit },
       createdAt: new Date().toISOString(),
     };
+    const inputErrors = validateInputs(newHabit);
+    if (inputErrors.length > 0) {
+      setErrors(inputErrors);
+      return;  // stop here, don't add the habit
+    }
+    setErrors([])
     onAdd(newHabit);
     setName('');
     setTimes(1);
     setPeriodLength(1);
-    setPeriodUnit('day');
+    setPeriodUnit('day')
   }
   return (
     <form onSubmit={handleSubmit}>
@@ -53,6 +70,9 @@ export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
           <option value='month'>months</option>
         </select>
       </div>
+      <div>
+        {errors.map((err, i) => <p key={i} style={{ color: 'red' }}>{err}</p>)}
+      </div> 
     </form>
   );
 }
