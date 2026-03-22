@@ -1,4 +1,4 @@
-import { format, startOfDay, startOfMonth, startOfWeek } from 'date-fns'
+import { format, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { useState } from 'react';
 
 import type { Completion, Frequency, Habit } from './types';
@@ -6,8 +6,8 @@ import type { Completion, Frequency, Habit } from './types';
 import AddHabitForm from './AddHabitForm';
 import { loadFromStorage, saveToStorage } from './localStorage';
 
-const now = new Date()
-const today = toDateString(now)
+const now = new Date();
+const today = toDateString(now);
 
 function describeFrequency(frequency: Frequency) {
   const unit =
@@ -30,43 +30,55 @@ function describeFrequency(frequency: Frequency) {
 }
 
 function startDatePeriod(frequency: Frequency): string {
-  switch(frequency.periodUnit) {
+  switch (frequency.periodUnit) {
     case 'day':
-      return toDateString(startOfDay(now))
+      return toDateString(startOfDay(now));
     case 'week':
-      return toDateString(startOfWeek(now, {weekStartsOn: 1}))
+      return toDateString(startOfWeek(now, { weekStartsOn: 1 }));
     case 'month':
-      return toDateString(startOfMonth(now))
+      return toDateString(startOfMonth(now));
   }
 }
 
 function toDateString(date: Date): string {
-  return format(date, 'yyyy-MM-dd')
+  return format(date, 'yyyy-MM-dd');
 }
 
 function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
-  const periodStart = startDatePeriod(habit.frequency)
+  const periodStart = startDatePeriod(habit.frequency);
   return completions
-  .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
-  .reduce((sum, c) => sum + c.count, 0)
+    .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
+    .reduce((sum, c) => sum + c.count, 0);
 }
 
-function HabitSquare({
+function HabitRow({
   value,
+  completedCount,
+  targetCount,
   isDone,
-  onButtonClick,
+  onPositiveButtonClick,
+  onNegativeButtonClick,
 }: {
   value: Habit;
   isDone: boolean;
-  onButtonClick: () => void;
+  completedCount: number;
+  targetCount: number;
+  onPositiveButtonClick: () => void;
+  onNegativeButtonClick: () => void;
 }) {
   const completionFlag = isDone ? '✅' : '❌';
   return (
     <>
-      <button className='habitButton' onClick={onButtonClick}>
-        {value.name} {describeFrequency(value.frequency)} {completionFlag}
-      </button>
-      <br />
+      <div>
+        {value.name} {describeFrequency(value.frequency)} {completedCount}/{targetCount}{' '}
+        {completionFlag}
+        <button className='habitButton' onClick={onPositiveButtonClick}>
+          +
+        </button>
+        <button className='habitButton' onClick={onNegativeButtonClick}>
+          -
+        </button>
+      </div>
     </>
   );
 }
@@ -76,25 +88,26 @@ export default function App() {
     loadFromStorage('completions', [])
   );
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
-  function toggleCompletion(habitId: string) {
-    const existing = completions.find(c => c.habitId === habitId && c.date === today)
-    let updated: Completion[]
+  function updateCompletion(habitId: string, increment: number) {
+    const existing = completions.find(c => c.habitId === habitId && c.date === today);
+    let updated: Completion[];
     if (existing) {
-      updated = completions.map(c => 
-        c.habitId === habitId && c.date === today
-        ? { ...c, count: c.count + 1}
-        : c
-      )
+      const newCount = existing.count + increment;
+      if (newCount < 0) return;
+      updated = completions.map(c =>
+        c.habitId === habitId && c.date === today ? { ...c, count: newCount } : c
+      );
     } else {
-      updated = [...completions, { habitId, date: today, count: 1}]
+      if (increment < 0) return;
+      updated = [...completions, { habitId, date: today, count: increment }];
     }
     setCompletions(updated);
     saveToStorage('completions', updated);
   }
 
   function habitCompleted(habit: Habit): boolean {
-    const completed = getCompletionsInPeriod(habit, completions)
-    return Boolean(completed >= habit.frequency.times)
+    const completed = getCompletionsInPeriod(habit, completions);
+    return Boolean(completed >= habit.frequency.times);
   }
 
   function addHabit(newHabit: Habit) {
@@ -106,11 +119,14 @@ export default function App() {
     <>
       <div className='habit'>
         {habits.map(habit => (
-          <HabitSquare
+          <HabitRow
             key={habit.id}
             value={habit}
             isDone={habitCompleted(habit)}
-            onButtonClick={() => toggleCompletion(habit.id)}
+            completedCount={getCompletionsInPeriod(habit, completions)}
+            targetCount={habit.frequency.times}
+            onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
+            onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
           />
         ))}
       </div>
