@@ -1,0 +1,14 @@
+.habitrow {
+  display: flex;
+  justify-content: space-around;
+  max-width: 60%;
+  margin: 0 auto;
+  align-items: center;
+  padding: 5px;
+    margin-bottom: 8px;
+  background-color:lightgray; 
+}
+.habitrow-actions {
+    display: flex;
+    justify-content: space-evenly;
+}

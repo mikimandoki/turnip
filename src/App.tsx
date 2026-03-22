@@ -55,17 +55,24 @@ function HabitRow({
 }) {
   const completionFlag = completedCount >= targetCount ? '✅' : '❌';
   return (
-    <div>
-      {habit.name} {describeFrequency(habit.frequency)} {completedCount}/{targetCount} {completionFlag}
-      <button className='habitButton' onClick={onPositiveButtonClick}>
-        +
-      </button>
-      <button className='habitButton' onClick={onNegativeButtonClick}>
-        -
-      </button>
-      <button className='habitButton' onClick={onDeleteButtonClick}>
-        X
-      </button>
+    <div className='habitrow'>
+      <div className='habitrow-info'>
+        {habit.name} {describeFrequency(habit.frequency)}
+      </div>
+      <div className='habitrow-progress'>
+        {completedCount}/{targetCount} {completionFlag}
+      </div>
+      <div className='habitrow-actions'>
+        <button className='habitrow-button' onClick={onPositiveButtonClick}>
+          +
+        </button>
+        <button className='habitrow-button' onClick={onNegativeButtonClick}>
+          -
+        </button>
+        <button className='habitrow-button' onClick={onDeleteButtonClick}>
+          X
+        </button>
+      </div>
     </div>
   );
 }
