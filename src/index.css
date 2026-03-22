@@ -5,10 +5,10 @@
   margin: 0 auto;
   align-items: center;
   padding: 5px;
-    margin-bottom: 8px;
-  background-color:lightgray; 
+  margin-bottom: 8px;
+  background-color: lightgray;
 }
 .habitrow-actions {
-    display: flex;
-    justify-content: space-evenly;
+  display: flex;
+  justify-content: space-evenly;
 }

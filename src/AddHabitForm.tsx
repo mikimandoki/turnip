@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 import type { Frequency, Habit } from './types';
 
+import { getCurrentDate, toDateString } from './utils/date';
+
 function validateInputs(habit: Habit): string[] {
   const errors: string[] = [];
   if (!habit.name.trim()) {
@@ -31,7 +33,7 @@ export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void 
       id: crypto.randomUUID(),
       name: name.trim(),
       frequency: { times, periodLength, periodUnit },
-      createdAt: new Date().toISOString(),
+      createdAt: toDateString(getCurrentDate()),
     };
     const inputErrors = validateInputs(newHabit);
     if (inputErrors.length > 0) {
