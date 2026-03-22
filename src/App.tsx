@@ -1,4 +1,4 @@
-import { subDays, subMonths, subWeeks } from 'date-fns';
+import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
 import { useState } from 'react';
 
 import type { Completion, Frequency, Habit } from './types';
@@ -194,16 +194,18 @@ export default function App() {
           Delete All
         </button>
       </div>
+      {import.meta.env.DEV && (
       <div>
         <input
           type='date'
           value={debugDate}
           onChange={e => {
             setDebugDate(e.target.value);
-            setDateOverride(e.target.value ? new Date(e.target.value) : null);
+            setDateOverride(e.target.value ? parseISO(e.target.value) : null);
           }}
         />
       </div>
+      )}
     </>
   );
 }
