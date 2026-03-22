@@ -1,9 +1,9 @@
+import { nanoid } from 'nanoid';
 import { useState } from 'react';
 
 import type { Frequency, Habit } from './types';
 
 import { getCurrentDate, toDateString } from './utils/date';
-
 function validateInputs(habit: Habit): string[] {
   const errors: string[] = [];
   if (!habit.name.trim()) {
@@ -21,7 +21,13 @@ function validateInputs(habit: Habit): string[] {
   return errors;
 }
 
-export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void }) {
+export default function AddHabitForm({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (habit: Habit) => void;
+  onCancel: () => void;
+}) {
   const [name, setName] = useState('');
   const [times, setTimes] = useState(1);
   const [periodLength, setPeriodLength] = useState(1);
@@ -30,7 +36,7 @@ export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void 
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const newHabit: Habit = {
-      id: crypto.randomUUID(),
+      id: nanoid(),
       name: name.trim(),
       frequency: { times, periodLength, periodUnit },
       createdAt: toDateString(getCurrentDate()),
@@ -48,15 +54,19 @@ export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void 
     setPeriodUnit('day');
   }
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label>Habit Name</label>
-        <input type='text' value={name} onChange={e => setName(e.target.value)} />
-        <button type='submit'>Record</button>
+    <form className='add-habit-form' onSubmit={handleSubmit}>
+      <div className='form-row'>
+        <input
+          type='text'
+          placeholder='Habit name'
+          value={name}
+          onChange={e => setName(e.target.value)}
+          style={{ flex: 1 }}
+        />
       </div>
-      <div>
+      <div className='form-row'>
         <input type='number' min={1} value={times} onChange={e => setTimes(+e.target.value)} />
-        <label> times every </label>
+        <span className='form-label'>times every</span>
         <input
           type='number'
           min={1}
@@ -72,12 +82,18 @@ export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void 
           <option value='month'>months</option>
         </select>
       </div>
-      <div>
-        {errors.map(err => (
-          <p key={err} style={{ color: 'red' }}>
-            {err}
-          </p>
-        ))}
+      {errors.map(err => (
+        <p className='error-message' key={err}>
+          {err}
+        </p>
+      ))}
+      <div className='form-row'>
+        <button className='btn-submit' type='submit'>
+          Add habit
+        </button>
+        <button className='btn-cancel' type='button' onClick={onCancel}>
+          Cancel
+        </button>
       </div>
     </form>
   );

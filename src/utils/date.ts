@@ -3,6 +3,9 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isToday,
+  isTomorrow,
+  isYesterday,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -20,7 +23,7 @@ export function getCurrentDate(): Date {
   return devDateOverride ?? new Date();
 }
 
-// How many days have passed between start of period and date
+// Determine the start date of the currently computed period
 export function startDatePeriod(frequency: Frequency, date: Date): string {
   switch (frequency.periodUnit) {
     case 'day':
@@ -32,6 +35,7 @@ export function startDatePeriod(frequency: Frequency, date: Date): string {
   }
 }
 
+// Determine the end date of the currently computed period
 export function endDatePeriod(frequency: Frequency, date: Date): string {
   switch (frequency.periodUnit) {
     case 'day':
@@ -45,4 +49,12 @@ export function endDatePeriod(frequency: Frequency, date: Date): string {
 
 export function toDateString(date: Date): string {
   return format(date, 'yyyy-MM-dd');
+}
+
+export function namedDayOrDate(): string {
+  const date = getCurrentDate();
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  if (isTomorrow(date)) return 'Tomorrow';
+  return format(date, 'EEEE, MMM d');
 }
