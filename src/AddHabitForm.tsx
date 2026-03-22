@@ -19,17 +19,17 @@ function validateInputs(habit: Habit): string[] {
   return errors;
 }
 
-export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
+export default function AddHabitForm({ onAdd }: { onAdd: (habit: Habit) => void }) {
   const [name, setName] = useState('');
   const [times, setTimes] = useState(1);
   const [periodLength, setPeriodLength] = useState(1);
   const [periodUnit, setPeriodUnit] = useState<Frequency['periodUnit']>('day');
   const [errors, setErrors] = useState<string[]>([]);
-  function handleSubmit(e: React.SubmitEvent) {
+  function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const newHabit: Habit = {
       id: crypto.randomUUID(),
-      name,
+      name: name.trim(),
       frequency: { times, periodLength, periodUnit },
       createdAt: new Date().toISOString(),
     };
@@ -71,8 +71,8 @@ export default function Form({ onAdd }: { onAdd: (habit: Habit) => void }) {
         </select>
       </div>
       <div>
-        {errors.map((err, i) => (
-          <p key={i} style={{ color: 'red' }}>
+        {errors.map(err => (
+          <p key={err} style={{ color: 'red' }}>
             {err}
           </p>
         ))}
