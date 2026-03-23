@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import { useState } from 'react';
 
-import type { Frequency, Habit } from './types';
+import type { Frequency, Habit } from '../types';
 
-import { getCurrentDate, toDateString } from './utils/date';
+import { getCurrentDate, toDateString } from '../utils/date';
 function validateInputs(habit: Habit): string[] {
   const errors: string[] = [];
   if (!habit.name.trim()) {
