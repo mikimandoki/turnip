@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router';
+
 import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
@@ -5,6 +7,7 @@ import { calculateStreak, getCompletionsInPeriod } from '../utils/habits';
 import AddHabitForm from './AddHabitForm';
 
 export default function DailyView() {
+  const navigate = useNavigate();
   const {
     habits,
     completions,
@@ -41,6 +44,7 @@ export default function DailyView() {
                 completedCount={getCompletionsInPeriod(habit, completions)}
                 targetCount={habit.frequency.times}
                 streak={calculateStreak(habit, completions)}
+                onClick={() => void navigate(`/habit/${habit.id}`)}
                 onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
                 onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
                 onDeleteButtonClick={() => deleteHabit(habit)}
