@@ -1,5 +1,6 @@
 import type { Habit } from '../types';
 
+import { useHabitContext } from '../contexts/useHabitContext';
 import { describeFrequency } from '../utils/habits';
 import Card from './Card';
 
@@ -23,6 +24,7 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
   onDeleteButtonClick: () => void;
 }) {
+  const { isFutureDate } = useHabitContext();
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
@@ -44,6 +46,7 @@ export default function HabitCard({
                 e.stopPropagation();
                 onPositiveButtonClick();
               }}
+              disabled={isFutureDate}
             >
               +
             </button>
@@ -53,6 +56,7 @@ export default function HabitCard({
                 e.stopPropagation();
                 onNegativeButtonClick();
               }}
+              disabled={isFutureDate}
             >
               -
             </button>
@@ -62,6 +66,7 @@ export default function HabitCard({
                 e.stopPropagation();
                 onDeleteButtonClick();
               }}
+              disabled={isFutureDate}
             >
               X
             </button>

@@ -150,6 +150,11 @@ body {
   cursor: pointer;
 }
 
+.btn-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .btn-action:hover {
   background: var(--color-background-tertiary);
 }

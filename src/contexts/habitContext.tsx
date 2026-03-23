@@ -1,4 +1,4 @@
-import { addDays, parseISO } from 'date-fns';
+import { addDays, isFuture, parseISO } from 'date-fns';
 import { useState } from 'react';
 
 import type { Completion, Habit } from '../types';
@@ -13,6 +13,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     loadFromStorage('completions', [])
   );
   const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
+  const isFutureDate = isFuture(displayDate);
   const [showForm, setShowForm] = useState(false);
 
   function updateCompletion(habitId: string, increment: number) {
@@ -73,6 +74,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         habits,
         completions,
         displayDate,
+        isFutureDate,
         showForm,
         setShowForm,
         addHabit,

@@ -6,6 +6,7 @@ export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
   displayDate: string;
+  isFutureDate: boolean;
   showForm: boolean;
   setShowForm: (show: boolean) => void;
   addHabit: (habit: Habit) => void;
