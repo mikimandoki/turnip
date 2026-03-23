@@ -46,7 +46,7 @@ body {
   margin-bottom: 1.5rem;
   padding: 0 0px;
   gap: 10px;
-  flex-direction: column;
+  flex-direction: row;
 }
 
 .header-title {

@@ -1,4 +1,4 @@
-import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
+import { addDays, parseISO, subDays, subMonths, subWeeks } from 'date-fns';
 import { useState } from 'react';
 
 import type { Completion, Frequency, Habit } from './types';
@@ -144,7 +144,7 @@ export default function App() {
     loadFromStorage('completions', [])
   );
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
-  const [debugDate, setDebugDate] = useState<string>('');
+  const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
   const [showForm, setShowForm] = useState(false);
   function updateCompletion(habitId: string, increment: number) {
     const today = toDateString(getCurrentDate());
@@ -181,12 +181,23 @@ export default function App() {
     saveToStorage('habits', updatedHabits);
     saveToStorage('completions', updatedCompletions);
   }
+
+  function shiftDate(days: number) {
+    const target = addDays(getCurrentDate(), days);
+    setDisplayDate(toDateString(target));
+    setDateOverride(target);
+  }
+
   return (
     <div className='app'>
       <div className='header'>
-        <div>
-          <div className='header-title'>{namedDayOrDate()}</div>
-        </div>
+        <button className='btn-action' onClick={() => shiftDate(-1)}>
+          ‹
+        </button>
+        <div className='header-title'>{namedDayOrDate()}</div>
+        <button className='btn-action' onClick={() => shiftDate(1)}>
+          ›
+        </button>
       </div>
       {habits.length > 0 && (
         <div className='habit-list'>
@@ -223,9 +234,9 @@ export default function App() {
           <div>
             <input
               type='date'
-              value={debugDate}
+              value={displayDate}
               onChange={e => {
-                setDebugDate(e.target.value);
+                setDisplayDate(e.target.value);
                 setDateOverride(e.target.value ? parseISO(e.target.value) : null);
               }}
             />
