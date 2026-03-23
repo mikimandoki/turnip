@@ -1,3 +1,10 @@
+/**
+ * Rules:
+ *
+ * 1. Always use getCurrentDate() instead of new Date() - respects time travel
+ * 2. Always use parseISO(string) instead of new Date(string) - respects timezone
+ */
+
 import {
   addDays,
   addMonths,
@@ -12,6 +19,7 @@ import {
   isToday,
   isTomorrow,
   isYesterday,
+  parseISO,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -63,7 +71,7 @@ export function startDatePeriod(frequency: Frequency, now: Date, createdAt: stri
   if (frequency.periodLength === 1) {
     return toDateString(ops.startOf(now));
   }
-  const anchor = ops.startOf(new Date(createdAt));
+  const anchor = ops.startOf(parseISO(createdAt));
   const totalPeriods = ops.differenceIn(now, anchor);
   const elapsedPeriods = Math.floor(totalPeriods / frequency.periodLength);
   return toDateString(ops.add(anchor, elapsedPeriods * frequency.periodLength));
@@ -71,7 +79,7 @@ export function startDatePeriod(frequency: Frequency, now: Date, createdAt: stri
 
 export function endDatePeriod(frequency: Frequency, date: Date, createdAt: string): string {
   const ops = unitOps[frequency.periodUnit];
-  const periodStart = new Date(startDatePeriod(frequency, date, createdAt));
+  const periodStart = parseISO(startDatePeriod(frequency, date, createdAt));
   return toDateString(ops.endOf(ops.add(periodStart, frequency.periodLength - 1)));
 }
 

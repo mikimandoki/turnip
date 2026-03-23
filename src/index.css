@@ -198,6 +198,10 @@ body {
   color: var(--color-text-warning);
 }
 
+.streak-muted {
+  color: var(--color-text-secondary);
+}
+
 /* ---- Add habit button ---- */
 
 .btn-add-habit {

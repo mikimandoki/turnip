@@ -1,4 +1,4 @@
-import { subDays, subMonths, subWeeks } from 'date-fns';
+import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
 
 import type { Completion, Frequency, Habit } from '../types';
 
@@ -34,10 +34,16 @@ export function getCompletionsInPeriod(habit: Habit, completions: Completion[]):
     .reduce((sum, c) => sum + c.count, 0);
 }
 
-export function calculateStreak(habit: Habit, completions: Completion[]): number {
+export function calculateStreak(
+  habit: Habit,
+  completions: Completion[],
+  skipCurrent = false
+): number {
   let streak = 0;
   let checkDate = getCurrentDate();
-
+  if (skipCurrent) {
+    checkDate = subDays(parseISO(startDatePeriod(habit.frequency, checkDate, habit.createdAt)), 1);
+  }
   while (true) {
     const periodStart = startDatePeriod(habit.frequency, checkDate, habit.createdAt);
     const periodEnd = endDatePeriod(habit.frequency, checkDate, habit.createdAt);
@@ -46,7 +52,13 @@ export function calculateStreak(habit: Habit, completions: Completion[]): number
     if (periodEnd < habit.createdAt) break;
 
     const count = completions
-      .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= periodEnd)
+      .filter(
+        c =>
+          c.habitId === habit.id &&
+          c.date >= periodStart &&
+          c.date <= periodEnd &&
+          c.date <= toDateString(getCurrentDate())
+      )
       .reduce((sum, c) => sum + c.count, 0);
 
     if (count >= habit.frequency.times) {
@@ -70,5 +82,6 @@ export function calculateStreak(habit: Habit, completions: Completion[]): number
         break;
     }
   }
+
   return streak;
 }

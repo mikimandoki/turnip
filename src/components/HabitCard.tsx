@@ -9,7 +9,6 @@ export default function HabitCard({
   habit,
   completedCount,
   targetCount,
-  streak,
   onClick,
   onPositiveButtonClick,
   onNegativeButtonClick,
@@ -18,13 +17,13 @@ export default function HabitCard({
   habit: Habit;
   completedCount: number;
   targetCount: number;
-  streak: number;
   onClick: () => void;
   onPositiveButtonClick: () => void;
   onNegativeButtonClick: () => void;
   onDeleteButtonClick: () => void;
 }) {
-  const { isFutureDate } = useHabitContext();
+  const { isFutureDate, streaks } = useHabitContext();
+  const streak = streaks.find(s => s.habitId === habit.id);
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
@@ -76,10 +75,13 @@ export default function HabitCard({
       <div className='progress-bar'>
         <div className={`progress-fill ${status}`} style={{ width: `${progressPercent}%` }} />
       </div>
-      {streak >= 2 && (
+      {streak && streak.current >= 2 && (
         <div className='streak'>
-          🔥 {streak} {habit.frequency.periodUnit} streak
+          🔥 {streak.current} {habit.frequency.periodUnit} streak
         </div>
+      )}
+      {streak && streak.current < 2 && streak.previous >= 2 && (
+        <div className='streak streak-muted'>🔥 {streak.previous} — keep going!</div>
       )}
     </Card>
   );

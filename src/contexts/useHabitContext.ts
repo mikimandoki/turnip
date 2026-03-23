@@ -5,6 +5,7 @@ import type { Completion, Habit } from '../types';
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
+  streaks: { habitId: string; current: number; previous: number }[];
   displayDate: string;
   isFutureDate: boolean;
   showForm: boolean;

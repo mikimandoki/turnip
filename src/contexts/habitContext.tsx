@@ -1,9 +1,10 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { Completion, Habit } from '../types';
 
 import { getCurrentDate, setDateOverride, toDateString } from '../utils/date';
+import { calculateStreak } from '../utils/habits';
 import { clearStorage, loadFromStorage, saveToStorage } from '../utils/localStorage';
 import { HabitContext } from './useHabitContext';
 
@@ -13,9 +14,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     loadFromStorage('completions', [])
   );
   const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
-  const isFutureDate = isFuture(parseISO(displayDate));
+  const isFutureDate = !import.meta.env.DEV && isFuture(parseISO(displayDate));
   const [showForm, setShowForm] = useState(false);
-  
+
+  const streaks = useMemo(
+    () =>
+      habits.map(h => ({
+        habitId: h.id,
+        current: calculateStreak(h, completions),
+        previous: calculateStreak(h, completions, true),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [habits, completions, displayDate] // Need to know if displayDate changes
+  );
+
   function updateCompletion(habitId: string, increment: number) {
     const today = toDateString(getCurrentDate());
     const existing = completions.find(c => c.habitId === habitId && c.date === today);
@@ -58,7 +70,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   function setDate(dateString: string | null) {
     const date = dateString ? parseISO(dateString) : null;
-    setDisplayDate(dateString ?? toDateString(new Date()));
+    setDisplayDate(dateString ?? toDateString(getCurrentDate()));
     setDateOverride(date);
   }
 
@@ -73,6 +85,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       value={{
         habits,
         completions,
+        streaks,
         displayDate,
         isFutureDate,
         showForm,
