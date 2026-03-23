@@ -13,9 +13,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     loadFromStorage('completions', [])
   );
   const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
-  const isFutureDate = isFuture(displayDate);
+  const isFutureDate = isFuture(parseISO(displayDate));
   const [showForm, setShowForm] = useState(false);
-
+  
   function updateCompletion(habitId: string, increment: number) {
     const today = toDateString(getCurrentDate());
     const existing = completions.find(c => c.habitId === habitId && c.date === today);
