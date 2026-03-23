@@ -34,12 +34,11 @@ function describeFrequency(frequency: Frequency) {
   }
 }
 
-// TODO: Handle periodlength > 1
 // How many completions have been logged in the current period
 function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
   const now = getCurrentDate();
   const today = toDateString(now);
-  const periodStart = startDatePeriod(habit.frequency, now);
+  const periodStart = startDatePeriod(habit.frequency, now, habit.createdAt);
   return completions
     .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
     .reduce((sum, c) => sum + c.count, 0);
@@ -50,12 +49,12 @@ function calculateStreak(habit: Habit, completions: Completion[]): number {
   let checkDate = getCurrentDate();
 
   while (true) {
-    const periodStart = startDatePeriod(habit.frequency, checkDate);
+    const periodStart = startDatePeriod(habit.frequency, checkDate, habit.createdAt);
 
     // Don't check periods before the habit existed
     if (periodStart < habit.createdAt) break;
 
-    const periodEnd = endDatePeriod(habit.frequency, checkDate);
+    const periodEnd = endDatePeriod(habit.frequency, checkDate, habit.createdAt);
     const count = completions
       .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= periodEnd)
       .reduce((sum, c) => sum + c.count, 0);
@@ -68,13 +67,13 @@ function calculateStreak(habit: Habit, completions: Completion[]): number {
 
     switch (habit.frequency.periodUnit) {
       case 'day':
-        checkDate = subDays(checkDate, 1);
+        checkDate = subDays(checkDate, habit.frequency.periodLength);
         break;
       case 'month':
-        checkDate = subMonths(checkDate, 1);
+        checkDate = subMonths(checkDate, habit.frequency.periodLength);
         break;
       case 'week':
-        checkDate = subWeeks(checkDate, 1);
+        checkDate = subWeeks(checkDate, habit.frequency.periodLength);
         break;
     }
   }

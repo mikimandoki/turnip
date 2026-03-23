@@ -1,4 +1,10 @@
 import {
+  addDays,
+  addMonths,
+  addWeeks,
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
   endOfDay,
   endOfMonth,
   endOfWeek,
@@ -23,28 +29,50 @@ export function getCurrentDate(): Date {
   return devDateOverride ?? new Date();
 }
 
-// Determine the start date of the currently computed period
-export function startDatePeriod(frequency: Frequency, date: Date): string {
-  switch (frequency.periodUnit) {
-    case 'day':
-      return toDateString(startOfDay(date));
-    case 'week':
-      return toDateString(startOfWeek(date, { weekStartsOn: 1 }));
-    case 'month':
-      return toDateString(startOfMonth(date));
+const unitOps: Record<
+  Frequency['periodUnit'],
+  {
+    startOf: (d: Date) => Date;
+    endOf: (d: Date) => Date;
+    add: (d: Date, n: number) => Date;
+    differenceIn: (a: Date, b: Date) => number;
   }
+> = {
+  day: {
+    startOf: startOfDay,
+    endOf: endOfDay,
+    add: addDays,
+    differenceIn: differenceInDays,
+  },
+  week: {
+    startOf: d => startOfWeek(d, { weekStartsOn: 1 }),
+    endOf: d => endOfWeek(d, { weekStartsOn: 1 }),
+    add: addWeeks,
+    differenceIn: differenceInWeeks,
+  },
+  month: {
+    startOf: startOfMonth,
+    endOf: endOfMonth,
+    add: addMonths,
+    differenceIn: differenceInMonths,
+  },
+};
+
+export function startDatePeriod(frequency: Frequency, now: Date, createdAt: string): string {
+  const ops = unitOps[frequency.periodUnit];
+  if (frequency.periodLength === 1) {
+    return toDateString(ops.startOf(now));
+  }
+  const anchor = ops.startOf(new Date(createdAt));
+  const totalPeriods = ops.differenceIn(now, anchor);
+  const elapsedPeriods = Math.floor(totalPeriods / frequency.periodLength);
+  return toDateString(ops.add(anchor, elapsedPeriods * frequency.periodLength));
 }
 
-// Determine the end date of the currently computed period
-export function endDatePeriod(frequency: Frequency, date: Date): string {
-  switch (frequency.periodUnit) {
-    case 'day':
-      return toDateString(endOfDay(date));
-    case 'week':
-      return toDateString(endOfWeek(date, { weekStartsOn: 1 }));
-    case 'month':
-      return toDateString(endOfMonth(date));
-  }
+export function endDatePeriod(frequency: Frequency, date: Date, createdAt: string): string {
+  const ops = unitOps[frequency.periodUnit];
+  const periodStart = new Date(startDatePeriod(frequency, date, createdAt));
+  return toDateString(ops.endOf(ops.add(periodStart, frequency.periodLength - 1)));
 }
 
 export function toDateString(date: Date): string {
