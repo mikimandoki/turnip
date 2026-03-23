@@ -50,11 +50,11 @@ function calculateStreak(habit: Habit, completions: Completion[]): number {
 
   while (true) {
     const periodStart = startDatePeriod(habit.frequency, checkDate, habit.createdAt);
-
-    // Don't check periods before the habit existed
-    if (periodStart < habit.createdAt) break;
-
     const periodEnd = endDatePeriod(habit.frequency, checkDate, habit.createdAt);
+
+    // Period is entirely before the habit existed
+    if (periodEnd < habit.createdAt) break;
+
     const count = completions
       .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= periodEnd)
       .reduce((sum, c) => sum + c.count, 0);
@@ -64,6 +64,9 @@ function calculateStreak(habit: Habit, completions: Completion[]): number {
     } else {
       break; // Streak broken
     }
+
+    // This was the creation period (habit started mid-period); nothing before this to check
+    if (periodStart < habit.createdAt) break;
 
     switch (habit.frequency.periodUnit) {
       case 'day':
@@ -201,18 +204,20 @@ export default function App() {
       </div>
       {habits.length > 0 && (
         <div className='habit-list'>
-          {habits.map(habit => (
-            <HabitRow
-              key={habit.id}
-              habit={habit}
-              completedCount={getCompletionsInPeriod(habit, completions)}
-              targetCount={habit.frequency.times}
-              streak={calculateStreak(habit, completions)}
-              onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
-              onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
-              onDeleteButtonClick={() => deleteHabit(habit)}
-            />
-          ))}
+          {habits
+            .filter(h => h.createdAt <= toDateString(getCurrentDate()))
+            .map(habit => (
+              <HabitRow
+                key={habit.id}
+                habit={habit}
+                completedCount={getCompletionsInPeriod(habit, completions)}
+                targetCount={habit.frequency.times}
+                streak={calculateStreak(habit, completions)}
+                onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
+                onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
+                onDeleteButtonClick={() => deleteHabit(habit)}
+              />
+            ))}
         </div>
       )}
       {showForm ? (
