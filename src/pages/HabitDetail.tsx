@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router';
 
 import Card from '../components/Card';
 import { HabitEmoji } from '../components/HabitEmoji';
+import Heatmap from '../components/Heatmap';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { describeFrequency, parseHabitEmoji } from '../utils/habits';
@@ -13,7 +14,7 @@ import { validateInputs } from '../utils/utils';
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, stats, deleteHabit, editHabit } = useHabitContext();
+  const { habits, completions, stats, deleteHabit, editHabit } = useHabitContext();
   const habit = habits.find(h => h.id === id);
   const habitStats = stats.find(s => s.habitId === id);
   const [isEditing, setIsEditing] = useState(false);
@@ -135,7 +136,7 @@ export default function HabitDetail() {
           </div>
         </Card>
         <Card>
-          <p style={{ color: 'var(--color-text-secondary)' }}>Heatmap coming soon</p>
+          <Heatmap habit={habit} completions={completions} />
         </Card>
       </div>
     </>

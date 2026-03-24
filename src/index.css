@@ -388,3 +388,28 @@ body {
   color: var(--color-text-danger);
   margin-top: var(--spacing-sm);
 }
+
+/* --- Heatmap --- */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--color-background-tertiary);
+}
+
+.heatmap-filled {
+  background: var(--color-text-success);
+}
+
+.heatmap-empty {
+  background: var(--color-background-tertiary);
+}
+
+.heatmap-pad {
+  background: transparent;
+}
