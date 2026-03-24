@@ -28,14 +28,14 @@ import {
 
 import type { Frequency, Habit } from '../types';
 
-let devDateOverride: Date | null = null;
+let dateOverride: Date | null = null;
 
 export function setDateOverride(date: Date | null) {
-  devDateOverride = date;
+  dateOverride = date;
 }
 
 export function getCurrentDate(): Date {
-  return devDateOverride ?? new Date();
+  return dateOverride ?? new Date();
 }
 
 const unitOps: Record<

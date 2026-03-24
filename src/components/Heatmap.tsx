@@ -1,8 +1,19 @@
-import { eachDayOfInterval, parseISO } from 'date-fns';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  isBefore,
+  parseISO,
+  startOfMonth,
+  subMonths,
+} from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
 import type { Completion, Habit } from '../types';
 
-import { getCurrentDate, toDateString } from '../utils/date';
+import { endDatePeriod, startDatePeriod, toDateString } from '../utils/date';
 
 export default function Heatmap({
   habit,
@@ -11,35 +22,78 @@ export default function Heatmap({
   habit: Habit;
   completions: Completion[];
 }) {
+  // Heatmap is anchored in current month.
+  // Don't show future date if user came from future date
+  const today = new Date();
+  const createdAt = parseISO(habit.createdAt);
+  const [heatmapMonth, setHeatmapMonth] = useState(today);
+  const canGoForward =
+    import.meta.env.DEV || isBefore(startOfMonth(heatmapMonth), startOfMonth(today));
+  const canGoBack =
+    import.meta.env.DEV || isBefore(startOfMonth(createdAt), startOfMonth(heatmapMonth));
   const days = eachDayOfInterval({
-    start: parseISO(habit.createdAt),
-    end: getCurrentDate(),
+    start: startOfMonth(heatmapMonth),
+    end: endOfMonth(heatmapMonth),
   });
 
-  const startDate = parseISO(habit.createdAt);
-  const startDay = startDate.getDay(); // 0=Sun, 1=Mon...
-  const mondayOffset = startDay === 0 ? 6 : startDay - 1;
+  const firstDayOfMonth = startOfMonth(heatmapMonth).getDay(); // 0=Sun, 1=Mon...
+  const mondayOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
   const padding = Array(mondayOffset).fill(null);
 
   const completionMap = new Map(
     completions.filter(c => c.habitId === habit.id).map(c => [c.date, c.count])
   );
 
+  const completedPeriods = new Set<string>();
+  days.forEach(day => {
+    const periodStart = startDatePeriod(habit, day);
+    if (completedPeriods.has(periodStart)) return; // already checked
+
+    const periodEnd = endDatePeriod(habit, day);
+    const periodTotal = Array.from(completionMap.entries())
+      .filter(([date]) => date >= periodStart && date <= periodEnd)
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    if (periodTotal >= habit.frequency.times) {
+      completedPeriods.add(periodStart);
+    }
+  });
+
   return (
-    <div className='heatmap'>
-      {padding.map((_, i) => (
-        <div key={`pad-${i}`} className='heatmap-cell heatmap-pad' />
-      ))}
-      {days.map(day => {
-        const dateStr = toDateString(day);
-        const count = completionMap.get(dateStr) ?? 0;
-        return (
-          <div
-            key={dateStr}
-            className={`heatmap-cell ${count > 0 ? 'heatmap-filled' : 'heatmap-empty'}`}
-          />
-        );
-      })}
-    </div>
+    <>
+      <div className='heatmap-header'>
+        <button
+          className='btn-action'
+          onClick={() => setHeatmapMonth(subMonths(heatmapMonth, 1))}
+          disabled={!canGoBack}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span>{format(heatmapMonth, 'MMMM yyyy')}</span>
+        <button
+          className='btn-action'
+          onClick={() => setHeatmapMonth(addMonths(heatmapMonth, 1))}
+          disabled={!canGoForward}
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+      <div className='heatmap'>
+        {padding.map((_, i) => (
+          <div key={`pad-${i}`} className='heatmap-cell heatmap-pad' />
+        ))}
+        {days.map(day => {
+          const dateStr = toDateString(day);
+          const count = completionMap.get(dateStr) ?? 0;
+          const periodComplete = completedPeriods.has(startDatePeriod(habit, day));
+          return (
+            <div
+              key={dateStr}
+              className={`heatmap-cell ${count > 0 ? 'heatmap-filled' : periodComplete ? 'heatmap-period-complete' : 'heatmap-empty'}`}
+            />
+          );
+        })}
+      </div>
+    </>
   );
 }

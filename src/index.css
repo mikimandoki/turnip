@@ -396,6 +396,15 @@ body {
   gap: 3px;
 }
 
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .heatmap-cell {
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
@@ -404,6 +413,10 @@ body {
 
 .heatmap-filled {
   background: var(--color-text-success);
+}
+
+.heatmap-period-complete {
+  background: rgba(29, 158, 117, 0.15);
 }
 
 .heatmap-empty {
