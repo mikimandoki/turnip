@@ -110,7 +110,7 @@ export function calculateHabitStats(habit: Habit, completions: Completion[]): Ha
   let firstPeriodCompleted: boolean | null = null;
   let secondPeriodCompleted: boolean | null = null;
 
-  let checkDate = getCurrentDate();
+  let checkDate = new Date();
 
   while (true) {
     const periodStart = startDatePeriod(habit, checkDate);
@@ -124,7 +124,7 @@ export function calculateHabitStats(habit: Habit, completions: Completion[]): Ha
           c.habitId === habit.id &&
           c.date >= periodStart &&
           c.date <= periodEnd &&
-          c.date <= toDateString(getCurrentDate())
+          c.date <= toDateString(new Date())
       )
       .reduce((sum, c) => sum + c.count, 0);
 

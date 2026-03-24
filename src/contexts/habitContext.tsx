@@ -23,8 +23,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         habitId: h.id,
         ...calculateHabitStats(h, completions),
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [habits, completions, displayDate] // Need to know if displayDate changes
+    [habits, completions]
   );
 
   function updateCompletion(habitId: string, increment: number) {
