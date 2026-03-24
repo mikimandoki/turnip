@@ -1,6 +1,5 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 
 import type { Completion, Habit } from '../types';
 
@@ -10,7 +9,6 @@ import { clearStorage, loadFromStorage, saveToStorage } from '../utils/localStor
 import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
   const [completions, setCompletions] = useState<Completion[]>(() =>
     loadFromStorage('completions', [])
@@ -58,14 +56,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function deleteHabit(habit: Habit) {
-    if (!confirm(`Delete "${habit.name}" ?`)) return;
     const updatedHabits = habits.filter(h => h.id !== habit.id);
     const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
     setHabits(updatedHabits);
     setCompletions(updatedCompletions);
     saveToStorage('habits', updatedHabits);
     saveToStorage('completions', updatedCompletions);
-    void navigate('/');
   }
 
   function editHabit(habit: Habit, updates: Partial<Habit>) {
