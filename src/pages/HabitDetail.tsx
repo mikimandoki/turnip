@@ -28,17 +28,40 @@ export default function HabitDetail() {
             <div className='habit-card-info'>
               <div className='habit-card-name'>{habit.name}</div>
               <div className='habit-card-frequency'>{describeFrequency(habit.frequency)}</div>
+              <div className='habit-card-frequency'>
+                Created {namedDayOrDate(parseISO(habit.createdAt))}
+              </div>
             </div>
             <div className='habit-card-right'>
               <button className='btn-action'>...</button>
             </div>
           </div>
-          <p>Created: {namedDayOrDate(parseISO(habit.createdAt))}</p>
-          <p>Current streak: {habitStats?.currentStreak}</p>
-          <p>Previous streak: {habitStats?.previousStreak}</p>
-          <p>Max streak: {habitStats?.maxStreak}</p>
-          <p>Completion rate: {habitStats ? Math.round(habitStats.completionRate * 100) : 0}%</p>
-          <p>Completed periods: {habitStats?.completedPeriods} / {habitStats?.totalPeriods}</p>        </Card>
+        </Card>
+        <Card>
+          <div className='stats-grid'>
+            <div className='stat-box'>
+              <div className='stat-value'>{habitStats?.currentStreak}</div>
+              <div className='stat-label'>current streak</div>
+            </div>
+            <div className='stat-box'>
+              <div className='stat-value'>{habitStats?.maxStreak}</div>
+              <div className='stat-label'>best streak</div>
+            </div>
+            <div className='stat-box'>
+              <div className='stat-value'>
+                {Math.round((habitStats?.completionRate ?? 0) * 100)}%
+              </div>
+              <div className='stat-label'>completion rate</div>
+            </div>
+            <div className='stat-box'>
+              <div className='stat-value'>{habitStats?.completedPeriods}</div>
+              <div className='stat-label'>total completions</div>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <p style={{ color: 'var(--color-text-secondary)' }}>Heatmap coming soon</p>
+        </Card>
       </div>
     </>
   );

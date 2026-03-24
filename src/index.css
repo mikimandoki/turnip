@@ -19,6 +19,15 @@
   --color-text-info: #378add;
   --color-text-danger: #d85a30;
   --color-text-warning: #ba7517;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --spacing-sm: 4px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
 }
 
 /* ---- Global ---- */
@@ -30,11 +39,14 @@ body {
   color: var(--color-text-primary);
 }
 
+/* Single layout container — controls all vertical spacing */
 .app {
   max-width: 600px;
   margin: 0 auto;
   padding: 1rem;
+  display: flex;
   flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
 /* ---- Header ---- */
@@ -42,11 +54,7 @@ body {
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 1.5rem;
-  padding: 0 0px;
-  gap: 10px;
-  flex-direction: row;
+  align-items: center;
 }
 
 .header-title {
@@ -66,32 +74,31 @@ body {
 
 /* ---- Habit list ---- */
 
+/* No extra margin — .app gap handles spacing between list and siblings */
 .habit-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 1.5rem;
-  width: 100%;
+  gap: var(--spacing-lg);
 }
 
-/* ---- Habit card ---- */
+/* ---- Card (generic wrapper) ---- */
 
 .habit-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
   background: var(--color-background-primary);
   border: 0.5px solid var(--color-border-tertiary);
-  border-radius: 12px;
-  padding: 14px 16px;
-  width: 100%;
+  border-radius: var(--radius-lg);
+  padding: 14px var(--spacing-xl);
 }
+
+/* ---- Habit card content ---- */
 
 .habit-card-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.habit-card-info {
-  flex: 1;
 }
 
 .habit-card-name {
@@ -107,7 +114,8 @@ body {
 .habit-card-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-lg);
+  flex-shrink: 0;
 }
 
 /* ---- Completion count ---- */
@@ -129,17 +137,12 @@ body {
   color: var(--color-text-danger);
 }
 
-/* ---- Action buttons ---- */
-
-.habit-card-actions {
-  display: flex;
-  gap: 4px;
-}
+/* ---- Buttons ---- */
 
 .btn-action {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 0.5px solid var(--color-border-secondary);
   background: none;
   display: flex;
@@ -155,7 +158,7 @@ body {
   cursor: not-allowed;
 }
 
-.btn-action:hover {
+.btn-action:hover:not(:disabled) {
   background: var(--color-background-tertiary);
 }
 
@@ -163,18 +166,77 @@ body {
   color: var(--color-text-danger);
 }
 
+.habit-card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.btn-add-habit {
+  width: 100%;
+  border: 0.5px dashed var(--color-border-secondary);
+  border-radius: var(--radius-lg);
+  padding: 14px var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  background: none;
+}
+
+.btn-add-habit:hover {
+  background: var(--color-background-tertiary);
+}
+
+.btn-submit {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-text-success);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-submit:hover {
+  opacity: 0.9;
+}
+
+.btn-cancel {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: none;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.btn-delete-all {
+  width: 100%;
+  padding: 10px;
+  border: 0.5px solid var(--color-text-danger);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-danger);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-delete-all:hover {
+  background: rgba(216, 90, 48, 0.05);
+}
+
 /* ---- Progress bar ---- */
 
 .progress-bar {
-  margin-top: 8px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   background: var(--color-background-tertiary);
 }
 
 .progress-fill {
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   transition: width 0.2s ease;
 }
 
@@ -193,7 +255,6 @@ body {
 /* ---- Streak ---- */
 
 .streak {
-  margin-top: 6px;
   font-size: 11px;
   color: var(--color-text-warning);
 }
@@ -202,49 +263,55 @@ body {
   color: var(--color-text-secondary);
 }
 
-/* ---- Add habit button ---- */
+/* ---- Stats grid ---- */
 
-.btn-add-habit {
-  width: 100%;
-  border: 0.5px dashed var(--color-border-secondary);
-  border-radius: 12px;
-  padding: 14px 16px;
-  text-align: center;
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.stat-box {
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.stat-label {
+  font-size: 12px;
   color: var(--color-text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  background: none;
+  margin-top: var(--spacing-sm);
 }
 
-.btn-add-habit:hover {
-  background: var(--color-background-tertiary);
-}
-
-/* ---- Add habit form ---- */
+/* ---- Form ---- */
 
 .add-habit-form {
   width: 100%;
   background: var(--color-background-primary);
   border: 0.5px solid var(--color-border-tertiary);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-top: 10px;
+  border-radius: var(--radius-lg);
+  padding: 14px var(--spacing-xl);
 }
 
 .add-habit-form input[type='text'],
 .add-habit-form input[type='number'] {
-  padding: 8px;
+  padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   background: var(--color-background-primary);
   color: var(--color-text-primary);
 }
 
 .add-habit-form select {
-  padding: 8px;
+  padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   background: var(--color-background-primary);
   color: var(--color-text-primary);
@@ -257,8 +324,8 @@ body {
 .form-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-label {
@@ -266,52 +333,10 @@ body {
   color: var(--color-text-secondary);
 }
 
-.btn-submit {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  background: var(--color-text-success);
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-submit:hover {
-  opacity: 0.9;
-}
-
-.btn-cancel {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 0.5px solid var(--color-border-secondary);
-  background: none;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
 /* ---- Validation errors ---- */
 
 .error-message {
   font-size: 12px;
   color: var(--color-text-danger);
-  margin-top: 4px;
-}
-
-/* ---- Delete all (dev) ---- */
-
-.btn-delete-all {
-  margin-top: 1.5rem;
-  width: 100%;
-  padding: 10px;
-  border: 0.5px solid var(--color-text-danger);
-  border-radius: 8px;
-  background: none;
-  color: var(--color-text-danger);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.btn-delete-all:hover {
-  background: rgba(216, 90, 48, 0.05);
+  margin-top: var(--spacing-sm);
 }

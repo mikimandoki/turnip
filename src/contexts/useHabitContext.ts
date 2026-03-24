@@ -15,7 +15,7 @@ export interface HabitContextType {
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => void;
-  stats: (HabitStats & {habitId: string})[]
+  stats: (HabitStats & { habitId: string })[];
 }
 
 export const HabitContext = createContext<HabitContextType | null>(null);
