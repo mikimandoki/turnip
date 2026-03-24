@@ -15,6 +15,25 @@ import type { Completion, Habit } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from '../utils/date';
 
+function getDayClass(
+  count: number,
+  times: number,
+  isDailyPeriod: boolean,
+  periodComplete: boolean
+): string {
+  if (isDailyPeriod) {
+    if (count === 0) return 'heatmap-empty';
+    const ratio = count / times;
+    if (ratio >= 1) return 'heatmap-filled';
+    if (ratio >= 0.75) return 'heatmap-fill-75';
+    if (ratio >= 0.5) return 'heatmap-fill-50';
+    return 'heatmap-fill-25';
+  }
+  if (count > 0) return 'heatmap-filled';
+  if (periodComplete) return 'heatmap-period-complete';
+  return 'heatmap-empty';
+}
+
 export default function Heatmap({
   habit,
   completions,
@@ -43,6 +62,8 @@ export default function Heatmap({
   const completionMap = new Map(
     completions.filter(c => c.habitId === habit.id).map(c => [c.date, c.count])
   );
+
+  const isDailyPeriod = habit.frequency.periodUnit === 'day' && habit.frequency.periodLength === 1;
 
   const completedPeriods = new Set<string>();
   days.forEach(day => {
@@ -79,6 +100,11 @@ export default function Heatmap({
         </button>
       </div>
       <div className='heatmap'>
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
+          <div key={i} className='heatmap-dow'>
+            {d}
+          </div>
+        ))}
         {padding.map((_, i) => (
           <div key={`pad-${i}`} className='heatmap-cell heatmap-pad' />
         ))}
@@ -89,8 +115,10 @@ export default function Heatmap({
           return (
             <div
               key={dateStr}
-              className={`heatmap-cell ${count > 0 ? 'heatmap-filled' : periodComplete ? 'heatmap-period-complete' : 'heatmap-empty'}`}
-            />
+              className={`heatmap-cell ${getDayClass(count, habit.frequency.times, isDailyPeriod, periodComplete)}`}
+            >
+              <span className='heatmap-day-number'>{day.getDate()}</span>
+            </div>
           );
         })}
       </div>

@@ -405,10 +405,47 @@ body {
   font-weight: 500;
 }
 
+.heatmap-dow {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding-bottom: 2px;
+}
+
 .heatmap-cell {
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   background: var(--color-background-tertiary);
+  position: relative;
+  min-height: 28px;
+}
+
+.heatmap-day-number {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.heatmap-filled .heatmap-day-number {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.heatmap-fill-25 {
+  background: rgba(29, 158, 117, 0.25);
+}
+
+.heatmap-fill-50 {
+  background: rgba(29, 158, 117, 0.5);
+}
+
+.heatmap-fill-75 {
+  background: rgba(29, 158, 117, 0.75);
 }
 
 .heatmap-filled {
@@ -417,6 +454,11 @@ body {
 
 .heatmap-period-complete {
   background: rgba(29, 158, 117, 0.15);
+}
+
+.heatmap-fill-50 .heatmap-day-number,
+.heatmap-fill-75 .heatmap-day-number {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .heatmap-empty {
