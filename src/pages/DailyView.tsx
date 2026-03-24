@@ -1,13 +1,16 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
+import Card from '../components/Card';
 import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
+import { loadFromStorage } from '../utils/localStorage';
 import AddHabitForm from './AddHabitForm';
 
 export default function DailyView() {
+  const hasOnboarded = loadFromStorage('hasOnboarded', false);
   const navigate = useNavigate();
   const {
     habits,
@@ -33,6 +36,25 @@ export default function DailyView() {
           <ChevronRight size={16} />
         </button>
       </div>
+      {habits.length === 0 && !hasOnboarded && (
+        <Card>
+          <div className='onboarding'>
+            <div className='habit-emoji-large'>🌱</div>
+            <h2>Welcome to Turnip</h2>
+            <p>
+              Habits, like turnips, need time to form roots. Start tracking your first habit today.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {habits.length === 0 && hasOnboarded && (
+        <Card>
+          <div className='onboarding'>
+            <p>No habits yet. Ready to plant something new?</p>
+          </div>
+        </Card>
+      )}
       {habits.length > 0 && (
         <div className='habit-list'>
           {habits

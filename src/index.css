@@ -81,6 +81,30 @@ body {
   gap: var(--spacing-lg);
 }
 
+/* ---- Onboarding ---- */
+
+.onboarding {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.onboarding h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: var(--spacing-md) 0;
+}
+
+.onboarding p {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.habit-emoji-large {
+  font-size: 40px;
+}
+
 /* ---- Card (generic wrapper) ---- */
 
 .habit-card {

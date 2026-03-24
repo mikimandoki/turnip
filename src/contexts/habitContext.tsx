@@ -53,6 +53,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const updated = [...habits, newHabit];
     setHabits(updated);
     saveToStorage('habits', updated);
+    saveToStorage('hasOnboarded', true);
   }
 
   function deleteHabit(habit: Habit) {
