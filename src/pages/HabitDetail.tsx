@@ -22,7 +22,7 @@ export default function HabitDetail() {
 
   function handleSave() {
     if (!habit) return;
-    const updated = { ...habit, name: editName };
+    const updated = { ...habit, name: editName.trim() };
     const errors = validateInputs(updated);
     if (errors.length > 0) {
       setErrors(errors);

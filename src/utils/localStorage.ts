@@ -1,8 +1,12 @@
-// TODO: add error handling
 export function loadFromStorage<T>(key: string, fallback: T): T {
   const stored = localStorage.getItem(key);
-  if (stored) return JSON.parse(stored) as T;
-  return fallback;
+  if (!stored) return fallback;
+  try {
+    return JSON.parse(stored) as T;
+  } catch {
+    console.error(`[localStorage] failed to parse key ${key}, using fallback`);
+    return fallback;
+  }
 }
 
 export function saveToStorage<T>(key: string, data: T): void {
