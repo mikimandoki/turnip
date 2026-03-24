@@ -12,6 +12,7 @@ export interface HabitContextType {
   addHabit: (habit: Habit) => void;
   updateCompletion: (habitId: string, increment: number) => void;
   deleteHabit: (habit: Habit) => void;
+  editHabit: (habit: Habit, updates: Partial<Habit>) => void;
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => void;

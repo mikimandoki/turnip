@@ -1,5 +1,6 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import type { Completion, Habit } from '../types';
 
@@ -9,6 +10,7 @@ import { clearStorage, loadFromStorage, saveToStorage } from '../utils/localStor
 import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
   const [completions, setCompletions] = useState<Completion[]>(() =>
     loadFromStorage('completions', [])
@@ -63,6 +65,13 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setCompletions(updatedCompletions);
     saveToStorage('habits', updatedHabits);
     saveToStorage('completions', updatedCompletions);
+    void navigate('/');
+  }
+
+  function editHabit(habit: Habit, updates: Partial<Habit>) {
+    const updated = habits.map(h => (h.id === habit.id ? { ...h, ...updates } : h));
+    setHabits(updated);
+    saveToStorage('habits', updated);
   }
 
   function shiftDate(days: number) {
@@ -96,6 +105,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         addHabit,
         updateCompletion,
         deleteHabit,
+        editHabit,
         shiftDate,
         setDate,
         clearAll,

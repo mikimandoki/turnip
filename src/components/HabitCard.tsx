@@ -29,7 +29,6 @@ export default function HabitCard({
   onClick,
   onPositiveButtonClick,
   onNegativeButtonClick,
-  onDeleteButtonClick,
 }: {
   habit: Habit;
   completedCount: number;
@@ -37,7 +36,6 @@ export default function HabitCard({
   onClick: () => void;
   onPositiveButtonClick: () => void;
   onNegativeButtonClick: () => void;
-  onDeleteButtonClick: () => void;
 }) {
   const { isFutureDate, stats } = useHabitContext();
   const habitStats = stats.find(s => s.habitId === habit.id);
@@ -78,16 +76,6 @@ export default function HabitCard({
               disabled={isFutureDate}
             >
               -
-            </button>
-            <button
-              className='btn-action delete'
-              onClick={e => {
-                e.stopPropagation();
-                onDeleteButtonClick();
-              }}
-              disabled={isFutureDate}
-            >
-              X
             </button>
           </div>
         </div>

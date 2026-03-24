@@ -1,19 +1,37 @@
 import { parseISO } from 'date-fns';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import Card from '../components/Card';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { describeFrequency } from '../utils/habits';
+import { validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, stats } = useHabitContext();
+  const { habits, stats, deleteHabit, editHabit } = useHabitContext();
   const habit = habits.find(h => h.id === id);
   const habitStats = stats.find(s => s.habitId === id);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(habit?.name ?? '');
+  const [errors, setErrors] = useState<string[]>([]);
 
   if (!habit) return <div>Habit not found</div>;
+
+  function handleSave() {
+    if (!habit) return;
+    const updated = { ...habit, name: editName };
+    const errors = validateInputs(updated);
+    if (errors.length > 0) {
+      setErrors(errors);
+      return;
+    }
+    setErrors([]);
+    editHabit(habit, { name: editName });
+    setIsEditing(false);
+  }
 
   return (
     <>
@@ -26,14 +44,53 @@ export default function HabitDetail() {
         <Card>
           <div className='habit-card-content'>
             <div className='habit-card-info'>
-              <div className='habit-card-name'>{habit.name}</div>
+              {isEditing ? (
+                <input
+                  className='edit-name-input'
+                  type='text'
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  autoFocus
+                />
+              ) : (
+                <div className='habit-card-name'>{habit.name}</div>
+              )}
+              {errors.map(err => (
+                <p className='error-message' key={err}>
+                  {err}
+                </p>
+              ))}
               <div className='habit-card-frequency'>{describeFrequency(habit.frequency)}</div>
               <div className='habit-card-frequency'>
                 Created {namedDayOrDate(parseISO(habit.createdAt))}
               </div>
             </div>
-            <div className='habit-card-right'>
-              <button className='btn-action'>...</button>
+            <div className='habit-card-actions'>
+              {isEditing ? (
+                <>
+                  <button className='btn-action' onClick={handleSave}>
+                    ✓
+                  </button>
+                  <button
+                    className='btn-action'
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditName(habit.name);
+                    }}
+                  >
+                    ✕
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className='btn-action' onClick={() => setIsEditing(true)}>
+                    ✎
+                  </button>
+                  <button className='btn-action delete' onClick={() => deleteHabit(habit)}>
+                    ✕
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </Card>

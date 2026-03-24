@@ -16,7 +16,6 @@ export default function DailyView() {
     setShowForm,
     addHabit,
     updateCompletion,
-    deleteHabit,
     shiftDate,
     setDate,
     clearAll,
@@ -46,7 +45,6 @@ export default function DailyView() {
                 onClick={() => void navigate(`/habit/${habit.id}`)}
                 onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
                 onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
-                onDeleteButtonClick={() => deleteHabit(habit)}
               />
             ))}
         </div>
