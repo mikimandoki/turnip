@@ -25,7 +25,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 
-import type { Frequency } from '../types';
+import type { Frequency, Habit } from '../types';
 
 let devDateOverride: Date | null = null;
 
@@ -66,21 +66,21 @@ const unitOps: Record<
   },
 };
 
-export function startDatePeriod(frequency: Frequency, now: Date, createdAt: string): string {
-  const ops = unitOps[frequency.periodUnit];
-  if (frequency.periodLength === 1) {
+export function startDatePeriod(habit: Pick<Habit, 'createdAt' | 'frequency'>, now: Date): string {
+  const ops = unitOps[habit.frequency.periodUnit];
+  if (habit.frequency.periodLength === 1) {
     return toDateString(ops.startOf(now));
   }
-  const anchor = ops.startOf(parseISO(createdAt));
+  const anchor = ops.startOf(parseISO(habit.createdAt));
   const totalPeriods = ops.differenceIn(now, anchor);
-  const elapsedPeriods = Math.floor(totalPeriods / frequency.periodLength);
-  return toDateString(ops.add(anchor, elapsedPeriods * frequency.periodLength));
+  const elapsedPeriods = Math.floor(totalPeriods / habit.frequency.periodLength);
+  return toDateString(ops.add(anchor, elapsedPeriods * habit.frequency.periodLength));
 }
 
-export function endDatePeriod(frequency: Frequency, date: Date, createdAt: string): string {
-  const ops = unitOps[frequency.periodUnit];
-  const periodStart = parseISO(startDatePeriod(frequency, date, createdAt));
-  return toDateString(ops.endOf(ops.add(periodStart, frequency.periodLength - 1)));
+export function endDatePeriod(habit: Pick<Habit, 'createdAt' | 'frequency'>, date: Date): string {
+  const ops = unitOps[habit.frequency.periodUnit];
+  const periodStart = parseISO(startDatePeriod(habit, date));
+  return toDateString(ops.endOf(ops.add(periodStart, habit.frequency.periodLength - 1)));
 }
 
 export function toDateString(date: Date): string {

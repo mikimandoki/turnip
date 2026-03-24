@@ -28,7 +28,7 @@ export function describeFrequency(frequency: Frequency) {
 export function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
   const now = getCurrentDate();
   const today = toDateString(now);
-  const periodStart = startDatePeriod(habit.frequency, now, habit.createdAt);
+  const periodStart = startDatePeriod(habit, now);
   return completions
     .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
     .reduce((sum, c) => sum + c.count, 0);
@@ -42,11 +42,11 @@ export function calculateStreak(
   let streak = 0;
   let checkDate = getCurrentDate();
   if (skipCurrent) {
-    checkDate = subDays(parseISO(startDatePeriod(habit.frequency, checkDate, habit.createdAt)), 1);
+    checkDate = subDays(parseISO(startDatePeriod(habit, checkDate)), 1);
   }
   while (true) {
-    const periodStart = startDatePeriod(habit.frequency, checkDate, habit.createdAt);
-    const periodEnd = endDatePeriod(habit.frequency, checkDate, habit.createdAt);
+    const periodStart = startDatePeriod(habit, checkDate);
+    const periodEnd = endDatePeriod(habit, checkDate);
 
     // Period is entirely before the habit existed
     if (periodEnd < habit.createdAt) break;

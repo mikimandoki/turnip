@@ -1,7 +1,9 @@
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
+import { getCurrentDate, startDatePeriod } from '../utils/date';
 import { describeFrequency } from '../utils/habits';
+import { simpleHash } from '../utils/utils';
 import Card from './Card';
 
 const motivationalMessages = [
@@ -37,8 +39,9 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
   onDeleteButtonClick: () => void;
 }) {
-  const { isFutureDate, streaks, displayDate } = useHabitContext();
-  const seed = habit.id.charCodeAt(0) + displayDate.charCodeAt(8);
+  const { isFutureDate, streaks } = useHabitContext();
+  const periodStart = startDatePeriod(habit, getCurrentDate());
+  const seed = simpleHash(habit.id + periodStart);
   const message = motivationalMessages[seed % motivationalMessages.length];
   const streak = streaks.find(s => s.habitId === habit.id);
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
