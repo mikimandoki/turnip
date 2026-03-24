@@ -105,7 +105,11 @@ export default function HabitDetail() {
         <Card>
           <div className='stats-grid'>
             <div className='stat-box'>
-              <div className='stat-value'>{habitStats?.currentStreak}</div>
+              <div className='stat-value'>
+                {habitStats?.streakContinuable
+                  ? habitStats.previousStreak
+                  : habitStats?.currentStreak}
+              </div>
               <div className='stat-label'>current streak</div>
             </div>
             <div className='stat-box'>
