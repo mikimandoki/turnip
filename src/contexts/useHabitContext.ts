@@ -1,11 +1,10 @@
 import { createContext, useContext } from 'react';
 
-import type { Completion, Habit } from '../types';
+import type { Completion, Habit, HabitStats } from '../types';
 
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
-  streaks: { habitId: string; current: number; previous: number }[];
   displayDate: string;
   isFutureDate: boolean;
   showForm: boolean;
@@ -16,6 +15,7 @@ export interface HabitContextType {
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => void;
+  stats: (HabitStats & {habitId: string})[]
 }
 
 export const HabitContext = createContext<HabitContextType | null>(null);

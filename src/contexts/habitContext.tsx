@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Completion, Habit } from '../types';
 
 import { getCurrentDate, setDateOverride, toDateString } from '../utils/date';
-import { calculateStreak } from '../utils/habits';
+import { calculateHabitStats } from '../utils/habits';
 import { clearStorage, loadFromStorage, saveToStorage } from '../utils/localStorage';
 import { HabitContext } from './useHabitContext';
 
@@ -17,12 +17,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const isFutureDate = !import.meta.env.DEV && isFuture(parseISO(displayDate));
   const [showForm, setShowForm] = useState(false);
 
-  const streaks = useMemo(
+  const stats = useMemo(
     () =>
       habits.map(h => ({
         habitId: h.id,
-        current: calculateStreak(h, completions),
-        previous: calculateStreak(h, completions, true),
+        ...calculateHabitStats(h, completions)
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [habits, completions, displayDate] // Need to know if displayDate changes
@@ -35,9 +34,13 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     if (existing) {
       const newCount = existing.count + increment;
       if (newCount < 0) return;
-      updated = completions.map(c =>
-        c.habitId === habitId && c.date === today ? { ...c, count: newCount } : c
-      );
+      if (newCount === 0) {
+        updated = completions.filter(c => !(c.habitId === habitId && c.date === today));
+      } else {
+        updated = completions.map(c =>
+          c.habitId === habitId && c.date === today ? { ...c, count: newCount } : c
+        );
+      }
     } else {
       if (increment < 0) return;
       updated = [...completions, { habitId, date: today, count: increment }];
@@ -85,7 +88,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       value={{
         habits,
         completions,
-        streaks,
+        stats,
         displayDate,
         isFutureDate,
         showForm,

@@ -27,3 +27,13 @@ export interface Completion {
   date: string; // ISO date string, e.g. "2026-03-19"
   count: number;
 }
+
+export interface HabitStats {
+  currentStreak: number;
+  previousStreak: number;
+  maxStreak: number;
+  completionRate: number;
+  totalPeriods: number;
+  completedPeriods: number;
+  streakContinuable: boolean; // current period not yet done, but the previous one was
+}

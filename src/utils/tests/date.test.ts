@@ -5,7 +5,28 @@ import type { Habit } from '../../types';
 
 import { endDatePeriod, startDatePeriod } from '../date';
 
+// TODO: add monthly tests as well
+
 describe('startDatePeriod', () => {
+  // Intentional startDatePeriod before createdAt to count it as a full week
+  it('habit created on Wednesday, weekly period starts from Monday', () => {
+    const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
+      frequency: { times: 1, periodLength: 1, periodUnit: 'week' },
+      createdAt: '2026-03-25', // Wednesday
+    };
+    const date = parseISO('2026-03-25');
+    expect(startDatePeriod(habit, date)).toBe('2026-03-23'); // Monday
+  });
+
+  it('handles createdAt with time component', () => {
+    const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
+      frequency: { times: 1, periodLength: 1, periodUnit: 'week' },
+      createdAt: '2026-03-25T00:00:00.000Z',
+    };
+    const date = parseISO('2026-03-25');
+    expect(startDatePeriod(habit, date)).toBe('2026-03-23');
+  });
+
   it('returns today for daily frequency', () => {
     const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
       frequency: { times: 1, periodLength: 1, periodUnit: 'day' },

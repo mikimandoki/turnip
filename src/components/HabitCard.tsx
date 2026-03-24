@@ -39,11 +39,11 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
   onDeleteButtonClick: () => void;
 }) {
-  const { isFutureDate, streaks } = useHabitContext();
+  const { isFutureDate, stats } = useHabitContext();
+  const habitStats = stats.find(s => s.habitId === habit.id);
   const periodStart = startDatePeriod(habit, getCurrentDate());
   const seed = simpleHash(habit.id + periodStart);
   const message = motivationalMessages[seed % motivationalMessages.length];
-  const streak = streaks.find(s => s.habitId === habit.id);
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
@@ -95,14 +95,14 @@ export default function HabitCard({
       <div className='progress-bar'>
         <div className={`progress-fill ${status}`} style={{ width: `${progressPercent}%` }} />
       </div>
-      {streak && streak.current >= 2 && (
+      {habitStats && habitStats.currentStreak >= 2 && (
         <div className='streak'>
-          🔥 {streak.current} {habit.frequency.periodUnit} streak
+          🔥 {habitStats.currentStreak} {habit.frequency.periodUnit} streak
         </div>
       )}
-      {streak && streak.current < 2 && streak.previous >= 2 && (
+      {habitStats && habitStats.streakContinuable && habitStats.previousStreak >= 2 && (
         <div className='streak streak-muted'>
-          🔥 {streak.previous} — {message}
+          🔥 {habitStats.previousStreak} — {message}
         </div>
       )}
     </Card>

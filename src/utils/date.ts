@@ -16,6 +16,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isThisYear,
   isToday,
   isTomorrow,
   isYesterday,
@@ -87,10 +88,12 @@ export function toDateString(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
 
-export function namedDayOrDate(): string {
-  const date = getCurrentDate();
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
-  if (isTomorrow(date)) return 'Tomorrow';
-  return format(date, 'EEEE, MMM d');
+export function namedDayOrDate(date?: Date): string {
+  const formatDate = date || getCurrentDate();
+  const baseDateFormat = 'EEEE, MMMM d';
+  if (isToday(formatDate)) return 'Today';
+  if (isYesterday(formatDate)) return 'Yesterday';
+  if (isTomorrow(formatDate)) return 'Tomorrow';
+  if (isThisYear(formatDate)) return format(formatDate, baseDateFormat); // Saturday, March 28
+  return format(formatDate, baseDateFormat + ' y'); // Friday, March 28 2025
 }

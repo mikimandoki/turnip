@@ -1,6 +1,6 @@
 import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
 
-import type { Completion, Frequency, Habit } from '../types';
+import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
 import { endDatePeriod, getCurrentDate, startDatePeriod, toDateString } from './date';
 
@@ -24,14 +24,29 @@ export function describeFrequency(frequency: Frequency) {
   }
 }
 
+// Count completions between any two dates
+function getCompletionsInRange(
+  habitId: string,
+  completions: Completion[],
+  start: string,
+  end: string
+): number {
+  return completions
+    .filter(c => c.habitId === habitId && c.date >= start && c.date <= end)
+    .reduce((sum, c) => sum + c.count, 0);
+}
+
 // How many completions have been logged in the current period
 export function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
   const now = getCurrentDate();
-  const today = toDateString(now);
+  const today = toDateString(getCurrentDate());
   const periodStart = startDatePeriod(habit, now);
-  return completions
-    .filter(c => c.habitId === habit.id && c.date >= periodStart && c.date <= today)
-    .reduce((sum, c) => sum + c.count, 0);
+  return getCompletionsInRange(habit.id, completions, periodStart, today);
+}
+
+export function getTotalCompletions(habit: Habit, completions: Completion[]): number {
+  const today = toDateString(getCurrentDate());
+  return getCompletionsInRange(habit.id, completions, habit.createdAt, today);
 }
 
 export function calculateStreak(
@@ -84,4 +99,71 @@ export function calculateStreak(
   }
 
   return streak;
+}
+
+export function calculateHabitStats(habit: Habit, completions: Completion[]): HabitStats {
+  const runs: number[] = [];
+  let currentRun = 0;
+  let totalPeriods = 0;
+  let completedPeriods = 0;
+  let firstPeriodCompleted: boolean | null = null;
+  let secondPeriodCompleted: boolean | null = null;
+
+  let checkDate = getCurrentDate();
+
+  while (true) {
+    const periodStart = startDatePeriod(habit, checkDate);
+    const periodEnd = endDatePeriod(habit, checkDate);
+
+    if (periodEnd < habit.createdAt) break;
+
+    const count = completions
+      .filter(
+        c =>
+          c.habitId === habit.id &&
+          c.date >= periodStart &&
+          c.date <= periodEnd &&
+          c.date <= toDateString(getCurrentDate())
+      )
+      .reduce((sum, c) => sum + c.count, 0);
+
+    if (firstPeriodCompleted === null) {
+      firstPeriodCompleted = count >= habit.frequency.times;
+    } else if (secondPeriodCompleted === null) {
+      secondPeriodCompleted = count >= habit.frequency.times;
+    }
+    totalPeriods++;
+
+    if (count >= habit.frequency.times) {
+      completedPeriods++;
+      currentRun++;
+    } else {
+      if (currentRun > 0) runs.push(currentRun);
+      currentRun = 0;
+    }
+
+    if (periodStart < habit.createdAt) break;
+
+    checkDate = subDays(parseISO(periodStart), 1);
+  }
+
+  // Don't forget the last run if we ended on a completed period
+  if (currentRun > 0) runs.push(currentRun);
+
+  // runs[0] is the most recent run (walking backwards from today)
+  const currentStreak = firstPeriodCompleted ? (runs[0] ?? 0) : 0;
+  const previousStreak = firstPeriodCompleted ? (runs[1] ?? 0) : (runs[0] ?? 0);
+  const maxStreak = Math.max(0, ...runs);
+  const completionRate = totalPeriods > 0 ? completedPeriods / totalPeriods : 0;
+  const streakContinuable = firstPeriodCompleted === false && secondPeriodCompleted === true;
+
+  return {
+    currentStreak,
+    previousStreak,
+    maxStreak,
+    completionRate,
+    totalPeriods,
+    completedPeriods,
+    streakContinuable,
+  };
 }
