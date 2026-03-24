@@ -33,14 +33,12 @@ export default function HabitDetail() {
     setIsEditing(false);
   }
 
-
   function handleDelete() {
     if (!habit) return;
     if (!confirm(`Delete "${habit.name}"?`)) return;
     deleteHabit(habit);
     void navigate('/');
   }
-
 
   return (
     <>
@@ -83,6 +81,7 @@ export default function HabitDetail() {
                   <button
                     className='btn-action'
                     onClick={() => {
+                      setErrors([]);
                       setIsEditing(false);
                       setEditName(habit.name);
                     }}
