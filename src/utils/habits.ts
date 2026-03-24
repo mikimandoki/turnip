@@ -1,5 +1,5 @@
 import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
-import emojiRegex from 'emoji-regex';
+import emojiRegex from 'emoji-regex-xs';
 
 import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
