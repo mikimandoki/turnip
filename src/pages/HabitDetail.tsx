@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns';
+import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
@@ -49,7 +50,7 @@ export default function HabitDetail() {
       <div className='app'>
         <div className='header'>
           <button className='btn-action' onClick={() => void navigate('/')}>
-            ‹
+            <ChevronLeft size={16} />
           </button>
         </div>
         <Card>
@@ -81,7 +82,7 @@ export default function HabitDetail() {
               {isEditing ? (
                 <>
                   <button className='btn-action' onClick={handleSave}>
-                    ✓
+                    <Check size={16} />
                   </button>
                   <button
                     className='btn-action'
@@ -91,16 +92,16 @@ export default function HabitDetail() {
                       setEditName(habit.name);
                     }}
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </>
               ) : (
                 <>
                   <button className='btn-action' onClick={() => setIsEditing(true)}>
-                    ✎
+                    <Pencil size={16} />
                   </button>
                   <button className='btn-action delete' onClick={handleDelete}>
-                    ✕
+                    <Trash2 size={16} />
                   </button>
                 </>
               )}

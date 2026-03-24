@@ -1,3 +1,5 @@
+import { Minus, Plus } from 'lucide-react';
+
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -9,7 +11,7 @@ import { HabitEmoji } from './HabitEmoji';
 
 const motivationalMessages = [
   'keep going!',
-  "don't break the chain!",
+  "don't break the streak!",
   "you've got this!",
   'stay consistent!',
   'almost there!',
@@ -68,7 +70,7 @@ export default function HabitCard({
               }}
               disabled={isFutureDate}
             >
-              +
+              <Plus size={16} />
             </button>
             <button
               className='btn-action'
@@ -78,7 +80,7 @@ export default function HabitCard({
               }}
               disabled={isFutureDate}
             >
-              -
+              <Minus size={16} />
             </button>
           </div>
         </div>

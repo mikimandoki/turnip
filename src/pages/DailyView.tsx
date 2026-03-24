@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 import HabitCard from '../components/HabitCard';
@@ -25,11 +26,11 @@ export default function DailyView() {
     <div className='app'>
       <div className='header'>
         <button className='btn-action' onClick={() => shiftDate(-1)}>
-          ‹
+          <ChevronLeft size={16} />
         </button>
         <div className='header-title'>{namedDayOrDate()}</div>
         <button className='btn-action' onClick={() => shiftDate(1)}>
-          ›
+          <ChevronRight size={16} />
         </button>
       </div>
       {habits.length > 0 && (
@@ -59,7 +60,7 @@ export default function DailyView() {
         />
       ) : (
         <button className='btn-add-habit' onClick={() => setShowForm(true)}>
-          + Add new habit
+          Add new habit
         </button>
       )}
 
