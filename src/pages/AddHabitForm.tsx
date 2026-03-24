@@ -6,6 +6,18 @@ import type { Frequency, Habit } from '../types';
 import { getCurrentDate, toDateString } from '../utils/date';
 import { validateInputs } from '../utils/utils';
 
+const placeholderExamples = [
+  '💪 Go to the gym',
+  '📖 Read a book',
+  '🧘 Meditate',
+  '✍️ Journal',
+  '🏃 Go for a run',
+  '💧 Drink water',
+  '🛏️ Make the bed',
+  '🎸 Practice guitar',
+  '🥗 Eat a healthy meal',
+];
+
 export default function AddHabitForm({
   onAdd,
   onCancel,
@@ -18,6 +30,9 @@ export default function AddHabitForm({
   const [periodLength, setPeriodLength] = useState(1);
   const [periodUnit, setPeriodUnit] = useState<Frequency['periodUnit']>('day');
   const [errors, setErrors] = useState<string[]>([]);
+  const [placeholder] = useState(
+    () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
+  );
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const newHabit: Habit = {
@@ -43,7 +58,7 @@ export default function AddHabitForm({
       <div className='form-row'>
         <input
           type='text'
-          placeholder='Habit name'
+          placeholder={placeholder}
           value={name}
           onChange={e => setName(e.target.value)}
           style={{ flex: 1 }}

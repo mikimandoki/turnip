@@ -65,7 +65,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function editHabit(habit: Habit, updates: Partial<Habit>) {
-    const updated = habits.map(h => (h.id === habit.id ? { ...h, ...updates } : h));
+    const sanitized = updates.name ? { ...updates, name: updates.name.trim() } : updates;
+    const updated = habits.map(h => (h.id === habit.id ? { ...h, ...sanitized } : h));
     setHabits(updated);
     saveToStorage('habits', updated);
   }

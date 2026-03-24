@@ -1,5 +1,7 @@
 import type { Habit } from '../types';
 
+import { parseHabitEmoji } from './habits';
+
 export function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -10,10 +12,13 @@ export function simpleHash(str: string): number {
 
 export function validateInputs(habit: Habit): string[] {
   const errors: string[] = [];
+  const { cleanName } = parseHabitEmoji(habit.name);
   if (!habit.name.trim()) {
     errors.push('Name is required');
+  } else if (!cleanName.trim()) {
+    errors.push('Habit name needs more than just an emoji');
   }
-  if (habit.name.length > 50) {
+  if (cleanName.length > 50) {
     errors.push('Habit name too long');
   }
   if (isNaN(habit.frequency.times) || isNaN(habit.frequency.periodLength)) {

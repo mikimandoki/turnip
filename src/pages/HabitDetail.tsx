@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import Card from '../components/Card';
+import { HabitEmoji } from '../components/HabitEmoji';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
-import { describeFrequency } from '../utils/habits';
+import { describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
@@ -17,19 +18,22 @@ export default function HabitDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [errors, setErrors] = useState<string[]>([]);
+  const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
 
   function handleSave() {
     if (!habit) return;
-    const updated = { ...habit, name: editName.trim() };
+    const trimmedName = editName.trim();
+    const updated = { ...habit, name: trimmedName };
     const errors = validateInputs(updated);
     if (errors.length > 0) {
       setErrors(errors);
       return;
     }
     setErrors([]);
-    editHabit(habit, { name: editName });
+    editHabit(habit, { name: trimmedName });
+    setEditName(trimmedName);
     setIsEditing(false);
   }
 
@@ -50,6 +54,7 @@ export default function HabitDetail() {
         </div>
         <Card>
           <div className='habit-card-content'>
+            <HabitEmoji emoji={emoji} />
             <div className='habit-card-info'>
               {isEditing ? (
                 <input
@@ -60,15 +65,15 @@ export default function HabitDetail() {
                   autoFocus
                 />
               ) : (
-                <div className='habit-card-name'>{habit.name}</div>
+                <div className='habit-card-title'>{cleanName}</div>
               )}
               {errors.map(err => (
                 <p className='error-message' key={err}>
                   {err}
                 </p>
               ))}
-              <div className='habit-card-frequency'>{describeFrequency(habit.frequency)}</div>
-              <div className='habit-card-frequency'>
+              <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
+              <div className='habit-card-subtitle'>
                 Created {namedDayOrDate(parseISO(habit.createdAt))}
               </div>
             </div>

@@ -2,9 +2,10 @@ import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, startDatePeriod } from '../utils/date';
-import { describeFrequency } from '../utils/habits';
+import { describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { simpleHash } from '../utils/utils';
 import Card from './Card';
+import { HabitEmoji } from './HabitEmoji';
 
 const motivationalMessages = [
   'keep going!',
@@ -42,15 +43,17 @@ export default function HabitCard({
   const periodStart = startDatePeriod(habit, getCurrentDate());
   const seed = simpleHash(habit.id + periodStart);
   const message = motivationalMessages[seed % motivationalMessages.length];
+  const { emoji, cleanName } = parseHabitEmoji(habit.name);
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
   return (
     <Card onClick={onClick}>
       <div className='habit-card-content'>
+        <HabitEmoji emoji={emoji} />
         <div className='habit-card-info'>
-          <div className='habit-card-name'>{habit.name}</div>
-          <div className='habit-card-frequency'>{describeFrequency(habit.frequency)}</div>
+          <div className='habit-card-title'>{cleanName}</div>
+          <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
         </div>
         <div className='habit-card-right'>
           <span className={`completion-count ${status}`}>

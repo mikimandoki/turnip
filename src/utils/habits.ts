@@ -1,4 +1,5 @@
 import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
+import emojiRegex from 'emoji-regex';
 
 import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
@@ -165,5 +166,24 @@ export function calculateHabitStats(habit: Habit, completions: Completion[]): Ha
     totalPeriods,
     completedPeriods,
     streakContinuable,
+  };
+}
+
+export function parseHabitEmoji(name: string): { emoji: string; cleanName: string } {
+  // Emoji regex matching leading emoji characters
+  const expr = emojiRegex();
+  const sanitizedName = name.trim();
+  const match = sanitizedName.match(expr);
+
+  if (match && sanitizedName.startsWith(match[0])) {
+    return {
+      emoji: match[0],
+      cleanName: sanitizedName.slice(match[0].length).trim(),
+    };
+  }
+
+  return {
+    emoji: '🌱',
+    cleanName: sanitizedName,
   };
 }
