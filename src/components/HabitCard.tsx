@@ -4,6 +4,21 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { describeFrequency } from '../utils/habits';
 import Card from './Card';
 
+const motivationalMessages = [
+  'keep going!',
+  "don't break the chain!",
+  "you've got this!",
+  'stay consistent!',
+  'almost there!',
+  'keep it up!',
+  'one day at a time!',
+  'showing up is half the battle!',
+  'momentum builds!',
+  'discipline beats motivation!',
+  'trust the process!',
+  'small steps, big results!',
+];
+
 // TODO: simplify props: only habit, completedCount, onUpdate, onDelete
 export default function HabitCard({
   habit,
@@ -22,7 +37,9 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
   onDeleteButtonClick: () => void;
 }) {
-  const { isFutureDate, streaks } = useHabitContext();
+  const { isFutureDate, streaks, displayDate } = useHabitContext();
+  const seed = habit.id.charCodeAt(0) + displayDate.charCodeAt(8);
+  const message = motivationalMessages[seed % motivationalMessages.length];
   const streak = streaks.find(s => s.habitId === habit.id);
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
@@ -81,7 +98,9 @@ export default function HabitCard({
         </div>
       )}
       {streak && streak.current < 2 && streak.previous >= 2 && (
-        <div className='streak streak-muted'>🔥 {streak.previous} — keep going!</div>
+        <div className='streak streak-muted'>
+          🔥 {streak.previous} — {message}
+        </div>
       )}
     </Card>
   );
