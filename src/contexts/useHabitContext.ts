@@ -16,6 +16,8 @@ export interface HabitContextType {
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => void;
+  loadDemoData: () => void;
+  applyImport: (json: string) => { success: boolean; error?: string };
   stats: (HabitStats & { habitId: string })[];
 }
 

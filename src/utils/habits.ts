@@ -102,7 +102,11 @@ export function calculateStreak(
   return streak;
 }
 
-export function calculateHabitStats(habit: Habit, completions: Completion[]): HabitStats {
+export function calculateHabitStats(
+  habit: Habit,
+  completions: Completion[],
+  asOf: Date = getCurrentDate()
+): HabitStats {
   const runs: number[] = [];
   let currentRun = 0;
   let totalPeriods = 0;
@@ -110,7 +114,7 @@ export function calculateHabitStats(habit: Habit, completions: Completion[]): Ha
   let firstPeriodCompleted: boolean | null = null;
   let secondPeriodCompleted: boolean | null = null;
 
-  let checkDate = new Date();
+  let checkDate = asOf;
 
   while (true) {
     const periodStart = startDatePeriod(habit, checkDate);
@@ -124,7 +128,7 @@ export function calculateHabitStats(habit: Habit, completions: Completion[]): Ha
           c.habitId === habit.id &&
           c.date >= periodStart &&
           c.date <= periodEnd &&
-          c.date <= toDateString(new Date())
+          c.date <= toDateString(asOf)
       )
       .reduce((sum, c) => sum + c.count, 0);
 

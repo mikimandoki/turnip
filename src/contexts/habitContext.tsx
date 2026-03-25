@@ -4,11 +4,13 @@ import { useMemo, useState } from 'react';
 import type { Completion, Habit } from '../types';
 
 import { getCurrentDate, setDateOverride, toDateString } from '../utils/date';
+import { generateDemoData } from '../utils/demoData';
 import { calculateHabitStats } from '../utils/habits';
 import {
   clearStorage,
   CompletionsSchema,
   HabitsSchema,
+  importData,
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
@@ -29,7 +31,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         habitId: h.id,
         ...calculateHabitStats(h, completions),
       })),
-    [habits, completions]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [habits, completions, displayDate] // Need to know what date we're rendering
   );
 
   function updateCompletion(habitId: string, increment: number) {
@@ -95,6 +98,24 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setCompletions([]);
   }
 
+  function loadDemoData() {
+    const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
+    setHabits(demoHabits);
+    setCompletions(demoCompletions);
+    saveToStorage('habits', demoHabits);
+    saveToStorage('completions', demoCompletions);
+    saveToStorage('hasOnboarded', true);
+  }
+
+  function applyImport(json: string): { success: boolean; error?: string } {
+    const result = importData(json);
+    if (result.success) {
+      setHabits(loadFromStorage('habits', [], HabitsSchema));
+      setCompletions(loadFromStorage('completions', [], CompletionsSchema));
+    }
+    return result;
+  }
+
   return (
     <HabitContext.Provider
       value={{
@@ -112,6 +133,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         shiftDate,
         setDate,
         clearAll,
+        loadDemoData,
+        applyImport,
       }}
     >
       {children}

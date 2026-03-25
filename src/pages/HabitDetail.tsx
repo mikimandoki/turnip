@@ -8,15 +8,15 @@ import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
-import { describeFrequency, parseHabitEmoji } from '../utils/habits';
+import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, completions, stats, deleteHabit, editHabit } = useHabitContext();
+  const { habits, completions, deleteHabit, editHabit } = useHabitContext();
   const habit = habits.find(h => h.id === id);
-  const habitStats = stats.find(s => s.habitId === id);
+  const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [errors, setErrors] = useState<string[]>([]);
