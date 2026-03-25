@@ -1,3 +1,5 @@
+import { DragDropProvider } from '@dnd-kit/react';
+import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
@@ -20,11 +22,14 @@ export default function DailyView() {
     setShowForm,
     addHabit,
     updateCompletion,
+    reorderHabits,
     shiftDate,
     setDate,
     clearAll,
     loadDemoData,
   } = useHabitContext();
+
+  const visibleHabits = habits.filter(h => h.createdAt <= toDateString(getCurrentDate()));
 
   return (
     <div className='app'>
@@ -57,12 +62,26 @@ export default function DailyView() {
       )}
 
       {habits.length > 0 && (
-        <div className='habit-list'>
-          {habits
-            .filter(h => h.createdAt <= toDateString(getCurrentDate()))
-            .map(habit => (
+        <DragDropProvider
+          onDragEnd={event => {
+            if (event.canceled) return;
+            const { source } = event.operation;
+            if (!isSortable(source)) return;
+            const from = source.initialIndex;
+            const to = source.index;
+            if (from === to) return;
+            const reordered = [...visibleHabits];
+            reordered.splice(to, 0, reordered.splice(from, 1)[0]);
+            const visibleIds = new Set(visibleHabits.map(h => h.id));
+            let i = 0;
+            reorderHabits(habits.map(h => (visibleIds.has(h.id) ? reordered[i++] : h)));
+          }}
+        >
+          <div className='habit-list'>
+            {visibleHabits.map((habit, index) => (
               <HabitCard
                 key={habit.id}
+                index={index}
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, getCurrentDate())}
                 targetCount={habit.frequency.times}
@@ -71,7 +90,8 @@ export default function DailyView() {
                 onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
               />
             ))}
-        </div>
+          </div>
+        </DragDropProvider>
       )}
 
       {showForm ? (

@@ -1,3 +1,4 @@
+import { useSortable } from '@dnd-kit/react/sortable';
 import { Minus, Plus } from 'lucide-react';
 
 import type { Habit } from '../types';
@@ -27,6 +28,7 @@ const motivationalMessages = [
 // TODO: simplify props: only habit, completedCount, onUpdate, onDelete
 export default function HabitCard({
   habit,
+  index,
   completedCount,
   targetCount,
   onClick,
@@ -34,6 +36,7 @@ export default function HabitCard({
   onNegativeButtonClick,
 }: {
   habit: Habit;
+  index: number;
   completedCount: number;
   targetCount: number;
   onClick: () => void;
@@ -41,6 +44,7 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
 }) {
   const { isFutureDate, stats } = useHabitContext();
+  const { ref, isDragging } = useSortable({ id: habit.id, index });
   const habitStats = stats.find(s => s.habitId === habit.id);
   const periodStart = startDatePeriod(habit, getCurrentDate());
   const seed = simpleHash(habit.id + periodStart);
@@ -50,7 +54,7 @@ export default function HabitCard({
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
   return (
-    <Card onClick={onClick}>
+    <Card ref={ref} onClick={onClick} className={isDragging ? 'dragging' : undefined}>
       <div className='habit-card-content'>
         <HabitEmoji emoji={emoji} />
         <div className='habit-card-info'>

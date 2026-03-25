@@ -107,6 +107,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     saveToStorage('hasOnboarded', true);
   }
 
+  function reorderHabits(newOrder: Habit[]) {
+    setHabits(newOrder);
+    saveToStorage('habits', newOrder);
+  }
+
   function applyImport(json: string): { success: boolean; error?: string } {
     const result = importData(json);
     if (result.success) {
@@ -135,6 +140,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         clearAll,
         loadDemoData,
         applyImport,
+        reorderHabits,
       }}
     >
       {children}
