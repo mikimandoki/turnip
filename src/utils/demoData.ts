@@ -50,29 +50,22 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
     const date = d.toISOString().split('T')[0];
     const dow = d.getDay();
 
-    // Morning run: Mon/Wed/Fri, occasionally missed
-    if ((dow === 1 || dow === 3 || dow === 5) && i % 13 !== 5) {
-      completions.push({ habitId: 'demo-1', date, count: 1 });
-    }
+    // Morning run: 3x/week target, any day (~43% daily)
+    if (Math.random() < 0.43) completions.push({ habitId: 'demo-1', date, count: 1 });
 
-    // Read: daily, skip a few days for realism
-    if (i % 8 !== 3 && i % 11 !== 7) {
-      completions.push({ habitId: 'demo-2', date, count: 1 });
-    }
+    // Read: daily, ~85% hit rate
+    if (Math.random() < 0.85) completions.push({ habitId: 'demo-2', date, count: 1 });
 
-    // Meditate: daily, slightly fewer misses
-    if (i % 9 !== 2 && i % 17 !== 11) {
-      completions.push({ habitId: 'demo-3', date, count: 1 });
-    }
+    // Meditate: daily, ~75% hit rate
+    if (Math.random() < 0.75) completions.push({ habitId: 'demo-3', date, count: 1 });
 
-    // Drink water: 8x per day, some days fewer
-    const glasses = i % 7 === 4 ? 5 : i % 5 === 3 ? 6 : 8;
-    completions.push({ habitId: 'demo-4', date, count: glasses });
+    // Drink water: random count between 4–8
+    completions.push({ habitId: 'demo-4', date, count: 4 + Math.floor(Math.random() * 5) });
 
-    // Wash sheets: once every 2 weeks on Sunday
-    if (dow === 0 && i % 14 < 7) {
-      completions.push({ habitId: 'demo-5', date, count: 1 });
-    }
+    // Wash sheets: every 2 weeks, alternating Sat/Sun
+    const weekNum = Math.floor(i / 7);
+    const targetDow = weekNum % 4 === 0 ? 6 : weekNum % 4 === 2 ? 0 : -1;
+    if (dow === targetDow) completions.push({ habitId: 'demo-5', date, count: 1 });
   }
 
   return { habits, completions };

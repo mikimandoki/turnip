@@ -1,5 +1,4 @@
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 import Card from '../components/Card';
@@ -7,14 +6,12 @@ import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
-import { exportData, HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
+import { HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
 import AddHabitForm from './AddHabitForm';
 
 export default function DailyView() {
   const hasOnboarded = loadFromStorage('hasOnboarded', false, HasOnboardedSchema);
   const navigate = useNavigate();
-  const [showSettings, setShowSettings] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     habits,
     completions,
@@ -27,22 +24,7 @@ export default function DailyView() {
     setDate,
     clearAll,
     loadDemoData,
-    applyImport,
   } = useHabitContext();
-
-  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = event => {
-      const json = event.target?.result;
-      if (typeof json === 'string') {
-        applyImport(json);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  }
 
   return (
     <div className='app'>
@@ -54,40 +36,14 @@ export default function DailyView() {
         <button className='btn-action' onClick={() => shiftDate(1)}>
           <ChevronRight size={16} />
         </button>
-        <button className='btn-action' onClick={() => setShowSettings(s => !s)}>
-          <Settings size={16} />
-        </button>
       </div>
-
-      {showSettings && (
-        <div className='settings-panel'>
-          <button className='btn-action' onClick={() => exportData()}>
-            Export
-          </button>
-          <button className='btn-action' onClick={() => fileInputRef.current?.click()}>
-            Import
-          </button>
-          <input
-            ref={fileInputRef}
-            type='file'
-            accept='application/json'
-            style={{ display: 'none' }}
-            onChange={handleImportFile}
-          />
-        </div>
-      )}
 
       {habits.length === 0 && !hasOnboarded && (
         <Card>
           <div className='onboarding'>
             <div className='habit-emoji-large'>🌱</div>
             <h2>Welcome to Turnip</h2>
-            <p>
-              Habits, like turnips, need time to form roots. Start tracking your first habit today.
-            </p>
-            <button className='btn-action' onClick={loadDemoData}>
-              Explore demo data
-            </button>
+            <p>Habits take time to grow. Plant your first one or explore the demo.</p>
           </div>
         </Card>
       )}
@@ -127,9 +83,16 @@ export default function DailyView() {
           onCancel={() => setShowForm(false)}
         />
       ) : (
-        <button className='btn-add-habit' onClick={() => setShowForm(true)}>
-          Add new habit
-        </button>
+        <>
+          <button className='btn-add-habit' onClick={() => setShowForm(true)}>
+            Add new habit
+          </button>
+          {!hasOnboarded && habits.length === 0 && (
+            <button className='btn-add-habit' onClick={loadDemoData}>
+              Explore demo data
+            </button>
+          )}
+        </>
       )}
 
       {import.meta.env.DEV && (
