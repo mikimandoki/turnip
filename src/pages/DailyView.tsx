@@ -50,7 +50,7 @@ export default function DailyView() {
         <button className='btn-action' onClick={() => shiftDate(-1)}>
           <ChevronLeft size={16} />
         </button>
-        <div className='header-title'>{namedDayOrDate()}</div>
+        <div className='header-title'>{namedDayOrDate(getCurrentDate())}</div>
         <button className='btn-action' onClick={() => shiftDate(1)}>
           <ChevronRight size={16} />
         </button>
@@ -108,7 +108,7 @@ export default function DailyView() {
               <HabitCard
                 key={habit.id}
                 habit={habit}
-                completedCount={getCompletionsInPeriod(habit, completions)}
+                completedCount={getCompletionsInPeriod(habit, completions, getCurrentDate())}
                 targetCount={habit.frequency.times}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
                 onPositiveButtonClick={() => updateCompletion(habit.id, 1)}

@@ -1,10 +1,3 @@
-/**
- * Rules:
- *
- * 1. Always use getCurrentDate() instead of new Date() - respects time travel
- * 2. Always use parseISO(string) instead of new Date(string) - respects timezone
- */
-
 import {
   addDays,
   addMonths,
@@ -88,8 +81,8 @@ export function toDateString(date: Date): string {
   return format(date, 'yyyy-MM-dd');
 }
 
-export function namedDayOrDate(date?: Date): string {
-  const formatDate = date || getCurrentDate();
+export function namedDayOrDate(date: Date): string {
+  const formatDate = date;
   const baseDateFormat = 'EEEE, MMMM d';
   if (isToday(formatDate)) return 'Today';
   if (isYesterday(formatDate)) return 'Yesterday';

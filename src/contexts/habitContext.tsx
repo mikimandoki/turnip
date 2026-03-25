@@ -29,7 +29,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     () =>
       habits.map(h => ({
         habitId: h.id,
-        ...calculateHabitStats(h, completions),
+        ...calculateHabitStats(h, completions, getCurrentDate()),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [habits, completions, displayDate] // Need to know what date we're rendering

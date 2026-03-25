@@ -3,7 +3,7 @@ import emojiRegex from 'emoji-regex-xs';
 
 import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
-import { endDatePeriod, getCurrentDate, startDatePeriod, toDateString } from './date';
+import { endDatePeriod, startDatePeriod, toDateString } from './date';
 
 export function describeFrequency(frequency: Frequency) {
   const unit =
@@ -38,25 +38,27 @@ function getCompletionsInRange(
 }
 
 // How many completions have been logged in the current period
-export function getCompletionsInPeriod(habit: Habit, completions: Completion[]): number {
-  const now = getCurrentDate();
-  const today = toDateString(getCurrentDate());
-  const periodStart = startDatePeriod(habit, now);
-  return getCompletionsInRange(habit.id, completions, periodStart, today);
+export function getCompletionsInPeriod(
+  habit: Habit,
+  completions: Completion[],
+  date: Date
+): number {
+  const periodStart = startDatePeriod(habit, date);
+  return getCompletionsInRange(habit.id, completions, periodStart, toDateString(date));
 }
 
-export function getTotalCompletions(habit: Habit, completions: Completion[]): number {
-  const today = toDateString(getCurrentDate());
-  return getCompletionsInRange(habit.id, completions, habit.createdAt, today);
+export function getTotalCompletions(habit: Habit, completions: Completion[], date: Date): number {
+  return getCompletionsInRange(habit.id, completions, habit.createdAt, toDateString(date));
 }
 
 export function calculateStreak(
   habit: Habit,
   completions: Completion[],
+  date: Date,
   skipCurrent = false
 ): number {
   let streak = 0;
-  let checkDate = getCurrentDate();
+  let checkDate = date;
   if (skipCurrent) {
     checkDate = subDays(parseISO(startDatePeriod(habit, checkDate)), 1);
   }
@@ -64,7 +66,6 @@ export function calculateStreak(
     const periodStart = startDatePeriod(habit, checkDate);
     const periodEnd = endDatePeriod(habit, checkDate);
 
-    // Period is entirely before the habit existed
     if (periodEnd < habit.createdAt) break;
 
     const count = completions
@@ -73,17 +74,16 @@ export function calculateStreak(
           c.habitId === habit.id &&
           c.date >= periodStart &&
           c.date <= periodEnd &&
-          c.date <= toDateString(getCurrentDate())
+          c.date <= toDateString(date)
       )
       .reduce((sum, c) => sum + c.count, 0);
 
     if (count >= habit.frequency.times) {
       streak++;
     } else {
-      break; // Streak broken
+      break;
     }
 
-    // This was the creation period (habit started mid-period); nothing before this to check
     if (periodStart < habit.createdAt) break;
 
     switch (habit.frequency.periodUnit) {
@@ -105,7 +105,7 @@ export function calculateStreak(
 export function calculateHabitStats(
   habit: Habit,
   completions: Completion[],
-  asOf: Date = getCurrentDate()
+  date: Date
 ): HabitStats {
   const runs: number[] = [];
   let currentRun = 0;
@@ -114,7 +114,7 @@ export function calculateHabitStats(
   let firstPeriodCompleted: boolean | null = null;
   let secondPeriodCompleted: boolean | null = null;
 
-  let checkDate = asOf;
+  let checkDate = date;
 
   while (true) {
     const periodStart = startDatePeriod(habit, checkDate);
@@ -128,7 +128,7 @@ export function calculateHabitStats(
           c.habitId === habit.id &&
           c.date >= periodStart &&
           c.date <= periodEnd &&
-          c.date <= toDateString(asOf)
+          c.date <= toDateString(date)
       )
       .reduce((sum, c) => sum + c.count, 0);
 
@@ -152,10 +152,8 @@ export function calculateHabitStats(
     checkDate = subDays(parseISO(periodStart), 1);
   }
 
-  // Don't forget the last run if we ended on a completed period
   if (currentRun > 0) runs.push(currentRun);
 
-  // runs[0] is the most recent run (walking backwards from today)
   const currentStreak = firstPeriodCompleted ? (runs[0] ?? 0) : 0;
   const previousStreak = firstPeriodCompleted ? (runs[1] ?? 0) : (runs[0] ?? 0);
   const maxStreak = Math.max(0, ...runs);
@@ -174,7 +172,6 @@ export function calculateHabitStats(
 }
 
 export function parseHabitEmoji(name: string): { emoji: string; cleanName: string } {
-  // Emoji regex matching leading emoji characters
   const expr = emojiRegex();
   const sanitizedName = name.trim();
   const match = sanitizedName.match(expr);
