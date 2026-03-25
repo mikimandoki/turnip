@@ -82,11 +82,10 @@ export function toDateString(date: Date): string {
 }
 
 export function namedDayOrDate(date: Date): string {
-  const formatDate = date;
   const baseDateFormat = 'EEEE, MMMM d';
-  if (isToday(formatDate)) return 'Today';
-  if (isYesterday(formatDate)) return 'Yesterday';
-  if (isTomorrow(formatDate)) return 'Tomorrow';
-  if (isThisYear(formatDate)) return format(formatDate, baseDateFormat); // Saturday, March 28
-  return format(formatDate, baseDateFormat + ' y'); // Friday, March 28 2025
+  if (isToday(date)) return 'Today';
+  if (isYesterday(date)) return 'Yesterday';
+  if (isTomorrow(date)) return 'Tomorrow';
+  if (isThisYear(date)) return format(date, baseDateFormat); // Saturday, March 28
+  return format(date, baseDateFormat + ' y'); // Friday, March 28 2025
 }

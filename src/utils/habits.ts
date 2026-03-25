@@ -27,28 +27,28 @@ export function describeFrequency(frequency: Frequency) {
 
 // Count completions between any two dates
 function getCompletionsInRange(
-  habitId: string,
+  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
   completions: Completion[],
   start: string,
   end: string
 ): number {
   return completions
-    .filter(c => c.habitId === habitId && c.date >= start && c.date <= end)
+    .filter(c => c.habitId === habit.id && c.date >= start && c.date <= end)
     .reduce((sum, c) => sum + c.count, 0);
 }
 
 // How many completions have been logged in the current period
 export function getCompletionsInPeriod(
-  habit: Habit,
+  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
   completions: Completion[],
   date: Date
 ): number {
   const periodStart = startDatePeriod(habit, date);
-  return getCompletionsInRange(habit.id, completions, periodStart, toDateString(date));
+  return getCompletionsInRange(habit, completions, periodStart, toDateString(date));
 }
 
 export function getTotalCompletions(habit: Habit, completions: Completion[], date: Date): number {
-  return getCompletionsInRange(habit.id, completions, habit.createdAt, toDateString(date));
+  return getCompletionsInRange(habit, completions, habit.createdAt, toDateString(date));
 }
 
 export function calculateStreak(
