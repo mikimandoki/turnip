@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/react/sortable';
-import { Minus, Plus } from 'lucide-react';
+import { Check, Minus, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 import type { Habit } from '../types';
 
@@ -31,6 +32,7 @@ export default function HabitCard({
   index,
   completedCount,
   targetCount,
+  loggedToday,
   onClick,
   onPositiveButtonClick,
   onNegativeButtonClick,
@@ -39,10 +41,12 @@ export default function HabitCard({
   index: number;
   completedCount: number;
   targetCount: number;
+  loggedToday: boolean;
   onClick: () => void;
   onPositiveButtonClick: () => void;
   onNegativeButtonClick: () => void;
 }) {
+  const [showTick, setShowTick] = useState(false);
   const { isFutureDate, stats } = useHabitContext();
   const { ref, isDragging } = useSortable({ id: habit.id, index });
   const habitStats = stats.find(s => s.habitId === habit.id);
@@ -54,7 +58,7 @@ export default function HabitCard({
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
   return (
-    <Card ref={ref} onClick={onClick} className={isDragging ? 'dragging' : undefined}>
+    <Card ref={ref} onClick={onClick} className={[isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : ''].filter(Boolean).join(' ') || undefined}>
       <div className='habit-card-content'>
         <HabitEmoji emoji={emoji} />
         <div className='habit-card-info'>
@@ -70,21 +74,26 @@ export default function HabitCard({
               className='btn-action'
               onClick={e => {
                 e.stopPropagation();
-                onPositiveButtonClick();
-              }}
-              disabled={isFutureDate}
-            >
-              <Plus size={16} />
-            </button>
-            <button
-              className='btn-action'
-              onClick={e => {
-                e.stopPropagation();
                 onNegativeButtonClick();
               }}
               disabled={isFutureDate}
             >
               <Minus size={16} />
+            </button>
+            <button
+              className='btn-action'
+              onClick={e => {
+                e.stopPropagation();
+                onPositiveButtonClick();
+                setShowTick(true);
+              }}
+              disabled={isFutureDate}
+            >
+              {showTick ? (
+                <Check size={16} className='btn-check-flash' onAnimationEnd={() => setShowTick(false)} />
+              ) : (
+                <Plus size={16} />
+              )}
             </button>
           </div>
         </div>

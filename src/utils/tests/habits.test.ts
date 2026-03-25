@@ -129,13 +129,11 @@ describe('getCompletionsInPeriod', () => {
 
   it('counts multiple completions in a day', () => {
     const habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'> = {
-        id: 'demo-1',
-        frequency: {times: 5, periodLength: 1, periodUnit: 'day'},
-        createdAt: '2026-03-24', 
+      id: 'demo-1',
+      frequency: { times: 5, periodLength: 1, periodUnit: 'day' },
+      createdAt: '2026-03-24',
     };
-    const completions: Completion[] = [
-      { habitId: 'demo-1', date: '2026-03-25', count: 5 }, 
-    ];
-    expect(getCompletionsInPeriod(habit, completions, parseISO('2026-03-25'))).toBe(5)
-    })
+    const completions: Completion[] = [{ habitId: 'demo-1', date: '2026-03-25', count: 5 }];
+    expect(getCompletionsInPeriod(habit, completions, parseISO('2026-03-25'))).toBe(5);
+  });
 });

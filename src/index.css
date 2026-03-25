@@ -115,6 +115,23 @@ body {
   border: 0.5px solid var(--color-border-tertiary);
   border-radius: var(--radius-lg);
   padding: 14px var(--spacing-xl);
+  transition: background 0.3s ease;
+}
+
+.habit-card.logged-today {
+  border-left: 3px solid rgba(29, 158, 117, 0.5);
+}
+
+@keyframes tick-flash {
+  0%   { opacity: 0; transform: scale(0.7); }
+  25%  { opacity: 1; transform: scale(1); }
+  75%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+
+.btn-check-flash {
+  color: var(--color-text-success);
+  animation: tick-flash 0.9s ease forwards;
 }
 
 /* ---- Habit card content ---- */
