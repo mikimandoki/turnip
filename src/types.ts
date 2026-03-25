@@ -1,10 +1,10 @@
-// A habit the user wants to track
-export interface Habit {
-  id: string;
-  name: string;
-  frequency: Frequency;
-  createdAt: string; // ISO date string
-}
+import { z } from 'zod';
+
+export const FrequencySchema = z.object({
+  times: z.number().min(1),
+  periodLength: z.number().min(1),
+  periodUnit: z.enum(['day', 'week', 'month']),
+});
 
 // How often the habit should be done
 // "times" completions per "period" of "periodLength" days/weeks/months
@@ -15,18 +15,26 @@ export interface Habit {
 //   Every 2 weeks:          { times: 1, periodLength: 2, periodUnit: "week" }
 //   5x every 3 weeks:       { times: 5, periodLength: 3, periodUnit: "week" }
 //   10x per month:          { times: 10, periodLength: 1, periodUnit: "month" }
-export interface Frequency {
-  times: number;
-  periodLength: number;
-  periodUnit: 'day' | 'month' | 'week';
-}
+export type Frequency = z.infer<typeof FrequencySchema>;
+
+export const HabitSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  frequency: FrequencySchema,
+  createdAt: z.string(),
+});
+
+// A habit the user wants to track
+export type Habit = z.infer<typeof HabitSchema>;
+
+export const CompletionSchema = z.object({
+  habitId: z.string(),
+  date: z.string(),
+  count: z.number().min(0),
+});
 
 // A single completion of a habit
-export interface Completion {
-  habitId: string;
-  date: string; // ISO date string, e.g. "2026-03-19"
-  count: number;
-}
+export type Completion = z.infer<typeof CompletionSchema>;
 
 export interface HabitStats {
   currentStreak: number;

@@ -6,11 +6,11 @@ import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
-import { loadFromStorage } from '../utils/localStorage';
+import { HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
 import AddHabitForm from './AddHabitForm';
 
 export default function DailyView() {
-  const hasOnboarded = loadFromStorage('hasOnboarded', false);
+  const hasOnboarded = loadFromStorage('hasOnboarded', false, HasOnboardedSchema);
   const navigate = useNavigate();
   const {
     habits,

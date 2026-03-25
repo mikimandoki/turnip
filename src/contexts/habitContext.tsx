@@ -5,13 +5,19 @@ import type { Completion, Habit } from '../types';
 
 import { getCurrentDate, setDateOverride, toDateString } from '../utils/date';
 import { calculateHabitStats } from '../utils/habits';
-import { clearStorage, loadFromStorage, saveToStorage } from '../utils/localStorage';
+import {
+  clearStorage,
+  CompletionsSchema,
+  HabitsSchema,
+  loadFromStorage,
+  saveToStorage,
+} from '../utils/localStorage';
 import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
-  const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', []));
+  const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', [], HabitsSchema));
   const [completions, setCompletions] = useState<Completion[]>(() =>
-    loadFromStorage('completions', [])
+    loadFromStorage('completions', [], CompletionsSchema)
   );
   const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
   const isFutureDate = !import.meta.env.DEV && isFuture(parseISO(displayDate));
