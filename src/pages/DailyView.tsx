@@ -1,6 +1,7 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import Card from '../components/Card';
@@ -30,6 +31,7 @@ export default function DailyView() {
   } = useHabitContext();
 
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(getCurrentDate()));
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className='app'>
@@ -37,7 +39,19 @@ export default function DailyView() {
         <button className='btn-action' onClick={() => shiftDate(-1)}>
           <ChevronLeft size={16} />
         </button>
-        <div className='header-title'>{namedDayOrDate(getCurrentDate())}</div>
+        <div
+          className='header-title header-date-btn'
+          onClick={() => { try { dateInputRef.current?.showPicker(); } catch { /* Safari */ } }}
+        >
+          {namedDayOrDate(getCurrentDate())}
+          <input
+            ref={dateInputRef}
+            className='header-date-input'
+            type='date'
+            value={displayDate}
+            onChange={e => setDate(e.target.value || null)}
+          />
+        </div>
         <button className='btn-action' onClick={() => shiftDate(1)}>
           <ChevronRight size={16} />
         </button>
@@ -117,18 +131,9 @@ export default function DailyView() {
       )}
 
       {import.meta.env.DEV && (
-        <>
-          <div>
-            <input
-              type='date'
-              value={displayDate}
-              onChange={e => setDate(e.target.value ? e.target.value : null)}
-            />
-          </div>
-          <div>
-            <button onClick={clearAll}>Delete All</button>
-          </div>
-        </>
+        <div>
+          <button onClick={clearAll}>Delete All</button>
+        </div>
       )}
     </div>
   );

@@ -62,6 +62,18 @@ body {
   font-weight: 500;
 }
 
+.header-date-btn {
+  position: relative;
+  cursor: pointer;
+}
+
+.header-date-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .header-subtitle {
   font-size: 13px;
   color: var(--color-text-secondary);
