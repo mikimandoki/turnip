@@ -21,16 +21,6 @@ import {
 
 import type { Frequency, Habit } from '../types';
 
-let dateOverride: Date | null = null;
-
-export function setDateOverride(date: Date | null) {
-  dateOverride = date;
-}
-
-export function getCurrentDate(): Date {
-  return dateOverride ?? new Date();
-}
-
 const unitOps: Record<
   Frequency['periodUnit'],
   {

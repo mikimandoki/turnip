@@ -5,7 +5,7 @@ import type { Completion, Habit, HabitStats } from '../types';
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
-  displayDate: string;
+  displayDate: Date;
   isFutureDate: boolean;
   addHabit: (habit: Habit) => void;
   updateCompletion: (habitId: string, increment: number) => void;

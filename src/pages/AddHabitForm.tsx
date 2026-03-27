@@ -1,9 +1,7 @@
-import { nanoid } from 'nanoid';
 import { useState } from 'react';
 
-import type { Frequency, Habit } from '../types';
+import type { Frequency } from '../types';
 
-import { getCurrentDate, toDateString } from '../utils/date';
 import { validateInputs } from '../utils/utils';
 
 const placeholderExamples = [
@@ -22,7 +20,7 @@ export default function AddHabitForm({
   onAdd,
   onCancel,
 }: {
-  onAdd: (habit: Habit) => void;
+  onAdd: (data: { name: string; frequency: Frequency }) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
@@ -33,26 +31,24 @@ export default function AddHabitForm({
   const [placeholder] = useState(
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
   );
+
   function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
-    const newHabit: Habit = {
-      id: nanoid(),
-      name: name.trim(),
-      frequency: { times, periodLength, periodUnit },
-      createdAt: toDateString(getCurrentDate()),
-    };
-    const inputErrors = validateInputs(newHabit);
+    const trimmedName = name.trim();
+    const frequency: Frequency = { times, periodLength, periodUnit };
+    const inputErrors = validateInputs({ name: trimmedName, frequency });
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
-      return; // stop here, don't add the habit
+      return;
     }
     setErrors([]);
-    onAdd(newHabit);
+    onAdd({ name: trimmedName, frequency });
     setName('');
     setTimes(1);
     setPeriodLength(1);
     setPeriodUnit('day');
   }
+
   return (
     <form className='add-habit-form' onSubmit={handleSubmit}>
       <div className='form-row'>

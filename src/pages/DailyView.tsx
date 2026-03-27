@@ -1,6 +1,7 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { nanoid } from 'nanoid';
 import { Dialog } from 'radix-ui';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -9,7 +10,7 @@ import Card from '../components/Card';
 import HabitCard from '../components/HabitCard';
 import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
-import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
+import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
 import AddHabitForm from './AddHabitForm';
@@ -32,7 +33,7 @@ export default function DailyView() {
 
   const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const visibleHabits = habits.filter(h => h.createdAt <= toDateString(getCurrentDate()));
+  const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -51,12 +52,12 @@ export default function DailyView() {
             }
           }}
         >
-          {namedDayOrDate(getCurrentDate())}
+          {namedDayOrDate(displayDate)}
           <input
             ref={dateInputRef}
             className='header-date-input'
             type='date'
-            value={displayDate}
+            value={toDateString(displayDate)}
             onChange={e => setDate(e.target.value || null)}
           />
         </div>
@@ -105,12 +106,12 @@ export default function DailyView() {
                 key={habit.id}
                 index={index}
                 habit={habit}
-                completedCount={getCompletionsInPeriod(habit, completions, getCurrentDate())}
+                completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
                 targetCount={habit.frequency.times}
                 loggedToday={completions.some(
                   c =>
                     c.habitId === habit.id &&
-                    c.date === toDateString(getCurrentDate()) &&
+                    c.date === toDateString(displayDate) &&
                     c.count > 0
                 )}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
@@ -143,8 +144,8 @@ export default function DailyView() {
           <Dialog.Content className='modal-content'>
             <Dialog.Title className='modal-title'>New habit</Dialog.Title>
             <AddHabitForm
-              onAdd={habit => {
-                addHabit(habit);
+              onAdd={({ name, frequency }) => {
+                addHabit({ id: nanoid(), name, frequency, createdAt: toDateString(displayDate) });
                 setShowForm(false);
               }}
               onCancel={() => setShowForm(false)}

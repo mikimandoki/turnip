@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
-import { getCurrentDate, startDatePeriod } from '../utils/date';
+import { startDatePeriod } from '../utils/date';
 import { describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { simpleHash } from '../utils/utils';
 import Card from './Card';
@@ -47,10 +47,10 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
 }) {
   const [showTick, setShowTick] = useState(false);
-  const { isFutureDate, stats } = useHabitContext();
+  const { displayDate, isFutureDate, stats } = useHabitContext();
   const { ref, isDragging } = useSortable({ id: habit.id, index });
   const habitStats = stats.find(s => s.habitId === habit.id);
-  const periodStart = startDatePeriod(habit, getCurrentDate());
+  const periodStart = startDatePeriod(habit, displayDate);
   const seed = simpleHash(habit.id + periodStart);
   const message = motivationalMessages[seed % motivationalMessages.length];
   const { emoji, cleanName } = parseHabitEmoji(habit.name);

@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import type { Completion, Habit } from '../types';
 
-import { getCurrentDate, setDateOverride, toDateString } from '../utils/date';
+import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
 import { calculateHabitStats } from '../utils/habits';
 import {
@@ -21,21 +21,21 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [completions, setCompletions] = useState<Completion[]>(() =>
     loadFromStorage('completions', [], CompletionsSchema)
   );
-  const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
-  const isFutureDate = !import.meta.env.DEV && isFuture(parseISO(displayDate));
+  const [dateString, setDateString] = useState<string>(toDateString(new Date()));
+  const displayDate = useMemo(() => parseISO(dateString), [dateString]);
+  const isFutureDate = !import.meta.env.DEV && isFuture(displayDate);
 
   const stats = useMemo(
     () =>
       habits.map(h => ({
         habitId: h.id,
-        ...calculateHabitStats(h, completions, getCurrentDate()),
+        ...calculateHabitStats(h, completions, displayDate),
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [habits, completions, displayDate] // Need to know what date we're rendering
+    [habits, completions, displayDate]
   );
 
   function updateCompletion(habitId: string, increment: number) {
-    const today = toDateString(getCurrentDate());
+    const today = dateString;
     const existing = completions.find(c => c.habitId === habitId && c.date === today);
     let updated;
     if (existing) {
@@ -80,15 +80,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function shiftDate(days: number) {
-    const target = addDays(getCurrentDate(), days);
-    setDisplayDate(toDateString(target));
-    setDateOverride(target);
+    setDateString(toDateString(addDays(displayDate, days)));
   }
 
-  function setDate(dateString: string | null) {
-    const date = dateString ? parseISO(dateString) : null;
-    setDisplayDate(dateString ?? toDateString(getCurrentDate()));
-    setDateOverride(date);
+  function setDate(value: string | null) {
+    setDateString(value ?? toDateString(new Date()));
   }
 
   function clearAll() {

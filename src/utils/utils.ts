@@ -1,4 +1,4 @@
-import type { Habit } from '../types';
+import type { Frequency, Habit } from '../types';
 
 import { parseHabitEmoji } from './habits';
 
@@ -10,7 +10,7 @@ export function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
-export function validateInputs(habit: Habit): string[] {
+export function validateInputs(habit: Pick<Habit, 'name'> & { frequency: Frequency }): string[] {
   const errors: string[] = [];
   const { cleanName } = parseHabitEmoji(habit.name);
   if (!habit.name.trim()) {
