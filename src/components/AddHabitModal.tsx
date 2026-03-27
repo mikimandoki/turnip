@@ -16,7 +16,7 @@ const placeholderExamples = [
   '🥗 Eat a healthy meal',
 ];
 
-export default function AddHabitForm({
+export default function AddHabitModal({
   onAdd,
   onCancel,
 }: {

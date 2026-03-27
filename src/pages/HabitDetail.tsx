@@ -4,10 +4,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import Alert from '../components/Alert';
-import Card from '../components/Card';
 import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
-import { Modals } from '../constants/modals';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
@@ -50,7 +48,7 @@ export default function HabitDetail() {
             <ChevronLeft size={16} />
           </button>
         </div>
-        <Card>
+        <div className='card'>
           <div className='habit-card-content'>
             <HabitEmoji emoji={emoji} />
             <div className='habit-card-info'>
@@ -104,8 +102,8 @@ export default function HabitDetail() {
               )}
             </div>
           </div>
-        </Card>
-        <Card>
+        </div>
+        <div className='card'>
           <div className='stats-grid'>
             <div className='stat-box'>
               <div className='stat-value'>
@@ -130,13 +128,18 @@ export default function HabitDetail() {
               <div className='stat-label'>total completions</div>
             </div>
           </div>
-        </Card>
-        <Card>
+        </div>
+        <div className='card'>
           <Heatmap habit={habit} completions={completions} />
-        </Card>
+        </div>
       </div>
       <Alert
-        {...Modals.deleteHabit(habit.name)}
+        title={`Delete "${parseHabitEmoji(habit.name).cleanName}"?`}
+        description={
+          'Are you sure you want to delete this habit?\n\nThis will remove all your progress. This cannot be undone.'
+        }
+        confirm='Delete'
+        cancel='Cancel'
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={() => {

@@ -6,14 +6,13 @@ import { Dialog } from 'radix-ui';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import Card from '../components/Card';
+import AddHabitModal from '../components/AddHabitModal';
 import HabitCard from '../components/HabitCard';
 import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
-import AddHabitForm from './AddHabitForm';
 
 export default function DailyView() {
   const hasOnboarded = loadFromStorage('hasOnboarded', false, HasOnboardedSchema);
@@ -67,21 +66,21 @@ export default function DailyView() {
       </div>
 
       {habits.length === 0 && !hasOnboarded && (
-        <Card>
+        <div className='card'>
           <div className='onboarding'>
             <div className='habit-emoji-large'>🌱</div>
             <h2>Welcome to Turnip</h2>
             <p>Habits take time to grow. Plant your first one or explore the demo.</p>
           </div>
-        </Card>
+        </div>
       )}
 
       {habits.length === 0 && hasOnboarded && (
-        <Card>
+        <div className='card'>
           <div className='onboarding'>
             <p>No habits yet. Ready to plant something new?</p>
           </div>
-        </Card>
+        </div>
       )}
 
       {habits.length > 0 && (
@@ -140,7 +139,7 @@ export default function DailyView() {
           <Dialog.Overlay className='modal-overlay' />
           <Dialog.Content className='modal-content'>
             <Dialog.Title className='modal-title'>New habit</Dialog.Title>
-            <AddHabitForm
+            <AddHabitModal
               onAdd={({ name, frequency }) => {
                 addHabit({ id: nanoid(), name, frequency, createdAt: toDateString(displayDate) });
                 setShowForm(false);

@@ -8,7 +8,6 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod } from '../utils/date';
 import { describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { simpleHash } from '../utils/utils';
-import Card from './Card';
 import { HabitEmoji } from './HabitEmoji';
 
 const motivationalMessages = [
@@ -58,14 +57,12 @@ export default function HabitCard({
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
   return (
-    <Card
+    <div
       ref={ref}
       onClick={onClick}
-      className={
-        [isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : '']
-          .filter(Boolean)
-          .join(' ') || undefined
-      }
+      className={['card', isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : '']
+        .filter(Boolean)
+        .join(' ')}
     >
       <div className='habit-card-content'>
         <HabitEmoji emoji={emoji} />
@@ -123,6 +120,6 @@ export default function HabitCard({
           🔥 {habitStats.previousStreak} — {message}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

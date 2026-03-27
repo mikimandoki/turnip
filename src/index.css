@@ -121,7 +121,7 @@ body {
 
 /* ---- Card (generic wrapper) ---- */
 
-.habit-card {
+.card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -132,7 +132,7 @@ body {
   transition: background 0.3s ease;
 }
 
-.habit-card.logged-today {
+.card.logged-today {
   border-left: 3px solid rgba(29, 158, 117, 0.5);
 }
 
