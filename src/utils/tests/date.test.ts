@@ -1,9 +1,9 @@
-import { parseISO } from 'date-fns';
-import { describe, expect, it } from 'vitest';
+import { addDays, addYears, parseISO, subDays, subYears } from 'date-fns';
+import { afterAll, beforeAll, describe, expect, it, vi} from 'vitest';
 
 import type { Habit } from '../../types';
 
-import { endDatePeriod, startDatePeriod } from '../date';
+import { endDatePeriod, namedDayOrDate, startDatePeriod, toDateString } from '../date';
 
 describe('startDatePeriod', () => {
   // Intentional startDatePeriod before createdAt to count it as a full week
@@ -168,3 +168,48 @@ describe('endDatePeriod', () => {
     expect(endDatePeriod(habit, date)).toBe('2026-04-30');
   });
 });
+
+describe('toDateString', () => {
+  it('returns YYYY-MM-DD format', () => {
+    const date = new Date(2026, 2, 27)
+    expect(toDateString(date)).toBe('2026-03-27')
+  })
+})
+
+describe('namedDayOrDate', () => {
+  const fakeToday = new Date(2026, 0, 11) // January 11, 2026
+  beforeAll(() => {
+    vi.useFakeTimers(); 
+    vi.setSystemTime(fakeToday)
+});
+  afterAll(() => {
+    vi.useRealTimers();
+  })
+  const yesterday = subDays(fakeToday, 1)
+  const twoDaysAgo = subDays(fakeToday, 2)
+  const tomorrow = addDays(fakeToday, 1)
+  const dayAfterTomorrow = addDays(fakeToday, 2)
+  const nextYear = addYears(fakeToday, 1)
+  const lastYear = subYears(fakeToday, 1)
+  it('returns Today for today', () => {
+    expect(namedDayOrDate(fakeToday)).toBe('Today')
+  })
+  it('returns Yesterday for yesterday', () => {
+    expect(namedDayOrDate(yesterday)).toBe('Yesterday')
+  })
+  it('returns Tomorrow for tomorrow', () => {
+    expect(namedDayOrDate(tomorrow)).toBe('Tomorrow')
+  })
+  it('returns formatted date for two days ago', () => {
+    expect(namedDayOrDate(twoDaysAgo)).toBe('Friday, January 9')
+  })
+  it('returns formatted date for day after tomorrow', () => {
+    expect(namedDayOrDate(dayAfterTomorrow)).toBe('Tuesday, January 13')
+  })
+  it('returns base date plus years for next year', () => {
+    expect(namedDayOrDate(nextYear)).toBe('Monday, January 11 2027')
+  });
+  it('returns base date plus years for last year', () => {
+    expect(namedDayOrDate(lastYear)).toBe('Saturday, January 11 2025')
+  })
+})
