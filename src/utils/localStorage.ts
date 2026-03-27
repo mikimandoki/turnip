@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CompletionSchema, HabitSchema } from '../types';
+import { type Completion, CompletionSchema, type Habit, HabitSchema } from '../types';
 
 const SCHEMA_VERSION = 1;
 
@@ -60,7 +60,11 @@ export function exportData(): { success: boolean; error?: string } {
   }
 }
 
-export function importData(json: string): { success: boolean; error?: string } {
+export type ImportResult =
+  | { success: false; error: string }
+  | { success: true; habits: Habit[]; completions: Completion[] };
+
+export function importData(json: string): ImportResult {
   try {
     const raw: unknown = JSON.parse(json);
     const result = ImportSchema.safeParse(raw);
@@ -69,7 +73,7 @@ export function importData(json: string): { success: boolean; error?: string } {
     }
     saveToStorage('habits', result.data.habits);
     saveToStorage('completions', result.data.completions);
-    return { success: true };
+    return { success: true, habits: result.data.habits, completions: result.data.completions };
   } catch {
     return { success: false, error: '[importData] Failed to parse JSON' };
   }

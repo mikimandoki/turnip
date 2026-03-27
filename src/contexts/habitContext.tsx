@@ -10,6 +10,7 @@ import {
   clearStorage,
   CompletionsSchema,
   HabitsSchema,
+  HasOnboardedSchema,
   importData,
   loadFromStorage,
   saveToStorage,
@@ -20,6 +21,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', [], HabitsSchema));
   const [completions, setCompletions] = useState<Completion[]>(() =>
     loadFromStorage('completions', [], CompletionsSchema)
+  );
+  const [hasOnboarded, setHasOnboarded] = useState(() =>
+    loadFromStorage('hasOnboarded', false, HasOnboardedSchema)
   );
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
@@ -61,6 +65,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setHabits(updated);
     saveToStorage('habits', updated);
     saveToStorage('hasOnboarded', true);
+    setHasOnboarded(true);
   }
 
   function deleteHabit(habit: Habit) {
@@ -100,6 +105,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     saveToStorage('habits', demoHabits);
     saveToStorage('completions', demoCompletions);
     saveToStorage('hasOnboarded', true);
+    setHasOnboarded(true);
   }
 
   function reorderHabits(newOrder: Habit[]) {
@@ -110,8 +116,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   function applyImport(json: string): { success: boolean; error?: string } {
     const result = importData(json);
     if (result.success) {
-      setHabits(loadFromStorage('habits', [], HabitsSchema));
-      setCompletions(loadFromStorage('completions', [], CompletionsSchema));
+      setHabits(result.habits);
+      setCompletions(result.completions);
     }
     return result;
   }
@@ -124,6 +130,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         stats,
         displayDate,
         isFutureDate,
+        hasOnboarded,
         addHabit,
         updateCompletion,
         deleteHabit,

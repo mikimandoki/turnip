@@ -12,15 +12,14 @@ import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
-import { HasOnboardedSchema, loadFromStorage } from '../utils/localStorage';
 
 export default function DailyView() {
-  const hasOnboarded = loadFromStorage('hasOnboarded', false, HasOnboardedSchema);
   const navigate = useNavigate();
   const {
     habits,
     completions,
     displayDate,
+    hasOnboarded,
     addHabit,
     updateCompletion,
     reorderHabits,
