@@ -2,7 +2,7 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  -webkit-tap-highlight-color: rgba(0,0,0,0);
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -339,9 +339,10 @@ body {
 
 .modal-content {
   position: fixed;
-  top: 50%;
+  top: 15svh;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
+  transition: top 0.3s ease;
   z-index: 101;
   width: min(360px, 90vw);
   background: var(--color-background-primary);
@@ -351,13 +352,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-}
-
-@media (max-width: 600px) {
-  .modal-content {
-    top: 25%;
-    transform: translate(-50%, 0);
-  }
 }
 
 .modal-title {
