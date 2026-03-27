@@ -3,9 +3,11 @@ import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import Alert from '../components/Alert';
 import Card from '../components/Card';
 import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
+import { Modals } from '../constants/modals';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
@@ -20,6 +22,7 @@ export default function HabitDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [errors, setErrors] = useState<string[]>([]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
@@ -37,13 +40,6 @@ export default function HabitDetail() {
     editHabit(habit, { name: trimmedName });
     setEditName(trimmedName);
     setIsEditing(false);
-  }
-
-  function handleDelete() {
-    if (!habit) return;
-    if (!confirm(`Delete "${habit.name}"?`)) return;
-    deleteHabit(habit);
-    void navigate('/');
   }
 
   return (
@@ -101,7 +97,7 @@ export default function HabitDetail() {
                   <button className='btn-action' onClick={() => setIsEditing(true)}>
                     <Pencil size={16} />
                   </button>
-                  <button className='btn-action delete' onClick={handleDelete}>
+                  <button className='btn-action delete' onClick={() => setDeleteOpen(true)}>
                     <Trash2 size={16} />
                   </button>
                 </>
@@ -139,6 +135,15 @@ export default function HabitDetail() {
           <Heatmap habit={habit} completions={completions} />
         </Card>
       </div>
+      <Alert
+        {...Modals.deleteHabit(habit.name)}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onConfirm={() => {
+          deleteHabit(habit);
+          void navigate('/');
+        }}
+      />
     </>
   );
 }

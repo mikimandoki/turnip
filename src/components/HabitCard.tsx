@@ -58,7 +58,15 @@ export default function HabitCard({
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
   return (
-    <Card ref={ref} onClick={onClick} className={[isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : ''].filter(Boolean).join(' ') || undefined}>
+    <Card
+      ref={ref}
+      onClick={onClick}
+      className={
+        [isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : '']
+          .filter(Boolean)
+          .join(' ') || undefined
+      }
+    >
       <div className='habit-card-content'>
         <HabitEmoji emoji={emoji} />
         <div className='habit-card-info'>
@@ -90,7 +98,11 @@ export default function HabitCard({
               disabled={isFutureDate}
             >
               {showTick ? (
-                <Check size={16} className='btn-check-flash' onAnimationEnd={() => setShowTick(false)} />
+                <Check
+                  size={16}
+                  className='btn-check-flash'
+                  onAnimationEnd={() => setShowTick(false)}
+                />
               ) : (
                 <Plus size={16} />
               )}

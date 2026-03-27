@@ -41,7 +41,13 @@ export default function DailyView() {
         </button>
         <div
           className='header-title header-date-btn'
-          onClick={() => { try { dateInputRef.current?.showPicker(); } catch { /* Safari */ } }}
+          onClick={() => {
+            try {
+              dateInputRef.current?.showPicker();
+            } catch {
+              /* Safari */
+            }
+          }}
         >
           {namedDayOrDate(getCurrentDate())}
           <input
@@ -99,7 +105,12 @@ export default function DailyView() {
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, getCurrentDate())}
                 targetCount={habit.frequency.times}
-                loggedToday={completions.some(c => c.habitId === habit.id && c.date === toDateString(getCurrentDate()) && c.count > 0)}
+                loggedToday={completions.some(
+                  c =>
+                    c.habitId === habit.id &&
+                    c.date === toDateString(getCurrentDate()) &&
+                    c.count > 0
+                )}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
                 onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
                 onNegativeButtonClick={() => updateCompletion(habit.id, -1)}

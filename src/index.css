@@ -135,10 +135,22 @@ body {
 }
 
 @keyframes tick-flash {
-  0%   { opacity: 0; transform: scale(0.7); }
-  25%  { opacity: 1; transform: scale(1); }
-  75%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.7); }
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
 }
 
 .btn-check-flash {
@@ -288,7 +300,7 @@ body {
   cursor: pointer;
 }
 
-.btn-delete-all {
+.btn-danger {
   width: 100%;
   padding: 10px;
   border: 0.5px solid var(--color-text-danger);
@@ -299,8 +311,52 @@ body {
   cursor: pointer;
 }
 
-.btn-delete-all:hover {
+.btn-danger:hover {
   background: rgba(216, 90, 48, 0.05);
+}
+
+/* ---- Modal ---- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  width: min(360px, 90vw);
+  background: var(--color-background-primary);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-description {
+  white-space: pre-line;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
 }
 
 /* ---- Progress bar ---- */
