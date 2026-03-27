@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { CompletionSchema, HabitSchema } from '../types';
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 1;
 
 const ImportSchema = z.object({
   version: z.number().optional(),
@@ -45,7 +45,9 @@ export function exportData(): { success: boolean; error?: string } {
         data[key] = JSON.parse(stored);
       }
     }
-    const blob = new Blob([JSON.stringify({ version: SCHEMA_VERSION, ...data }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ version: SCHEMA_VERSION, ...data }, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

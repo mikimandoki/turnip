@@ -1,4 +1,4 @@
-import { parseISO, subDays, subMonths, subWeeks } from 'date-fns';
+import { parseISO, subDays } from 'date-fns';
 import emojiRegex from 'emoji-regex-xs';
 
 import type { Completion, Frequency, Habit, HabitStats } from '../types';
@@ -51,59 +51,8 @@ export function getTotalCompletions(habit: Habit, completions: Completion[], dat
   return getCompletionsInRange(habit, completions, habit.createdAt, toDateString(date));
 }
 
-export function calculateStreak(
-  habit: Habit,
-  completions: Completion[],
-  date: Date,
-  skipCurrent = false
-): number {
-  let streak = 0;
-  let checkDate = date;
-  if (skipCurrent) {
-    checkDate = subDays(parseISO(startDatePeriod(habit, checkDate)), 1);
-  }
-  while (true) {
-    const periodStart = startDatePeriod(habit, checkDate);
-    const periodEnd = endDatePeriod(habit, checkDate);
-
-    if (periodEnd < habit.createdAt) break;
-
-    const count = completions
-      .filter(
-        c =>
-          c.habitId === habit.id &&
-          c.date >= periodStart &&
-          c.date <= periodEnd &&
-          c.date <= toDateString(date)
-      )
-      .reduce((sum, c) => sum + c.count, 0);
-
-    if (count >= habit.frequency.times) {
-      streak++;
-    } else {
-      break;
-    }
-
-    if (periodStart < habit.createdAt) break;
-
-    switch (habit.frequency.periodUnit) {
-      case 'day':
-        checkDate = subDays(checkDate, habit.frequency.periodLength);
-        break;
-      case 'month':
-        checkDate = subMonths(checkDate, habit.frequency.periodLength);
-        break;
-      case 'week':
-        checkDate = subWeeks(checkDate, habit.frequency.periodLength);
-        break;
-    }
-  }
-
-  return streak;
-}
-
 export function calculateHabitStats(
-  habit: Habit,
+  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
   completions: Completion[],
   date: Date
 ): HabitStats {
@@ -150,6 +99,7 @@ export function calculateHabitStats(
     if (periodStart < habit.createdAt) break;
 
     checkDate = subDays(parseISO(periodStart), 1);
+    if (toDateString(checkDate) < habit.createdAt) break;
   }
 
   if (currentRun > 0) runs.push(currentRun);

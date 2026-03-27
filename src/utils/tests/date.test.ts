@@ -1,5 +1,5 @@
 import { addDays, addYears, parseISO, subDays, subYears } from 'date-fns';
-import { afterAll, beforeAll, describe, expect, it, vi} from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Habit } from '../../types';
 
@@ -171,45 +171,45 @@ describe('endDatePeriod', () => {
 
 describe('toDateString', () => {
   it('returns YYYY-MM-DD format', () => {
-    const date = new Date(2026, 2, 27)
-    expect(toDateString(date)).toBe('2026-03-27')
-  })
-})
+    const date = new Date(2026, 2, 27);
+    expect(toDateString(date)).toBe('2026-03-27');
+  });
+});
 
 describe('namedDayOrDate', () => {
-  const fakeToday = new Date(2026, 0, 11) // January 11, 2026
+  const fakeToday = new Date(2026, 0, 11); // January 11, 2026
   beforeAll(() => {
-    vi.useFakeTimers(); 
-    vi.setSystemTime(fakeToday)
-});
+    vi.useFakeTimers();
+    vi.setSystemTime(fakeToday);
+  });
   afterAll(() => {
     vi.useRealTimers();
-  })
-  const yesterday = subDays(fakeToday, 1)
-  const twoDaysAgo = subDays(fakeToday, 2)
-  const tomorrow = addDays(fakeToday, 1)
-  const dayAfterTomorrow = addDays(fakeToday, 2)
-  const nextYear = addYears(fakeToday, 1)
-  const lastYear = subYears(fakeToday, 1)
+  });
+  const yesterday = subDays(fakeToday, 1);
+  const twoDaysAgo = subDays(fakeToday, 2);
+  const tomorrow = addDays(fakeToday, 1);
+  const dayAfterTomorrow = addDays(fakeToday, 2);
+  const nextYear = addYears(fakeToday, 1);
+  const lastYear = subYears(fakeToday, 1);
   it('returns Today for today', () => {
-    expect(namedDayOrDate(fakeToday)).toBe('Today')
-  })
+    expect(namedDayOrDate(fakeToday)).toBe('Today');
+  });
   it('returns Yesterday for yesterday', () => {
-    expect(namedDayOrDate(yesterday)).toBe('Yesterday')
-  })
+    expect(namedDayOrDate(yesterday)).toBe('Yesterday');
+  });
   it('returns Tomorrow for tomorrow', () => {
-    expect(namedDayOrDate(tomorrow)).toBe('Tomorrow')
-  })
+    expect(namedDayOrDate(tomorrow)).toBe('Tomorrow');
+  });
   it('returns formatted date for two days ago', () => {
-    expect(namedDayOrDate(twoDaysAgo)).toBe('Friday, January 9')
-  })
+    expect(namedDayOrDate(twoDaysAgo)).toBe('Friday, January 9');
+  });
   it('returns formatted date for day after tomorrow', () => {
-    expect(namedDayOrDate(dayAfterTomorrow)).toBe('Tuesday, January 13')
-  })
+    expect(namedDayOrDate(dayAfterTomorrow)).toBe('Tuesday, January 13');
+  });
   it('returns base date plus years for next year', () => {
-    expect(namedDayOrDate(nextYear)).toBe('Monday, January 11 2027')
+    expect(namedDayOrDate(nextYear)).toBe('Monday, January 11 2027');
   });
   it('returns base date plus years for last year', () => {
-    expect(namedDayOrDate(lastYear)).toBe('Saturday, January 11 2025')
-  })
-})
+    expect(namedDayOrDate(lastYear)).toBe('Saturday, January 11 2025');
+  });
+});
