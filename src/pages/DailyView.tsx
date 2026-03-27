@@ -1,11 +1,13 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useRef } from 'react';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Dialog } from 'radix-ui';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import Card from '../components/Card';
 import HabitCard from '../components/HabitCard';
+import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { getCurrentDate, namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
@@ -19,8 +21,6 @@ export default function DailyView() {
     habits,
     completions,
     displayDate,
-    showForm,
-    setShowForm,
     addHabit,
     updateCompletion,
     reorderHabits,
@@ -30,6 +30,8 @@ export default function DailyView() {
     loadDemoData,
   } = useHabitContext();
 
+  const [showForm, setShowForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(getCurrentDate()));
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,26 +122,38 @@ export default function DailyView() {
         </DragDropProvider>
       )}
 
-      {showForm ? (
-        <AddHabitForm
-          onAdd={habit => {
-            addHabit(habit);
-            setShowForm(false);
-          }}
-          onCancel={() => setShowForm(false)}
-        />
-      ) : (
-        <>
-          <button className='btn-add-habit' onClick={() => setShowForm(true)}>
-            Add new habit
-          </button>
-          {!hasOnboarded && habits.length === 0 && (
-            <button className='btn-add-habit' onClick={loadDemoData}>
-              Explore demo data
-            </button>
-          )}
-        </>
+      <div className='btn-row'>
+        <button className='btn-add-habit' onClick={() => setShowForm(true)}>
+          Add new habit
+        </button>
+        <button className='btn-action' onClick={() => setShowSettings(true)}>
+          <Settings size={16} />
+        </button>
+      </div>
+
+      {!hasOnboarded && habits.length === 0 && (
+        <button className='btn-add-habit' onClick={loadDemoData}>
+          Explore demo data
+        </button>
       )}
+
+      <Dialog.Root open={showForm} onOpenChange={setShowForm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className='modal-overlay' />
+          <Dialog.Content className='modal-content'>
+            <Dialog.Title className='modal-title'>New habit</Dialog.Title>
+            <AddHabitForm
+              onAdd={habit => {
+                addHabit(habit);
+                setShowForm(false);
+              }}
+              onCancel={() => setShowForm(false)}
+            />
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
 
       {import.meta.env.DEV && (
         <div>

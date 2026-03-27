@@ -260,16 +260,27 @@ body {
   gap: var(--spacing-sm);
 }
 
+.btn-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
 .btn-add-habit {
-  width: 100%;
-  border: 0.5px dashed var(--color-border-secondary);
-  border-radius: var(--radius-lg);
-  padding: 14px var(--spacing-xl);
-  text-align: center;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: none;
   color: var(--color-text-secondary);
   font-size: 14px;
   cursor: pointer;
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-row .btn-add-habit {
+  flex: 1;
 }
 
 .btn-add-habit:hover {
@@ -424,11 +435,9 @@ body {
 /* ---- Form ---- */
 
 .add-habit-form {
-  width: 100%;
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
-  border-radius: var(--radius-lg);
-  padding: 14px var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
 .add-habit-form input[type='text'],
@@ -458,7 +467,6 @@ body {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
 }
 
 .form-label {
@@ -552,4 +560,36 @@ body {
 
 .heatmap-pad {
   background: transparent;
+}
+
+/* ---- Settings modal ---- */
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.settings-warning {
+  font-size: 12px;
+  color: var(--color-text-warning);
+  margin: 0;
+}
+
+.settings-status-ok {
+  font-size: 12px;
+  color: var(--color-text-success);
+  margin: 0;
+}
+
+.settings-status-error {
+  font-size: 12px;
+  color: var(--color-text-danger);
+  margin: 0;
 }

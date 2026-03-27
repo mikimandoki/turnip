@@ -23,7 +23,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   );
   const [displayDate, setDisplayDate] = useState<string>(toDateString(getCurrentDate()));
   const isFutureDate = !import.meta.env.DEV && isFuture(parseISO(displayDate));
-  const [showForm, setShowForm] = useState(false);
 
   const stats = useMemo(
     () =>
@@ -129,8 +128,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         stats,
         displayDate,
         isFutureDate,
-        showForm,
-        setShowForm,
         addHabit,
         updateCompletion,
         deleteHabit,

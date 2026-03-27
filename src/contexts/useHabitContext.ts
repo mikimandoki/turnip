@@ -7,8 +7,6 @@ export interface HabitContextType {
   completions: Completion[];
   displayDate: string;
   isFutureDate: boolean;
-  showForm: boolean;
-  setShowForm: (show: boolean) => void;
   addHabit: (habit: Habit) => void;
   updateCompletion: (habitId: string, increment: number) => void;
   deleteHabit: (habit: Habit) => void;
