@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import perfectionist from 'eslint-plugin-perfectionist';
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'android', 'ios']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

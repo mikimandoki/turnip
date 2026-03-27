@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 import { type Completion, CompletionSchema, type Habit, HabitSchema } from '../types';
 
+const platform =
+  (window as unknown as { Capacitor?: { getPlatform: () => string } }).Capacitor?.getPlatform() ??
+  'web';
+
 const SCHEMA_VERSION = 1;
 
 const ImportSchema = z.object({
@@ -36,7 +40,7 @@ export function clearStorage(): void {
   }
 }
 
-export function exportData(): { success: boolean; error?: string } {
+export async function exportData(): Promise<{ success: boolean; error?: string }> {
   try {
     const data: Record<string, unknown> = {};
     for (const key of APP_KEYS) {
@@ -45,17 +49,38 @@ export function exportData(): { success: boolean; error?: string } {
         data[key] = JSON.parse(stored);
       }
     }
-    const blob = new Blob([JSON.stringify({ version: SCHEMA_VERSION, ...data }, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'turnip-backup.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    const json = JSON.stringify({ version: SCHEMA_VERSION, ...data }, null, 2);
+
+    if (platform === 'ios') {
+      const file = new File([json], 'turnip-backup.json', { type: 'application/json' });
+      await navigator.share({ files: [file] });
+    } else if (platform === 'android') {
+      const { Directory, Encoding, Filesystem } = await import('@capacitor/filesystem');
+      const { Share } = await import('@capacitor/share');
+      await Filesystem.writeFile({
+        path: 'turnip-backup.json',
+        data: json,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      const { uri } = await Filesystem.getUri({
+        path: 'turnip-backup.json',
+        directory: Directory.Cache,
+      });
+      await Share.share({ title: 'Turnip Backup', url: uri });
+    } else {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'turnip-backup.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+
     return { success: true };
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && (e.name === 'AbortError' || e.message === 'Share canceled'))
+      return { success: true };
     return { success: false, error: '[exportData] Failed to export data' };
   }
 }

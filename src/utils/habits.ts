@@ -63,6 +63,8 @@ export function calculateHabitStats(
   let firstPeriodCompleted: boolean | null = null;
   let secondPeriodCompleted: boolean | null = null;
 
+  const habitCompletions = completions.filter(c => c.habitId === habit.id);
+  const todayString = toDateString(date);
   let checkDate = date;
 
   while (true) {
@@ -71,14 +73,8 @@ export function calculateHabitStats(
 
     if (periodEnd < habit.createdAt) break;
 
-    const count = completions
-      .filter(
-        c =>
-          c.habitId === habit.id &&
-          c.date >= periodStart &&
-          c.date <= periodEnd &&
-          c.date <= toDateString(date)
-      )
+    const count = habitCompletions
+      .filter(c => c.date >= periodStart && c.date <= periodEnd && c.date <= todayString)
       .reduce((sum, c) => sum + c.count, 0);
 
     if (firstPeriodCompleted === null) {

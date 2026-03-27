@@ -49,9 +49,9 @@ export default function SettingsModal({
             <button
               className='btn-cancel'
               onClick={() => {
-                const result = exportData();
-                if (result.success) onOpenChange(false);
-                else if (result.error) setStatus({ message: result.error, ok: false });
+                void exportData().then(result => {
+                  if (result.error) setStatus({ message: result.error, ok: false });
+                });
               }}
             >
               Download backup

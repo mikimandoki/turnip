@@ -41,11 +41,18 @@ body {
   color: var(--color-text-primary);
 }
 
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
 /* Single layout container — controls all vertical spacing */
 .app {
   max-width: 600px;
   margin: 0 auto;
   padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
@@ -354,6 +361,11 @@ body {
   gap: var(--spacing-md);
 }
 
+.native .modal-content {
+  top: calc(var(--screen-height) * 0.15);
+  transition: none;
+}
+
 .modal-title {
   font-size: 16px;
   font-weight: 600;
@@ -448,7 +460,6 @@ body {
   padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
-  font-size: 14px;
   background: var(--color-background-primary);
   color: var(--color-text-primary);
 }
@@ -457,7 +468,6 @@ body {
   padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
-  font-size: 14px;
   background: var(--color-background-primary);
   color: var(--color-text-primary);
 }
