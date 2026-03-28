@@ -1,3 +1,8 @@
+/**
+ * NOTE: Capacitor discourages the usage of the Preferences API for local storage
+ * However the data modal is so small that using SQLite et al. is overkill
+ */
+import { Preferences } from '@capacitor/preferences';
 import { z } from 'zod';
 
 import { type Completion, CompletionSchema, type Habit, HabitSchema } from '../types';
@@ -20,36 +25,35 @@ export const HasOnboardedSchema = z.boolean();
 
 export const APP_KEYS = ['habits', 'completions', 'hasOnboarded'] as const;
 
-export function loadFromStorage<T>(key: string, fallback: T, schema: z.ZodType<T>): T {
+export async function loadFromStorage<T>(
+  key: string,
+  fallback: T,
+  schema: z.ZodType<T>
+): Promise<T> {
   try {
-    const stored = localStorage.getItem(key);
-    if (!stored) return fallback;
-    return schema.parse(JSON.parse(stored));
+    const { value } = await Preferences.get({ key });
+    if (!value) return fallback;
+    return schema.parse(JSON.parse(value));
   } catch {
     return fallback;
   }
 }
 
-export function saveToStorage<T>(key: string, data: T): void {
-  localStorage.setItem(key, JSON.stringify(data));
+export async function saveToStorage<T>(key: string, data: T): Promise<void> {
+  await Preferences.set({ key, value: JSON.stringify(data) });
 }
 
-export function clearStorage(): void {
-  for (const key of APP_KEYS) {
-    localStorage.removeItem(key);
-  }
+export async function clearStorage(): Promise<void> {
+  await Promise.all(APP_KEYS.map(key => Preferences.remove({ key })));
 }
 
 export async function exportData(): Promise<{ success: boolean; error?: string }> {
   try {
-    const data: Record<string, unknown> = {};
-    for (const key of APP_KEYS) {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        data[key] = JSON.parse(stored);
-      }
-    }
-    const json = JSON.stringify({ version: SCHEMA_VERSION, ...data }, null, 2);
+    const [habits, completions] = await Promise.all([
+      loadFromStorage('habits', [], HabitsSchema),
+      loadFromStorage('completions', [], CompletionsSchema),
+    ]);
+    const json = JSON.stringify({ version: SCHEMA_VERSION, habits, completions }, null, 2);
 
     if (platform === 'ios') {
       const file = new File([json], 'turnip-backup.json', { type: 'application/json' });
@@ -89,15 +93,17 @@ export type ImportResult =
   | { success: false; error: string }
   | { success: true; habits: Habit[]; completions: Completion[] };
 
-export function importData(json: string): ImportResult {
+export async function importData(json: string): Promise<ImportResult> {
   try {
     const raw: unknown = JSON.parse(json);
     const result = ImportSchema.safeParse(raw);
     if (!result.success) {
       return { success: false, error: '[importData] Invalid data format' };
     }
-    saveToStorage('habits', result.data.habits);
-    saveToStorage('completions', result.data.completions);
+    await Promise.all([
+      saveToStorage('habits', result.data.habits),
+      saveToStorage('completions', result.data.completions),
+    ]);
     return { success: true, habits: result.data.habits, completions: result.data.completions };
   } catch {
     return { success: false, error: '[importData] Failed to parse JSON' };

@@ -1,5 +1,5 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { Completion, Habit } from '../types';
 
@@ -18,16 +18,26 @@ import {
 import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
-  const [habits, setHabits] = useState<Habit[]>(() => loadFromStorage('habits', [], HabitsSchema));
-  const [completions, setCompletions] = useState<Completion[]>(() =>
-    loadFromStorage('completions', [], CompletionsSchema)
-  );
-  const [hasOnboarded, setHasOnboarded] = useState(() =>
-    loadFromStorage('hasOnboarded', false, HasOnboardedSchema)
-  );
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [completions, setCompletions] = useState<Completion[]>([]);
+  const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = !import.meta.env.DEV && isFuture(displayDate);
+
+  useEffect(() => {
+    void Promise.all([
+      loadFromStorage('habits', [], HabitsSchema),
+      loadFromStorage('completions', [], CompletionsSchema),
+      loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
+    ]).then(([h, c, o]) => {
+      setHabits(h);
+      setCompletions(c);
+      setHasOnboarded(o);
+      setLoading(false);
+    });
+  }, []);
 
   const stats = useMemo(
     () =>
@@ -57,14 +67,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       updated = [...completions, { habitId, date: today, count: increment }];
     }
     setCompletions(updated);
-    saveToStorage('completions', updated);
+    void saveToStorage('completions', updated);
   }
 
   function addHabit(newHabit: Habit) {
     const updated = [...habits, newHabit];
     setHabits(updated);
-    saveToStorage('habits', updated);
-    saveToStorage('hasOnboarded', true);
+    void saveToStorage('habits', updated);
+    void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
   }
 
@@ -73,15 +83,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
     setHabits(updatedHabits);
     setCompletions(updatedCompletions);
-    saveToStorage('habits', updatedHabits);
-    saveToStorage('completions', updatedCompletions);
+    void saveToStorage('habits', updatedHabits);
+    void saveToStorage('completions', updatedCompletions);
   }
 
   function editHabit(habit: Habit, updates: Partial<Habit>) {
     const sanitized = updates.name ? { ...updates, name: updates.name.trim() } : updates;
     const updated = habits.map(h => (h.id === habit.id ? { ...h, ...sanitized } : h));
     setHabits(updated);
-    saveToStorage('habits', updated);
+    void saveToStorage('habits', updated);
   }
 
   function shiftDate(days: number) {
@@ -93,7 +103,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function clearAll() {
-    clearStorage();
+    void clearStorage();
     setHabits([]);
     setCompletions([]);
   }
@@ -102,25 +112,28 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
     setHabits(demoHabits);
     setCompletions(demoCompletions);
-    saveToStorage('habits', demoHabits);
-    saveToStorage('completions', demoCompletions);
-    saveToStorage('hasOnboarded', true);
+    void saveToStorage('habits', demoHabits);
+    void saveToStorage('completions', demoCompletions);
+    void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
   }
 
   function reorderHabits(newOrder: Habit[]) {
     setHabits(newOrder);
-    saveToStorage('habits', newOrder);
+    void saveToStorage('habits', newOrder);
   }
 
-  function applyImport(json: string): { success: boolean; error?: string } {
-    const result = importData(json);
+  async function applyImport(json: string): Promise<{ success: boolean; error?: string }> {
+    const result = await importData(json);
     if (result.success) {
       setHabits(result.habits);
       setCompletions(result.completions);
     }
     return result;
   }
+
+  if (loading)
+    return <div style={{ height: '100dvh', background: 'var(--color-background-secondary)' }} />;
 
   return (
     <HabitContext.Provider

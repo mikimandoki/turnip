@@ -21,12 +21,13 @@ export default function SettingsModal({
     const reader = new FileReader();
     reader.onload = ev => {
       const json = ev.target?.result as string;
-      const result = applyImport(json);
-      setStatus(
-        result.success
-          ? { message: 'Import successful.', ok: true }
-          : { message: result.error ?? 'Import failed.', ok: false }
-      );
+      void applyImport(json).then(result => {
+        setStatus(
+          result.success
+            ? { message: 'Import successful.', ok: true }
+            : { message: result.error ?? 'Import failed.', ok: false }
+        );
+      });
     };
     reader.readAsText(file);
     e.target.value = '';
