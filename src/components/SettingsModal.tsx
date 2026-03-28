@@ -1,4 +1,4 @@
-import { Dialog } from 'radix-ui';
+import { Dialog, Switch } from 'radix-ui';
 import { useRef, useState } from 'react';
 
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -11,7 +11,7 @@ export default function SettingsModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { habits, applyImport } = useHabitContext();
+  const { habits, applyImport, darkMode, toggleDarkMode } = useHabitContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ message: string; ok: boolean } | null>(null);
 
@@ -33,6 +33,12 @@ export default function SettingsModal({
     e.target.value = '';
   }
 
+  const habitCount = habits.length;
+  const importDesc =
+    habitCount > 0
+      ? `Restore from a backup file. Replaces your ${habitCount} habit${habitCount === 1 ? '' : 's'} and all completions.`
+      : 'Restore habits and history from a backup file.';
+
   return (
     <Dialog.Root
       open={open}
@@ -45,38 +51,58 @@ export default function SettingsModal({
         <Dialog.Overlay className='modal-overlay' />
         <Dialog.Content className='modal-content'>
           <Dialog.Title className='modal-title'>Settings</Dialog.Title>
+
           <div className='settings-section'>
-            <div className='settings-label'>Export</div>
-            <button
-              className='btn-cancel'
-              onClick={() => {
-                void exportData().then(result => {
-                  if (result.error) setStatus({ message: result.error, ok: false });
-                });
-              }}
-            >
-              Download backup
-            </button>
+            <div className='settings-item'>
+              <div className='settings-item-text'>
+                <span className='settings-item-label'>Dark mode</span>
+              </div>
+              <Switch.Root
+                checked={darkMode}
+                onCheckedChange={toggleDarkMode}
+                className='switch-root'
+              >
+                <Switch.Thumb className='switch-thumb' />
+              </Switch.Root>
+            </div>
           </div>
-          <div className='settings-section'>
-            <div className='settings-label'>Import</div>
-            {habits.length > 0 && (
-              <p className='settings-warning'>
-                This will replace your {habits.length} habit{habits.length === 1 ? '' : 's'} and all
-                completions.
-              </p>
-            )}
-            <input
-              ref={fileRef}
-              type='file'
-              accept='.json'
-              style={{ display: 'none' }}
-              onChange={handleImportFile}
-            />
-            <button className='btn-cancel' onClick={() => fileRef.current?.click()}>
-              Import from file
-            </button>
+
+          <div className='settings-section settings-section-divided'>
+            <div className='settings-item-stack'>
+              <span className='settings-item-label'>Export data</span>
+              <span className='settings-item-desc'>
+                {habitCount > 0
+                  ? 'Download a backup of your habits and history'
+                  : 'Nothing to export yet — add some habits first'}
+              </span>
+              <button
+                className='btn-base btn-ghost'
+                disabled={habitCount === 0}
+                onClick={() => {
+                  void exportData().then(result => {
+                    if (result.error) setStatus({ message: result.error, ok: false });
+                  });
+                }}
+              >
+                Download backup
+              </button>
+            </div>
+            <div className='settings-item-stack'>
+              <span className='settings-item-label'>Import data</span>
+              <span className='settings-item-desc'>{importDesc}</span>
+              <input
+                ref={fileRef}
+                type='file'
+                accept='.json'
+                style={{ display: 'none' }}
+                onChange={handleImportFile}
+              />
+              <button className='btn-base btn-ghost' onClick={() => fileRef.current?.click()}>
+                Import from file
+              </button>
+            </div>
           </div>
+
           {status && (
             <p className={status.ok ? 'settings-status-ok' : 'settings-status-error'}>
               {status.message}

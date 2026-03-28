@@ -8,6 +8,7 @@ export interface HabitContextType {
   displayDate: Date;
   isFutureDate: boolean;
   hasOnboarded: boolean;
+  darkMode: boolean;
   addHabit: (habit: Habit) => void;
   updateCompletion: (habitId: string, increment: number) => void;
   deleteHabit: (habit: Habit) => void;
@@ -18,6 +19,7 @@ export interface HabitContextType {
   loadDemoData: () => void;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
   reorderHabits: (habits: Habit[]) => void;
+  toggleDarkMode: () => void;
   stats: (HabitStats & { habitId: string })[];
 }
 

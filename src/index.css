@@ -17,10 +17,18 @@
   --color-text-primary: #1a1a1a;
   --color-text-secondary: #71706e;
 
-  --color-text-success: #1d9e75;
-  --color-text-info: #378add;
-  --color-text-danger: #d85a30;
+  --color-text-success: #15803d;
+  --color-text-info: #1a6bbf;
+  --color-text-danger: #b84520;
   --color-text-warning: #ba7517;
+
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-subtle: #ede9fe;
+  --color-accent-text: #ffffff;
+  --color-accent-on-subtle: #4c1d95;
+
+  --color-button-danger: #c41e1e;
 
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -30,6 +38,44 @@
   --spacing-md: 8px;
   --spacing-lg: 12px;
   --spacing-xl: 16px;
+}
+
+[data-accent='green'] {
+  --color-accent: #15803d;
+  --color-accent-hover: #166534;
+  --color-accent-subtle: #dcfce7;
+  --color-accent-on-subtle: #14532d;
+}
+
+[data-theme='dark'] {
+  --color-background-primary: #242038;
+  --color-background-secondary: #161229;
+  --color-background-tertiary: #2f2b47;
+
+  --color-border-tertiary: rgba(255, 255, 255, 0.08);
+  --color-border-secondary: rgba(255, 255, 255, 0.15);
+
+  --color-text-primary: #f1f0ff;
+  --color-text-secondary: #9d99be;
+
+  --color-text-success: #4ade80;
+  --color-text-info: #2dd4bf;
+  --color-text-danger: #f87171;
+  --color-text-warning: #fbbf24;
+
+  --color-accent: #a78bfa;
+  --color-accent-hover: #c4b5fd;
+  --color-accent-subtle: #3b2f6e;
+  --color-accent-text: #1e1b2e;
+  --color-accent-on-subtle: #c4b5fd;
+}
+
+[data-theme='dark'][data-accent='green'] {
+  --color-accent: #4ade80;
+  --color-accent-hover: #86efac;
+  --color-accent-subtle: #14532d;
+  --color-accent-text: #14532d;
+  --color-accent-on-subtle: #86efac;
 }
 
 /* ---- Global ---- */
@@ -47,7 +93,6 @@ textarea {
   font-size: 16px;
 }
 
-/* Single layout container — controls all vertical spacing */
 .app {
   max-width: 600px;
   margin: 0 auto;
@@ -95,7 +140,6 @@ textarea {
 
 /* ---- Habit list ---- */
 
-/* No extra margin — .app gap handles spacing between list and siblings */
 .habit-list {
   display: flex;
   flex-direction: column;
@@ -126,7 +170,7 @@ textarea {
   font-size: 40px;
 }
 
-/* ---- Card (generic wrapper) ---- */
+/* ---- Card ---- */
 
 .card {
   display: flex;
@@ -140,7 +184,7 @@ textarea {
 }
 
 .card.logged-today {
-  border-left: 3px solid rgba(29, 158, 117, 0.5);
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 @keyframes tick-flash {
@@ -163,7 +207,7 @@ textarea {
 }
 
 .btn-check-flash {
-  color: var(--color-text-success);
+  color: var(--color-accent);
   animation: tick-flash 0.9s ease forwards;
 }
 
@@ -224,7 +268,7 @@ textarea {
 }
 
 .completion-count.done {
-  color: var(--color-text-success);
+  color: var(--color-accent);
 }
 
 .completion-count.in-progress {
@@ -234,15 +278,62 @@ textarea {
 .completion-count.behind {
   color: var(--color-text-danger);
 }
-
 /* ---- Buttons ---- */
 
+.btn-base {
+  all: unset;
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-base:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn-danger {
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: #c41e1e;
+  color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-ghost {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 0.5px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-background-tertiary);
+}
+
 .btn-action {
+  all: unset;
+  box-sizing: border-box;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-md);
   border: 0.5px solid var(--color-border-secondary);
-  background: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,16 +367,18 @@ textarea {
 }
 
 .btn-add-habit {
+  all: unset;
+  box-sizing: border-box;
   height: 32px;
   border-radius: var(--radius-md);
   border: 0.5px solid var(--color-border-secondary);
-  background: none;
   color: var(--color-text-secondary);
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 var(--spacing-lg);
 }
 
 .btn-row .btn-add-habit {
@@ -295,46 +388,6 @@ textarea {
 .btn-add-habit:hover {
   background: var(--color-background-tertiary);
 }
-
-.btn-submit {
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--color-text-success);
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-submit:hover {
-  opacity: 0.9;
-}
-
-.btn-cancel {
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-radius: var(--radius-md);
-  border: 0.5px solid var(--color-border-secondary);
-  background: none;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.btn-danger {
-  width: 100%;
-  padding: 10px;
-  border: 0.5px solid var(--color-text-danger);
-  border-radius: var(--radius-md);
-  background: none;
-  color: var(--color-text-danger);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.btn-danger:hover {
-  background: rgba(216, 90, 48, 0.05);
-}
-
 /* ---- Modal ---- */
 
 .modal-overlay {
@@ -400,7 +453,7 @@ textarea {
 }
 
 .progress-fill.done {
-  background: var(--color-text-success);
+  background: var(--color-accent);
 }
 
 .progress-fill.in-progress {
@@ -456,12 +509,31 @@ textarea {
 }
 
 .add-habit-form input[type='text'],
-.add-habit-form input[type='number'] {
+.add-habit-form input[type='number'],
+.edit-name-input {
   padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
   background: var(--color-background-primary);
   color: var(--color-text-primary);
+  outline: none;
+}
+
+.edit-name-input {
+  margin-right: var(--spacing-lg);
+}
+
+.add-habit-form input[type='text']:focus,
+.add-habit-form input[type='number']:focus,
+.add-habit-form select:focus,
+.edit-name-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.add-habit-form input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
 }
 
 .add-habit-form select {
@@ -495,7 +567,8 @@ textarea {
   margin-top: var(--spacing-sm);
 }
 
-/* --- Heatmap --- */
+/* ---- Heatmap ---- */
+
 .heatmap {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -542,24 +615,30 @@ textarea {
   color: rgba(255, 255, 255, 0.8);
 }
 
+/*
+  Heatmap fills use CSS custom properties with a fallback chain.
+  The opacity trick doesn't work with CSS variables so we use
+  color-mix() to derive tints from the accent colour.
+  Fallback for browsers without color-mix: accent at full opacity.
+*/
 .heatmap-fill-25 {
-  background: rgba(29, 158, 117, 0.25);
+  background: color-mix(in srgb, var(--color-accent) 25%, var(--color-background-tertiary));
 }
 
 .heatmap-fill-50 {
-  background: rgba(29, 158, 117, 0.5);
+  background: color-mix(in srgb, var(--color-accent) 50%, var(--color-background-tertiary));
 }
 
 .heatmap-fill-75 {
-  background: rgba(29, 158, 117, 0.75);
+  background: color-mix(in srgb, var(--color-accent) 75%, var(--color-background-tertiary));
 }
 
 .heatmap-filled {
-  background: var(--color-text-success);
+  background: var(--color-accent);
 }
 
 .heatmap-period-complete {
-  background: rgba(29, 158, 117, 0.15);
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-background-tertiary));
 }
 
 .heatmap-fill-50 .heatmap-day-number,
@@ -580,19 +659,84 @@ textarea {
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
 }
 
-.settings-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+.settings-section-divided {
+  border-top: 0.5px solid var(--color-border-tertiary);
+  padding-top: var(--spacing-lg);
 }
 
-.settings-warning {
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+}
+
+.settings-item-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.settings-item-stack-divided {
+  border-top: 0.5px solid var(--color-border-tertiary);
+  padding-top: var(--spacing-lg);
+}
+
+.settings-item-label {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-md);
+}
+
+.settings-item-desc {
   font-size: 12px;
-  color: var(--color-text-warning);
-  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.switch-root {
+  all: unset;
+  width: 36px;
+  height: 20px;
+  background: var(--color-background-tertiary);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.switch-root[data-state='checked'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.switch-thumb {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.switch-root[data-state='checked'] .switch-thumb {
+  transform: translateX(16px);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 .settings-status-ok {

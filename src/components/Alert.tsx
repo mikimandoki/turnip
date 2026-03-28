@@ -27,8 +27,8 @@ export default function Alert({
             {description}
           </AlertDialog.Description>
           <div className='modal-actions'>
-            <AlertDialog.Cancel className='btn-cancel'>{cancel}</AlertDialog.Cancel>
-            <AlertDialog.Action className='btn-danger' onClick={onConfirm}>
+            <AlertDialog.Cancel className='btn-base btn-ghost'>{cancel}</AlertDialog.Cancel>
+            <AlertDialog.Action className='btn-base btn-danger' onClick={onConfirm}>
               {confirm}
             </AlertDialog.Action>
           </div>

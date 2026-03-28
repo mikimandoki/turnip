@@ -152,8 +152,10 @@ export default function DailyView() {
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
 
       {import.meta.env.DEV && (
-        <div>
-          <button onClick={clearAll}>Delete All</button>
+        <div className='btn-row'>
+          <button className='btn-add-habit' onClick={clearAll}>
+            Delete All
+          </button>
         </div>
       )}
     </div>

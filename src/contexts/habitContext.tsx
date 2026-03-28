@@ -1,5 +1,7 @@
+import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 
 import type { Completion, Habit } from '../types';
 
@@ -21,6 +23,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
@@ -31,13 +34,28 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       loadFromStorage('habits', [], HabitsSchema),
       loadFromStorage('completions', [], CompletionsSchema),
       loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-    ]).then(([h, c, o]) => {
+      loadFromStorage('darkMode', false, z.boolean()),
+    ]).then(([h, c, o, dm]) => {
       setHabits(h);
       setCompletions(c);
       setHasOnboarded(o);
+      setDarkMode(dm);
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (darkMode) {
+      html.setAttribute('data-theme', 'dark');
+      html.removeAttribute('data-accent');
+      void SystemBars.setStyle({ style: SystemBarsStyle.Dark });
+    } else {
+      html.removeAttribute('data-theme');
+      html.setAttribute('data-accent', 'green');
+      void SystemBars.setStyle({ style: SystemBarsStyle.Light });
+    }
+  }, [darkMode]);
 
   const stats = useMemo(
     () =>
@@ -123,6 +141,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('habits', newOrder);
   }
 
+  function toggleDarkMode() {
+    const next = !darkMode;
+    setDarkMode(next);
+    void saveToStorage('darkMode', next);
+  }
+
   async function applyImport(json: string): Promise<{ success: boolean; error?: string }> {
     const result = await importData(json);
     if (result.success) {
@@ -144,6 +168,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         displayDate,
         isFutureDate,
         hasOnboarded,
+        darkMode,
         addHabit,
         updateCompletion,
         deleteHabit,
@@ -154,6 +179,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadDemoData,
         applyImport,
         reorderHabits,
+        toggleDarkMode,
       }}
     >
       {children}

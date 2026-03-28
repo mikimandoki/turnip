@@ -84,10 +84,10 @@ export default function AddHabitModal({
         </p>
       ))}
       <div className='form-row'>
-        <button className='btn-submit' type='submit'>
+        <button className='btn-base btn-primary' type='submit'>
           Add habit
         </button>
-        <button className='btn-cancel' type='button' onClick={onCancel}>
+        <button className='btn-base btn-ghost' type='button' onClick={onCancel}>
           Cancel
         </button>
       </div>
