@@ -7,7 +7,7 @@ import type { Habit } from '../types';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod } from '../utils/date';
 import { describeFrequency, parseHabitEmoji } from '../utils/habits';
-import { simpleHash } from '../utils/utils';
+import { isNative, simpleHash } from '../utils/utils';
 import { HabitEmoji } from './HabitEmoji';
 
 const motivationalMessages = [
@@ -69,7 +69,8 @@ export default function HabitCard({
         <div className='habit-card-info'>
           <div className='habit-card-title'>
             {cleanName}
-            {habit.notification?.enabled &&
+            {isNative &&
+              habit.notification?.enabled &&
               (osNotificationsGranted ? (
                 <BellRing size={12} className='habit-card-notif-icon' />
               ) : (

@@ -12,6 +12,16 @@ import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
+import { getPendingNotifications } from '../utils/localNotifications';
+
+async function debugNotifs() {
+  const { notifications } = await getPendingNotifications();
+  alert(
+    notifications.length === 0
+      ? 'No pending notifications'
+      : notifications.map(n => `[${n.id}] "${n.title}" — ${JSON.stringify(n.schedule)}`).join('\n')
+  );
+}
 
 export default function DailyView() {
   const navigate = useNavigate();
@@ -156,10 +166,13 @@ export default function DailyView() {
       </Dialog.Root>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
-      {import.meta.env.DEV && (
+      {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
           <button className='btn-add-habit' onClick={clearAll}>
             Delete All
+          </button>
+          <button className='btn-add-habit' onClick={() => void debugNotifs()}>
+            Debug Notifs
           </button>
         </div>
       )}

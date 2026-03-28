@@ -1,4 +1,3 @@
-import { Switch } from 'radix-ui';
 import { useState } from 'react';
 
 import type { Frequency } from '../types';
@@ -7,7 +6,9 @@ import {
   checkNotificationPermission,
   requestNotificationPermission,
 } from '../utils/localNotifications';
-import { validateInputs } from '../utils/utils';
+import { defaultNotifDays, type NotificationValue } from '../utils/notifications';
+import { isNative, validateInputs } from '../utils/utils';
+import NotificationPicker from './NotificationPicker';
 
 const placeholderExamples = [
   '💪 Go to the gym',
@@ -28,7 +29,7 @@ export default function AddHabitModal({
   onAdd: (data: {
     name: string;
     frequency: Frequency;
-    notification?: { enabled: boolean; time: string };
+    notification?: { enabled: boolean; time: string; days: number[] };
   }) => void;
   onCancel: () => void;
 }) {
@@ -40,19 +41,25 @@ export default function AddHabitModal({
   const [placeholder] = useState(
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
   );
-  const [notifEnabled, setNotifEnabled] = useState(false);
-  const [notifTime, setNotifTime] = useState('09:00');
+  const [notif, setNotif] = useState<NotificationValue>({
+    enabled: false,
+    time: '09:00',
+    days: [1, 2, 3, 4, 5, 6, 7],
+  });
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
     const frequency: Frequency = { times, periodLength, periodUnit };
     const inputErrors = validateInputs({ name: trimmedName, frequency });
+    if (notif.enabled && notif.days.length === 0) {
+      inputErrors.push('Select at least one day for reminders');
+    }
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
       return;
     }
-    if (notifEnabled) {
+    if (isNative && notif.enabled) {
       const granted =
         (await checkNotificationPermission()) || (await requestNotificationPermission());
       if (!granted) {
@@ -66,14 +73,15 @@ export default function AddHabitModal({
     onAdd({
       name: trimmedName,
       frequency,
-      notification: notifEnabled ? { enabled: true, time: notifTime } : undefined,
+      notification: notif.enabled
+        ? { enabled: true, time: notif.time, days: notif.days }
+        : undefined,
     });
     setName('');
     setTimes(1);
     setPeriodLength(1);
     setPeriodUnit('day');
-    setNotifEnabled(false);
-    setNotifTime('09:00');
+    setNotif({ enabled: false, time: '09:00', days: [1, 2, 3, 4, 5, 6, 7] });
   }
 
   return (
@@ -105,22 +113,19 @@ export default function AddHabitModal({
           <option value='month'>months</option>
         </select>
       </div>
-      <div className='settings-item'>
-        <span className='settings-item-label'>Remind me</span>
-        <Switch.Root
-          checked={notifEnabled}
-          onCheckedChange={setNotifEnabled}
-          className='switch-root'
-        >
-          <Switch.Thumb className='switch-thumb' />
-        </Switch.Root>
-      </div>
-      {notifEnabled && (
-        <div className='form-row'>
-          <span className='form-label'>at</span>
-          <input type='time' value={notifTime} onChange={e => setNotifTime(e.target.value)} />
-        </div>
-      )}
+      <NotificationPicker
+        value={notif}
+        onChange={next => {
+          if (!notif.enabled && next.enabled) {
+            setNotif({
+              ...next,
+              days: defaultNotifDays({ times, periodLength, periodUnit }),
+            });
+          } else {
+            setNotif(next);
+          }
+        }}
+      />
       {errors.map(err => (
         <p className='error-message' key={err}>
           {err}

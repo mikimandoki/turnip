@@ -26,6 +26,7 @@ export const HabitSchema = z.object({
     .object({
       enabled: z.boolean(),
       time: z.string(), // "HH:MM"
+      days: z.array(z.number().min(1).max(7)).default([1, 2, 3, 4, 5, 6, 7]), // 1=Sun … 7=Sat, Capacitor convention
     })
     .optional(),
 });

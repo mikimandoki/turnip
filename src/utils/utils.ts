@@ -1,5 +1,9 @@
 import type { Frequency, Habit } from '../types';
 
+export const isNative = !!(
+  window as unknown as { Capacitor?: { isNativePlatform: () => boolean } }
+).Capacitor?.isNativePlatform();
+
 import { parseHabitEmoji } from './habits';
 
 export function simpleHash(str: string): number {

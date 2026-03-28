@@ -1,12 +1,12 @@
 import { parseISO } from 'date-fns';
 import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
-import { Switch } from 'radix-ui';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
+import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
@@ -14,7 +14,8 @@ import {
   checkNotificationPermission,
   requestNotificationPermission,
 } from '../utils/localNotifications';
-import { validateInputs } from '../utils/utils';
+import { DAYS, defaultNotifDays, type NotificationValue } from '../utils/notifications';
+import { isNative, validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
   const { id } = useParams();
@@ -24,8 +25,11 @@ export default function HabitDetail() {
   const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
-  const [editNotifEnabled, setEditNotifEnabled] = useState(habit?.notification?.enabled ?? false);
-  const [editNotifTime, setEditNotifTime] = useState(habit?.notification?.time ?? '09:00');
+  const [editNotif, setEditNotif] = useState<NotificationValue>({
+    enabled: habit?.notification?.enabled ?? false,
+    time: habit?.notification?.time ?? '09:00',
+    days: habit?.notification?.days ?? [1, 2, 3, 4, 5, 6, 7],
+  });
   const [errors, setErrors] = useState<string[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
@@ -37,11 +41,14 @@ export default function HabitDetail() {
     const trimmedName = editName.trim();
     const updated = { ...habit, name: trimmedName };
     const inputErrors = validateInputs(updated);
+    if (editNotif.enabled && editNotif.days.length === 0) {
+      inputErrors.push('Select at least one day for reminders');
+    }
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
       return;
     }
-    if (editNotifEnabled) {
+    if (isNative && editNotif.enabled) {
       const granted =
         (await checkNotificationPermission()) || (await requestNotificationPermission());
       if (!granted) {
@@ -54,10 +61,18 @@ export default function HabitDetail() {
     setErrors([]);
     editHabit(habit, {
       name: trimmedName,
-      notification: editNotifEnabled ? { enabled: true, time: editNotifTime } : undefined,
+      notification: editNotif.enabled
+        ? { enabled: true, time: editNotif.time, days: editNotif.days }
+        : undefined,
     });
     setEditName(trimmedName);
     setIsEditing(false);
+  }
+
+  function buildDayLabels(days: number[]): string {
+    return DAYS.filter(d => days.includes(d.weekday))
+      .map(d => d.label)
+      .join(' ');
   }
 
   return (
@@ -91,13 +106,16 @@ export default function HabitDetail() {
               <div className='habit-card-subtitle'>
                 Created {namedDayOrDate(parseISO(habit.createdAt))}
               </div>
-              {!isEditing && habit.notification?.enabled && (
+              {isNative && !isEditing && habit.notification?.enabled && (
                 <div className='habit-card-subtitle'>
                   Reminds at{' '}
                   {new Date(`1970-01-01T${habit.notification.time}`).toLocaleTimeString([], {
                     hour: 'numeric',
                     minute: '2-digit',
                   })}
+                  {habit.notification.days && habit.notification.days.length > 0
+                    ? ` · ${buildDayLabels(habit.notification.days)}`
+                    : ''}
                 </div>
               )}
             </div>
@@ -113,8 +131,11 @@ export default function HabitDetail() {
                       setErrors([]);
                       setIsEditing(false);
                       setEditName(habit.name);
-                      setEditNotifEnabled(habit.notification?.enabled ?? false);
-                      setEditNotifTime(habit.notification?.time ?? '09:00');
+                      setEditNotif({
+                        enabled: habit.notification?.enabled ?? false,
+                        time: habit.notification?.time ?? '09:00',
+                        days: habit.notification?.days ?? [1, 2, 3, 4, 5, 6, 7],
+                      });
                     }}
                   >
                     <X size={16} />
@@ -132,28 +153,21 @@ export default function HabitDetail() {
               )}
             </div>
           </div>
-          {isEditing && (
+          {isNative && isEditing && (
             <div className='habit-detail-notif'>
-              <div className='settings-item'>
-                <span className='settings-item-label'>Remind me</span>
-                <Switch.Root
-                  checked={editNotifEnabled}
-                  onCheckedChange={setEditNotifEnabled}
-                  className='switch-root'
-                >
-                  <Switch.Thumb className='switch-thumb' />
-                </Switch.Root>
-              </div>
-              {editNotifEnabled && (
-                <div className='form-row'>
-                  <span className='form-label'>at</span>
-                  <input
-                    type='time'
-                    value={editNotifTime}
-                    onChange={e => setEditNotifTime(e.target.value)}
-                  />
-                </div>
-              )}
+              <NotificationPicker
+                value={editNotif}
+                onChange={next => {
+                  if (!editNotif.enabled && next.enabled) {
+                    setEditNotif({
+                      ...next,
+                      days: defaultNotifDays(habit.frequency),
+                    });
+                  } else {
+                    setEditNotif(next);
+                  }
+                }}
+              />
             </div>
           )}
         </div>

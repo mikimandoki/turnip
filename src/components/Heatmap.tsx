@@ -47,9 +47,11 @@ export default function Heatmap({
   const createdAt = parseISO(habit.createdAt);
   const [heatmapMonth, setHeatmapMonth] = useState(today);
   const canGoForward =
-    import.meta.env.DEV || isBefore(startOfMonth(heatmapMonth), startOfMonth(today));
+    import.meta.env.MODE === 'development' ||
+    isBefore(startOfMonth(heatmapMonth), startOfMonth(today));
   const canGoBack =
-    import.meta.env.DEV || isBefore(startOfMonth(createdAt), startOfMonth(heatmapMonth));
+    import.meta.env.MODE === 'development' ||
+    isBefore(startOfMonth(createdAt), startOfMonth(heatmapMonth));
   const days = eachDayOfInterval({
     start: startOfMonth(heatmapMonth),
     end: endOfMonth(heatmapMonth),

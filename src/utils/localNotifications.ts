@@ -1,53 +1,66 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 
-// Deterministic integer ID from a habit's nanoid string
-function habitNotificationId(habitId: string): number {
-  let h = 5381;
-  for (let i = 0; i < habitId.length; i++) {
-    h = ((h << 5) + h) ^ habitId.charCodeAt(i);
-  }
-  return Math.abs(h) % 2_147_483_647;
-}
+import { habitNotificationId } from './notifications';
+import { isNative } from './utils';
+
+// Platform strategy: all functions are no-ops on web (guarded by isNative). UI components
+// import isNative directly to hide native-only UI (bell icon, NotificationPicker, etc.).
+//
+// If native features grow, consider a thin platform service layer instead:
+//   services/notifications.ts exports { supported, checkPermission, schedule, cancel }
+// where checkPermission returns true on web (vs. false/denied ambiguity today), and
+// `supported` replaces isNative imports in components. This keeps platform logic out of UI.
 
 export async function checkNotificationPermission(): Promise<boolean> {
+  if (!isNative) return false;
   const { display } = await LocalNotifications.checkPermissions();
   return display === 'granted';
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
+  if (!isNative) return false;
   const { display } = await LocalNotifications.requestPermissions();
   return display === 'granted';
 }
 
-export async function scheduleHabitNotification(
+export async function scheduleHabitNotifications(
   habitId: string,
   habitName: string,
-  time: string
+  time: string,
+  days: number[]
 ): Promise<void> {
+  if (!isNative) return;
   const [hour, minute] = time.split(':').map(Number);
+  const base = habitNotificationId(habitId);
   await LocalNotifications.schedule({
-    notifications: [
-      {
-        id: habitNotificationId(habitId),
-        title: habitName,
-        body: 'Time to log your habit!',
-        schedule: {
-          on: { hour, minute },
-        },
+    notifications: days.map(weekday => ({
+      id: base + weekday,
+      title: habitName,
+      body: 'Time to log your habit!',
+      schedule: {
+        on: { hour, minute, weekday },
+        repeats: true,
       },
-    ],
+    })),
   });
 }
 
-export async function cancelHabitNotification(habitId: string): Promise<void> {
+export async function cancelHabitNotifications(habitId: string, days: number[]): Promise<void> {
+  if (!isNative) return;
+  const base = habitNotificationId(habitId);
   await LocalNotifications.cancel({
-    notifications: [{ id: habitNotificationId(habitId) }],
+    notifications: days.map(weekday => ({ id: base + weekday })),
   });
 }
 
-export async function cancelAllHabitNotifications(habitIds: string[]): Promise<void> {
-  if (habitIds.length === 0) return;
-  await LocalNotifications.cancel({
-    notifications: habitIds.map(id => ({ id: habitNotificationId(id) })),
-  });
+export async function getPendingNotifications() {
+  if (!isNative) return { notifications: [] };
+  return LocalNotifications.getPending();
+}
+
+export async function cancelAllHabitNotifications(): Promise<void> {
+  if (!isNative) return;
+  const { notifications } = await LocalNotifications.getPending();
+  if (notifications.length === 0) return;
+  await LocalNotifications.cancel({ notifications: notifications.map(n => ({ id: n.id })) });
 }
