@@ -10,6 +10,11 @@ import { generateDemoData } from '../utils/demoData';
 import { calculateHabitStats } from '../utils/habits';
 import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
+  cancelAllHabitNotifications,
+  cancelHabitNotification,
+  scheduleHabitNotification,
+} from '../utils/localNotifications';
+import {
   clearStorage,
   CompletionsSchema,
   HabitsSchema,
@@ -97,6 +102,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
     void hapticsMedium();
+    if (newHabit.notification?.enabled && newHabit.notification.time) {
+      void scheduleHabitNotification(newHabit.id, newHabit.name, newHabit.notification.time);
+    }
   }
 
   function deleteHabit(habit: Habit) {
@@ -107,6 +115,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('habits', updatedHabits);
     void saveToStorage('completions', updatedCompletions);
     void hapticsMedium();
+    void cancelHabitNotification(habit.id);
   }
 
   function editHabit(habit: Habit, updates: Partial<Habit>) {
@@ -114,6 +123,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const updated = habits.map(h => (h.id === habit.id ? { ...h, ...sanitized } : h));
     setHabits(updated);
     void saveToStorage('habits', updated);
+    const merged = { ...habit, ...sanitized };
+    if (merged.notification?.enabled && merged.notification.time) {
+      void scheduleHabitNotification(merged.id, merged.name, merged.notification.time);
+    } else {
+      void cancelHabitNotification(merged.id);
+    }
   }
 
   function shiftDate(days: number) {
@@ -125,6 +140,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function clearAll() {
+    const notifHabitIds = habits.filter(h => h.notification?.enabled).map(h => h.id);
+    void cancelAllHabitNotifications(notifHabitIds);
     void clearStorage();
     setHabits([]);
     setCompletions([]);

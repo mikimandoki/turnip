@@ -22,6 +22,12 @@ export const HabitSchema = z.object({
   name: z.string().min(1),
   frequency: FrequencySchema,
   createdAt: z.string(),
+  notification: z
+    .object({
+      enabled: z.boolean(),
+      time: z.string(), // "HH:MM"
+    })
+    .optional(),
 });
 
 // A habit the user wants to track

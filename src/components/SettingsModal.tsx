@@ -14,7 +14,6 @@ export default function SettingsModal({
   const { habits, applyImport, darkMode, toggleDarkMode } = useHabitContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{ message: string; ok: boolean } | null>(null);
-
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;

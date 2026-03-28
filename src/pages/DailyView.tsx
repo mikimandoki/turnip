@@ -139,8 +139,14 @@ export default function DailyView() {
           <Dialog.Content className='modal-content'>
             <Dialog.Title className='modal-title'>New habit</Dialog.Title>
             <AddHabitModal
-              onAdd={({ name, frequency }) => {
-                addHabit({ id: nanoid(), name, frequency, createdAt: toDateString(displayDate) });
+              onAdd={({ name, frequency, notification }) => {
+                addHabit({
+                  id: nanoid(),
+                  name,
+                  frequency,
+                  createdAt: toDateString(displayDate),
+                  notification,
+                });
                 setShowForm(false);
               }}
               onCancel={() => setShowForm(false)}
@@ -150,7 +156,6 @@ export default function DailyView() {
       </Dialog.Root>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
-
       {import.meta.env.DEV && (
         <div className='btn-row'>
           <button className='btn-add-habit' onClick={clearAll}>

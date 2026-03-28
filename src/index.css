@@ -229,18 +229,28 @@ textarea {
   justify-content: center;
   font-size: 20px;
   flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .habit-card-info {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   padding-left: var(--spacing-lg);
 }
 
 .habit-card-title {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.habit-card-notif-icon {
+  opacity: 0.4;
+  flex-shrink: 0;
+  margin-left: var(--spacing-md);
 }
 
 .habit-card-name {
@@ -358,6 +368,8 @@ textarea {
 .habit-card-actions {
   display: flex;
   gap: var(--spacing-sm);
+  flex-shrink: 0;
+  align-self: flex-start;
 }
 
 .btn-row {
@@ -399,10 +411,9 @@ textarea {
 
 .modal-content {
   position: fixed;
-  top: 15svh;
+  top: calc(var(--screen-height) * 0.15);
   left: 50%;
   transform: translateX(-50%);
-  transition: top 0.3s ease;
   z-index: 101;
   width: min(360px, 90vw);
   background: var(--color-background-primary);
@@ -412,11 +423,6 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-}
-
-.native .modal-content {
-  top: calc(var(--screen-height) * 0.15);
-  transition: none;
 }
 
 .modal-title {
@@ -510,7 +516,9 @@ textarea {
 
 .add-habit-form input[type='text'],
 .add-habit-form input[type='number'],
-.edit-name-input {
+.add-habit-form input[type='time'],
+.edit-name-input,
+input[type='time'] {
   padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
@@ -520,15 +528,25 @@ textarea {
 }
 
 .edit-name-input {
-  margin-right: var(--spacing-lg);
+  margin-right: var(--spacing-md);
 }
 
 .add-habit-form input[type='text']:focus,
 .add-habit-form input[type='number']:focus,
+.add-habit-form input[type='time']:focus,
 .add-habit-form select:focus,
-.edit-name-input:focus {
+.edit-name-input:focus,
+input[type='time']:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.habit-detail-notif {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 0.5px solid var(--color-border-secondary);
 }
 
 .add-habit-form input::placeholder {
@@ -688,7 +706,6 @@ textarea {
 .settings-item-label {
   font-size: 14px;
   color: var(--color-text-primary);
-  margin-top: var(--spacing-md);
 }
 
 .settings-item-desc {
@@ -724,7 +741,7 @@ textarea {
   background: white;
   border-radius: 50%;
   position: absolute;
-  top: 2px;
+  top: 3px;
   left: 2px;
   transition: transform 0.2s;
 }

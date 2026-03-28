@@ -1,5 +1,6 @@
 import { parseISO } from 'date-fns';
 import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
+import { Switch } from 'radix-ui';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
@@ -9,6 +10,10 @@ import Heatmap from '../components/Heatmap';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
+import {
+  checkNotificationPermission,
+  requestNotificationPermission,
+} from '../utils/localNotifications';
 import { validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
@@ -19,23 +24,38 @@ export default function HabitDetail() {
   const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
+  const [editNotifEnabled, setEditNotifEnabled] = useState(habit?.notification?.enabled ?? false);
+  const [editNotifTime, setEditNotifTime] = useState(habit?.notification?.time ?? '09:00');
   const [errors, setErrors] = useState<string[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
 
-  function handleSave() {
+  async function handleSave() {
     if (!habit) return;
     const trimmedName = editName.trim();
     const updated = { ...habit, name: trimmedName };
-    const errors = validateInputs(updated);
-    if (errors.length > 0) {
-      setErrors(errors);
+    const inputErrors = validateInputs(updated);
+    if (inputErrors.length > 0) {
+      setErrors(inputErrors);
       return;
     }
+    if (editNotifEnabled) {
+      const granted =
+        (await checkNotificationPermission()) || (await requestNotificationPermission());
+      if (!granted) {
+        setErrors([
+          'Notification permission was denied. You can enable it in your device settings.',
+        ]);
+        return;
+      }
+    }
     setErrors([]);
-    editHabit(habit, { name: trimmedName });
+    editHabit(habit, {
+      name: trimmedName,
+      notification: editNotifEnabled ? { enabled: true, time: editNotifTime } : undefined,
+    });
     setEditName(trimmedName);
     setIsEditing(false);
   }
@@ -58,7 +78,6 @@ export default function HabitDetail() {
                   type='text'
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  autoFocus
                 />
               ) : (
                 <div className='habit-card-title'>{cleanName}</div>
@@ -72,11 +91,20 @@ export default function HabitDetail() {
               <div className='habit-card-subtitle'>
                 Created {namedDayOrDate(parseISO(habit.createdAt))}
               </div>
+              {!isEditing && habit.notification?.enabled && (
+                <div className='habit-card-subtitle'>
+                  Reminds at{' '}
+                  {new Date(`1970-01-01T${habit.notification.time}`).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </div>
+              )}
             </div>
             <div className='habit-card-actions'>
               {isEditing ? (
                 <>
-                  <button className='btn-action' onClick={handleSave}>
+                  <button className='btn-action' onClick={() => void handleSave()}>
                     <Check size={16} />
                   </button>
                   <button
@@ -85,6 +113,8 @@ export default function HabitDetail() {
                       setErrors([]);
                       setIsEditing(false);
                       setEditName(habit.name);
+                      setEditNotifEnabled(habit.notification?.enabled ?? false);
+                      setEditNotifTime(habit.notification?.time ?? '09:00');
                     }}
                   >
                     <X size={16} />
@@ -102,6 +132,30 @@ export default function HabitDetail() {
               )}
             </div>
           </div>
+          {isEditing && (
+            <div className='habit-detail-notif'>
+              <div className='settings-item'>
+                <span className='settings-item-label'>Remind me</span>
+                <Switch.Root
+                  checked={editNotifEnabled}
+                  onCheckedChange={setEditNotifEnabled}
+                  className='switch-root'
+                >
+                  <Switch.Thumb className='switch-thumb' />
+                </Switch.Root>
+              </div>
+              {editNotifEnabled && (
+                <div className='form-row'>
+                  <span className='form-label'>at</span>
+                  <input
+                    type='time'
+                    value={editNotifTime}
+                    onChange={e => setEditNotifTime(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className='card'>
           <div className='stats-grid'>
