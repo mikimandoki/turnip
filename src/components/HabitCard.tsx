@@ -1,5 +1,5 @@
 import { useSortable } from '@dnd-kit/react/sortable';
-import { BellRing, Check, Minus, Plus } from 'lucide-react';
+import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Habit } from '../types';
@@ -46,7 +46,7 @@ export default function HabitCard({
   onNegativeButtonClick: () => void;
 }) {
   const [showTick, setShowTick] = useState(false);
-  const { displayDate, isFutureDate, stats } = useHabitContext();
+  const { displayDate, isFutureDate, stats, osNotificationsGranted } = useHabitContext();
   const { ref, isDragging } = useSortable({ id: habit.id, index });
   const habitStats = stats.find(s => s.habitId === habit.id);
   const periodStart = startDatePeriod(habit, displayDate);
@@ -69,9 +69,12 @@ export default function HabitCard({
         <div className='habit-card-info'>
           <div className='habit-card-title'>
             {cleanName}
-            {habit.notification?.enabled && (
-              <BellRing size={12} className='habit-card-notif-icon' />
-            )}
+            {habit.notification?.enabled &&
+              (osNotificationsGranted ? (
+                <BellRing size={12} className='habit-card-notif-icon' />
+              ) : (
+                <BellOff size={12} className='habit-card-notif-icon' />
+              ))}
           </div>
           <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
         </div>

@@ -32,10 +32,22 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [osNotificationsGranted, setOsNotificationsGranted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = !import.meta.env.DEV && isFuture(displayDate);
+
+  useEffect(() => {
+    void checkNotificationPermission().then(setOsNotificationsGranted);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void checkNotificationPermission().then(setOsNotificationsGranted);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
     void Promise.all([
@@ -220,6 +232,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         applyImport,
         reorderHabits,
         toggleDarkMode,
+        osNotificationsGranted,
       }}
     >
       {children}

@@ -20,6 +20,7 @@ export interface HabitContextType {
   applyImport: (json: string) => Promise<{ success: boolean; error?: string; warning?: string }>;
   reorderHabits: (habits: Habit[]) => void;
   toggleDarkMode: () => void;
+  osNotificationsGranted: boolean;
   stats: (HabitStats & { habitId: string })[];
 }
 
