@@ -8,6 +8,7 @@ import type { Completion, Habit } from '../types';
 import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
 import { calculateHabitStats } from '../utils/habits';
+import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
   clearStorage,
   CompletionsSchema,
@@ -86,6 +87,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
     setCompletions(updated);
     void saveToStorage('completions', updated);
+    void hapticsLight();
   }
 
   function addHabit(newHabit: Habit) {
@@ -94,6 +96,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('habits', updated);
     void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
+    void hapticsMedium();
   }
 
   function deleteHabit(habit: Habit) {
@@ -103,6 +106,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setCompletions(updatedCompletions);
     void saveToStorage('habits', updatedHabits);
     void saveToStorage('completions', updatedCompletions);
+    void hapticsMedium();
   }
 
   function editHabit(habit: Habit, updates: Partial<Habit>) {
