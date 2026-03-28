@@ -12,6 +12,8 @@ import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
   cancelAllHabitNotifications,
   cancelHabitNotification,
+  checkNotificationPermission,
+  requestNotificationPermission,
   scheduleHabitNotification,
 } from '../utils/localNotifications';
 import {
@@ -168,11 +170,28 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('darkMode', next);
   }
 
-  async function applyImport(json: string): Promise<{ success: boolean; error?: string }> {
+  async function applyImport(
+    json: string
+  ): Promise<{ success: boolean; error?: string; warning?: string }> {
     const result = await importData(json);
     if (result.success) {
       setHabits(result.habits);
       setCompletions(result.completions);
+      const notifHabits = result.habits.filter(h => h.notification?.enabled && h.notification.time);
+      if (notifHabits.length > 0) {
+        const granted =
+          (await checkNotificationPermission()) || (await requestNotificationPermission());
+        if (granted) {
+          await Promise.all(
+            notifHabits.map(h => scheduleHabitNotification(h.id, h.name, h.notification!.time))
+          );
+        } else {
+          return {
+            ...result,
+            warning: `Import successful, but ${notifHabits.length} reminder${notifHabits.length === 1 ? '' : 's'} couldn't be scheduled — notification permission was denied. You can enable it in your device settings.`,
+          };
+        }
+      }
     }
     return result;
   }

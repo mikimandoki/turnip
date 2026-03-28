@@ -17,7 +17,7 @@ export interface HabitContextType {
   setDate: (dateString: string | null) => void;
   clearAll: () => void;
   loadDemoData: () => void;
-  applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
+  applyImport: (json: string) => Promise<{ success: boolean; error?: string; warning?: string }>;
   reorderHabits: (habits: Habit[]) => void;
   toggleDarkMode: () => void;
   stats: (HabitStats & { habitId: string })[];

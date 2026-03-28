@@ -13,7 +13,10 @@ export default function SettingsModal({
 }) {
   const { habits, applyImport, darkMode, toggleDarkMode } = useHabitContext();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<{ message: string; ok: boolean } | null>(null);
+  const [status, setStatus] = useState<{
+    message: string;
+    state: 'error' | 'ok' | 'warning';
+  } | null>(null);
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -23,8 +26,11 @@ export default function SettingsModal({
       void applyImport(json).then(result => {
         setStatus(
           result.success
-            ? { message: 'Import successful.', ok: true }
-            : { message: result.error ?? 'Import failed.', ok: false }
+            ? {
+                message: result.warning ?? 'Import successful.',
+                state: result.warning ? 'warning' : 'ok',
+              }
+            : { message: result.error ?? 'Import failed.', state: 'error' }
         );
       });
     };
@@ -79,7 +85,7 @@ export default function SettingsModal({
                 disabled={habitCount === 0}
                 onClick={() => {
                   void exportData().then(result => {
-                    if (result.error) setStatus({ message: result.error, ok: false });
+                    if (result.error) setStatus({ message: result.error, state: 'error' });
                   });
                 }}
               >
@@ -102,11 +108,7 @@ export default function SettingsModal({
             </div>
           </div>
 
-          {status && (
-            <p className={status.ok ? 'settings-status-ok' : 'settings-status-error'}>
-              {status.message}
-            </p>
-          )}
+          {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
