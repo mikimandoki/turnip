@@ -89,6 +89,7 @@ export default function Heatmap({
           className='btn-action'
           onClick={() => setHeatmapMonth(subMonths(heatmapMonth, 1))}
           disabled={!canGoBack}
+          aria-label='Previous month'
         >
           <ChevronLeft size={16} />
         </button>
@@ -97,6 +98,7 @@ export default function Heatmap({
           className='btn-action'
           onClick={() => setHeatmapMonth(addMonths(heatmapMonth, 1))}
           disabled={!canGoForward}
+          aria-label='Next month'
         >
           <ChevronRight size={16} />
         </button>
