@@ -1,12 +1,12 @@
 import { useSortable } from '@dnd-kit/react/sortable';
 import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod, toDateString } from '../utils/date';
-import { describeFrequency, parseHabitEmoji } from '../utils/habits';
+import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { isNative, simpleHash } from '../utils/utils';
 import { HabitEmoji } from './HabitEmoji';
 
@@ -39,14 +39,16 @@ export default function HabitCard({
   onLog: (delta: number) => void;
 }) {
   const [showTick, setShowTick] = useState(false);
-  const { displayDate, isFutureDate, stats, osNotificationsGranted, completions } =
-    useHabitContext();
+  const { displayDate, isFutureDate, osNotificationsGranted, completions } = useHabitContext();
   const targetCount = habit.frequency.times;
   const loggedToday = completions.some(
     c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
   );
   const { ref, isDragging } = useSortable({ id: habit.id, index });
-  const habitStats = stats.find(s => s.habitId === habit.id);
+  const habitStats = useMemo(
+    () => calculateHabitStats(habit, completions, displayDate),
+    [habit, completions, displayDate]
+  );
   const periodStart = startDatePeriod(habit, displayDate);
   const seed = simpleHash(habit.id + periodStart);
   const message = motivationalMessages[seed % motivationalMessages.length];

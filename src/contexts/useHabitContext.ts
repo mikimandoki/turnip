@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { Completion, Habit, HabitStats } from '../types';
+import type { Completion, Habit } from '../types';
 
 export interface HabitContextType {
   habits: Habit[];
@@ -22,7 +22,6 @@ export interface HabitContextType {
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;
-  stats: (HabitStats & { habitId: string })[];
 }
 
 export const HabitContext = createContext<HabitContextType | null>(null);

@@ -6,6 +6,7 @@ import type { HabitContextType } from '../contexts/useHabitContext';
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
+import { calculateHabitStats } from '../utils/habits';
 import HabitCard from './HabitCard';
 
 vi.mock('../contexts/useHabitContext', () => ({
@@ -20,6 +21,22 @@ vi.mock('../utils/utils', () => ({
   isNative: false,
   simpleHash: () => 0,
 }));
+
+vi.mock('../utils/habits', async importOriginal => {
+  const actual = await importOriginal<typeof import('../utils/habits')>();
+  return {
+    ...actual,
+    calculateHabitStats: vi.fn(() => ({
+      currentStreak: 0,
+      previousStreak: 0,
+      maxStreak: 0,
+      completionRate: 0,
+      totalPeriods: 0,
+      completedPeriods: 0,
+      streakContinuable: false,
+    })),
+  };
+});
 
 const habit: Habit = {
   id: 'h1',
@@ -36,7 +53,6 @@ const multiHabit: Habit = {
 const baseContext: Partial<HabitContextType> = {
   displayDate: new Date('2026-03-31'),
   isFutureDate: false,
-  stats: [],
   osNotificationsGranted: false,
   completions: [],
 };
@@ -207,19 +223,14 @@ describe('HabitCard', () => {
 
   describe('streaks', () => {
     it('shows streak badge for a daily habit', () => {
-      mockContext({
-        stats: [
-          {
-            habitId: 'h1',
-            currentStreak: 3,
-            previousStreak: 0,
-            maxStreak: 3,
-            completionRate: 1,
-            totalPeriods: 3,
-            completedPeriods: 3,
-            streakContinuable: false,
-          },
-        ],
+      vi.mocked(calculateHabitStats).mockReturnValue({
+        currentStreak: 3,
+        previousStreak: 0,
+        maxStreak: 3,
+        completionRate: 1,
+        totalPeriods: 3,
+        completedPeriods: 3,
+        streakContinuable: false,
       });
       renderCard();
       expect(screen.getByText(/🔥 3 day streak/)).toBeInTheDocument();
@@ -230,19 +241,14 @@ describe('HabitCard', () => {
         ...habit,
         frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
       };
-      mockContext({
-        stats: [
-          {
-            habitId: 'h1',
-            currentStreak: 4,
-            previousStreak: 0,
-            maxStreak: 4,
-            completionRate: 1,
-            totalPeriods: 4,
-            completedPeriods: 4,
-            streakContinuable: false,
-          },
-        ],
+      vi.mocked(calculateHabitStats).mockReturnValue({
+        currentStreak: 4,
+        previousStreak: 0,
+        maxStreak: 4,
+        completionRate: 1,
+        totalPeriods: 4,
+        completedPeriods: 4,
+        streakContinuable: false,
       });
       renderCard({ habit: weeklyHabit });
       expect(screen.getByText(/🔥 4 week streak/)).toBeInTheDocument();
@@ -253,57 +259,42 @@ describe('HabitCard', () => {
         ...habit,
         frequency: { times: 1, periodLength: 1, periodUnit: 'month' },
       };
-      mockContext({
-        stats: [
-          {
-            habitId: 'h1',
-            currentStreak: 2,
-            previousStreak: 0,
-            maxStreak: 2,
-            completionRate: 1,
-            totalPeriods: 2,
-            completedPeriods: 2,
-            streakContinuable: false,
-          },
-        ],
+      vi.mocked(calculateHabitStats).mockReturnValue({
+        currentStreak: 2,
+        previousStreak: 0,
+        maxStreak: 2,
+        completionRate: 1,
+        totalPeriods: 2,
+        completedPeriods: 2,
+        streakContinuable: false,
       });
       renderCard({ habit: monthlyHabit });
       expect(screen.getByText(/🔥 2 month streak/)).toBeInTheDocument();
     });
 
     it('does not show streak badge when currentStreak < 2', () => {
-      mockContext({
-        stats: [
-          {
-            habitId: 'h1',
-            currentStreak: 1,
-            previousStreak: 0,
-            maxStreak: 1,
-            completionRate: 1,
-            totalPeriods: 1,
-            completedPeriods: 1,
-            streakContinuable: false,
-          },
-        ],
+      vi.mocked(calculateHabitStats).mockReturnValue({
+        currentStreak: 1,
+        previousStreak: 0,
+        maxStreak: 1,
+        completionRate: 1,
+        totalPeriods: 1,
+        completedPeriods: 1,
+        streakContinuable: false,
       });
       renderCard();
       expect(screen.queryByText(/streak/)).not.toBeInTheDocument();
     });
 
     it('shows motivational message when streakContinuable and previousStreak >= 2', () => {
-      mockContext({
-        stats: [
-          {
-            habitId: 'h1',
-            currentStreak: 0,
-            previousStreak: 5,
-            maxStreak: 5,
-            completionRate: 0.8,
-            totalPeriods: 5,
-            completedPeriods: 4,
-            streakContinuable: true,
-          },
-        ],
+      vi.mocked(calculateHabitStats).mockReturnValue({
+        currentStreak: 0,
+        previousStreak: 5,
+        maxStreak: 5,
+        completionRate: 0.8,
+        totalPeriods: 5,
+        completedPeriods: 4,
+        streakContinuable: true,
       });
       renderCard();
       expect(screen.getByText(/🔥 5 —/)).toBeInTheDocument();

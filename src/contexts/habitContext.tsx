@@ -7,7 +7,6 @@ import type { Completion, Habit } from '../types';
 
 import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
-import { calculateHabitStats } from '../utils/habits';
 import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
   cancelAllHabitNotifications,
@@ -83,15 +82,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       void SystemBars.setStyle({ style: SystemBarsStyle.Light });
     }
   }, [darkMode]);
-
-  const stats = useMemo(
-    () =>
-      habits.map(h => ({
-        habitId: h.id,
-        ...calculateHabitStats(h, completions, displayDate),
-      })),
-    [habits, completions, displayDate]
-  );
 
   function updateCompletion(habitId: string, increment: number) {
     const today = dateString;
@@ -239,7 +229,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       value={{
         habits,
         completions,
-        stats,
         displayDate,
         isFutureDate,
         hasOnboarded,
