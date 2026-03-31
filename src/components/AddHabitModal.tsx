@@ -35,9 +35,12 @@ export default function AddHabitModal({
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
-  const [times, setTimes] = useState(1);
-  const [periodLength, setPeriodLength] = useState(1);
+  const [timesStr, setTimesStr] = useState('1');
+  const [periodLengthStr, setPeriodLengthStr] = useState('1');
   const [periodUnit, setPeriodUnit] = useState<Frequency['periodUnit']>('day');
+  const [isCustom, setIsCustom] = useState(false);
+  const times = Math.max(1, parseInt(timesStr) || 1);
+  const periodLength = Math.max(1, parseInt(periodLengthStr) || 1);
   const [errors, setErrors] = useState<string[]>([]);
   const [placeholder] = useState(
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
@@ -81,9 +84,10 @@ export default function AddHabitModal({
         : undefined,
     });
     setName('');
-    setTimes(1);
-    setPeriodLength(1);
+    setTimesStr('1');
+    setPeriodLengthStr('1');
     setPeriodUnit('day');
+    setIsCustom(false);
     setNotif({ enabled: false, time: '09:00', days: [1, 2, 3, 4, 5, 6, 7] });
   }
 
@@ -94,27 +98,103 @@ export default function AddHabitModal({
           type='text'
           placeholder={placeholder}
           value={name}
+          aria-label='Habit name'
           onChange={e => setName(e.target.value)}
           style={{ flex: 1 }}
         />
       </div>
       <div className='form-row'>
-        <input type='number' min={1} value={times} onChange={e => setTimes(+e.target.value)} />
-        <span className='form-label'>times every</span>
-        <input
-          type='number'
-          min={1}
-          value={periodLength}
-          onChange={e => setPeriodLength(+e.target.value)}
-        />
-        <select
-          value={periodUnit}
-          onChange={e => setPeriodUnit(e.target.value as Frequency['periodUnit'])}
+        <button
+          type='button'
+          className='btn-stepper'
+          aria-label='Decrease times'
+          onClick={() => setTimesStr(String(Math.max(1, times - 1)))}
         >
-          <option value='day'>days</option>
-          <option value='week'>weeks</option>
-          <option value='month'>months</option>
-        </select>
+          −
+        </button>
+        <input
+          type='text'
+          inputMode='numeric'
+          pattern='[0-9]*'
+          className='input-stepper'
+          aria-label='Times'
+          value={timesStr}
+          onChange={e => setTimesStr(e.target.value.replace(/\D/g, ''))}
+          onBlur={() => setTimesStr(String(times))}
+        />
+        <button
+          type='button'
+          className='btn-stepper'
+          aria-label='Increase times'
+          onClick={() => setTimesStr(String(times + 1))}
+        >
+          +
+        </button>
+        <span className='form-label'>per</span>
+        {isCustom ? (
+          <>
+            <button
+              type='button'
+              className='btn-stepper'
+              aria-label='Decrease period'
+              onClick={() => setPeriodLengthStr(String(Math.max(2, periodLength - 1)))}
+            >
+              −
+            </button>
+            <input
+              type='text'
+              inputMode='numeric'
+              pattern='[0-9]*'
+              className='input-stepper'
+              aria-label='Period length'
+              value={periodLengthStr}
+              onChange={e => setPeriodLengthStr(e.target.value.replace(/\D/g, ''))}
+              onBlur={() => setPeriodLengthStr(String(periodLength))}
+            />
+            <button
+              type='button'
+              className='btn-stepper'
+              aria-label='Increase period'
+              onClick={() => setPeriodLengthStr(String(periodLength + 1))}
+            >
+              +
+            </button>
+            <select
+              value={periodUnit}
+              onChange={e => {
+                if (e.target.value === 'simple') {
+                  setIsCustom(false);
+                  setPeriodLengthStr('1');
+                } else {
+                  setPeriodUnit(e.target.value as Frequency['periodUnit']);
+                }
+              }}
+            >
+              <option value='day'>days</option>
+              <option value='week'>weeks</option>
+              <option value='month'>months</option>
+              <option value='simple'>simple…</option>
+            </select>
+          </>
+        ) : (
+          <select
+            value={periodUnit}
+            onChange={e => {
+              if (e.target.value === 'custom') {
+                setIsCustom(true);
+                setPeriodLengthStr('2');
+              } else {
+                setPeriodUnit(e.target.value as Frequency['periodUnit']);
+                setPeriodLengthStr('1');
+              }
+            }}
+          >
+            <option value='day'>day</option>
+            <option value='week'>week</option>
+            <option value='month'>month</option>
+            <option value='custom'>custom…</option>
+          </select>
+        )}
       </div>
       <NotificationPicker
         value={notif}
@@ -129,11 +209,6 @@ export default function AddHabitModal({
           }
         }}
       />
-      {errors.map(err => (
-        <p className='error-message' key={err}>
-          {err}
-        </p>
-      ))}
       <div className='form-row'>
         <button className='btn-base btn-primary' type='submit'>
           Add habit
@@ -142,6 +217,11 @@ export default function AddHabitModal({
           Cancel
         </button>
       </div>
+      {errors.map(err => (
+        <p className='error-message' key={err}>
+          {err}
+        </p>
+      ))}
     </form>
   );
 }

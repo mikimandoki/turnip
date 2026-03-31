@@ -337,6 +337,25 @@ textarea {
   background: var(--color-background-tertiary);
 }
 
+.btn-stepper {
+  all: unset;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 0 2px;
+  user-select: none;
+}
+
+.btn-stepper:hover {
+  color: var(--color-text-primary);
+}
+
+.input-stepper {
+  all: unset;
+  width: 2ch;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
 .btn-action {
   all: unset;
   box-sizing: border-box;
@@ -537,6 +556,7 @@ input[type='time'] {
 .add-habit-form select:focus,
 .edit-name-input:focus,
 input[type='time']:focus {
+  outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
