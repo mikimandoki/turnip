@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "watch": "tsc -b -w",
+    "generate-assets": "capacitor-assets generate --ios --android",
     "android": "vite build --mode development && cap sync android && cap run android",
     "android:prod": "pnpm build && cap sync android && cap run android",
     "ios": "vite build --mode development && cap sync ios && cap run ios",
@@ -39,6 +40,7 @@
     "react-router": "^7.13.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.0",
     "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -66,7 +68,8 @@
   "packageManager": "pnpm@10.28.1",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "sharp"
     ]
   }
 }
