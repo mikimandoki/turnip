@@ -21,6 +21,7 @@ export interface HabitContextType {
   reorderHabits: (habits: Habit[]) => void;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
+  recheckNotificationPermission: () => Promise<void>;
   stats: (HabitStats & { habitId: string })[];
 }
 

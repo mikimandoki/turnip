@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { Frequency } from '../types';
 
+import { useHabitContext } from '../contexts/useHabitContext';
 import {
   checkNotificationPermission,
   requestNotificationPermission,
@@ -41,6 +42,7 @@ export default function AddHabitModal({
   const [placeholder] = useState(
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
   );
+  const { recheckNotificationPermission } = useHabitContext();
   const [notif, setNotif] = useState<NotificationValue>({
     enabled: false,
     time: '09:00',
@@ -68,6 +70,7 @@ export default function AddHabitModal({
         ]);
         return;
       }
+      void recheckNotificationPermission();
     }
     setErrors([]);
     onAdd({

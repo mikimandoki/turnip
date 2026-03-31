@@ -39,6 +39,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
 
+  async function recheckNotificationPermission() {
+    if (!isNative) return;
+    setOsNotificationsGranted(await checkNotificationPermission());
+  }
+
   useEffect(() => {
     if (!isNative) return;
     void checkNotificationPermission().then(setOsNotificationsGranted);
@@ -251,6 +256,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         reorderHabits,
         toggleDarkMode,
         osNotificationsGranted,
+        recheckNotificationPermission,
       }}
     >
       {children}

@@ -20,7 +20,8 @@ import { isNative, validateInputs } from '../utils/utils';
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, completions, deleteHabit, editHabit } = useHabitContext();
+  const { habits, completions, deleteHabit, editHabit, recheckNotificationPermission } =
+    useHabitContext();
   const habit = habits.find(h => h.id === id);
   const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
   const [isEditing, setIsEditing] = useState(false);
@@ -57,6 +58,7 @@ export default function HabitDetail() {
         ]);
         return;
       }
+      void recheckNotificationPermission();
     }
     setErrors([]);
     editHabit(habit, {
