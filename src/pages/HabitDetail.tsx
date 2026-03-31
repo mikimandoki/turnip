@@ -9,13 +9,13 @@ import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
-import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
+import { calculateHabitStats, describeFrequency, getTotalCompletions, parseHabitEmoji } from '../utils/habits';
 import {
   checkNotificationPermission,
   requestNotificationPermission,
 } from '../utils/localNotifications';
 import { DAYS, defaultNotifDays, type NotificationValue } from '../utils/notifications';
-import { isNative, validateInputs } from '../utils/utils';
+import { formatCount, isNative, validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
   const { id } = useParams();
@@ -36,6 +36,13 @@ export default function HabitDetail() {
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
+
+  const isNonSimpleDaily = habit.frequency.times > 1 || habit.frequency.periodUnit !== 'day';
+  const timesLogged = isNonSimpleDaily ? getTotalCompletions(habit, completions, new Date()) : null;
+  const avgPerPeriod =
+    timesLogged !== null && habitStats && habitStats.totalPeriods > 0
+      ? Math.round((timesLogged / habitStats.totalPeriods) * 10) / 10
+      : null;
 
   async function handleSave() {
     if (!habit) return;
@@ -188,15 +195,30 @@ export default function HabitDetail() {
               <div className='stat-label'>best streak</div>
             </div>
             <div className='stat-box'>
+              <div className='stat-value'>{habitStats?.completedPeriods}</div>
+              <div className='stat-label'>completions</div>
+            </div>
+            <div className='stat-box'>
               <div className='stat-value'>
                 {Math.round((habitStats?.completionRate ?? 0) * 100)}%
               </div>
               <div className='stat-label'>completion rate</div>
             </div>
-            <div className='stat-box'>
-              <div className='stat-value'>{habitStats?.completedPeriods}</div>
-              <div className='stat-label'>total completions</div>
-            </div>
+            {isNonSimpleDaily && (
+              <>
+                <div className='stat-box'>
+                  <div className='stat-value'>{formatCount(timesLogged!)}</div>
+                  <div className='stat-label'>times logged</div>
+                </div>
+                <div className='stat-box'>
+                  <div className='stat-value'>{avgPerPeriod}</div>
+                  <div className='stat-label'>
+                    average per{' '}
+                    {habit.frequency.periodLength === 1 ? habit.frequency.periodUnit : 'period'}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
         <div className='card'>

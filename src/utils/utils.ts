@@ -14,6 +14,12 @@ export function simpleHash(str: string): number {
   return Math.abs(hash);
 }
 
+export function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${parseFloat((n / 1000).toFixed(1))}k`;
+  return `${parseFloat((n / 1_000_000).toFixed(1))}M`;
+}
+
 export function validateInputs(habit: Pick<Habit, 'name'> & { frequency: Frequency }): string[] {
   const errors: string[] = [];
   const { cleanName } = parseHabitEmoji(habit.name);
