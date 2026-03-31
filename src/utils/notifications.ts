@@ -1,5 +1,7 @@
 import type { Frequency } from '../types';
 
+import { simpleHash } from './utils';
+
 export const DAYS = [
   { label: 'Mo', weekday: 2 },
   { label: 'Tu', weekday: 3 },
@@ -16,14 +18,11 @@ export type NotificationValue = {
   days: number[];
 };
 
-// Deterministic integer ID from a habit's nanoid string, used to derive notification IDs.
-// Per-day notification ID = habitNotificationId(habitId) + weekday (1–7).
+// Deterministic integer ID from habit id, used to derive notification IDs.
+// Receives a weekday digit downstream to create unique IDs for each day.
+// Clamped to max 2,147,483,640 to avoid a theoretical overflow (...483_640+7).
 export function habitNotificationId(habitId: string): number {
-  let h = 5381;
-  for (let i = 0; i < habitId.length; i++) {
-    h = ((h << 5) + h) ^ habitId.charCodeAt(i);
-  }
-  return Math.abs(h) % 2_147_483_647;
+  return simpleHash(habitId) % 2_147_483_640;
 }
 
 export function defaultNotifDays(frequency: Frequency): number[] {

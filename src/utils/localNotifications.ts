@@ -1,5 +1,6 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 
+import { parseHabitEmoji } from './habits';
 import { habitNotificationId } from './notifications';
 import { isNative } from './utils';
 
@@ -10,6 +11,23 @@ import { isNative } from './utils';
 //   services/notifications.ts exports { supported, checkPermission, schedule, cancel }
 // where checkPermission returns true on web (vs. false/denied ambiguity today), and
 // `supported` replaces isNative imports in components. This keeps platform logic out of UI.
+
+function getHabitNudge(): string {
+  const messages = [
+    "Don't forget your habit today!",
+    'Ready to make some progress?',
+    "Don't let your streak wilt today.",
+    'Keep up the great work!',
+    'Your future self will thank you!',
+    'Time to crush those goals!',
+    "Stay consistent, you're doing great!",
+    "Don't forget to log your progress!",
+    "Let's get to it!",
+    'Time to check this off your list.',
+    'Time for some daily growth.',
+  ];
+  return messages[Math.floor(Math.random() * messages.length)];
+}
 
 export async function checkNotificationPermission(): Promise<boolean> {
   if (!isNative) return false;
@@ -35,8 +53,8 @@ export async function scheduleHabitNotifications(
   await LocalNotifications.schedule({
     notifications: days.map(weekday => ({
       id: base + weekday,
-      title: habitName,
-      body: 'Time to log your habit!',
+      title: parseHabitEmoji(habitName).cleanName,
+      body: getHabitNudge(),
       schedule: {
         on: { hour, minute, weekday },
         repeats: true,
