@@ -5,7 +5,7 @@ import { useState } from 'react';
 import type { Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
-import { startDatePeriod } from '../utils/date';
+import { startDatePeriod, toDateString } from '../utils/date';
 import { describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { isNative, simpleHash } from '../utils/utils';
 import { HabitEmoji } from './HabitEmoji';
@@ -25,28 +25,26 @@ const motivationalMessages = [
   'small steps, big results!',
 ];
 
-// TODO: simplify props: only habit, completedCount, onUpdate, onDelete
 export default function HabitCard({
   habit,
   index,
   completedCount,
-  targetCount,
-  loggedToday,
   onClick,
-  onPositiveButtonClick,
-  onNegativeButtonClick,
+  onLog,
 }: {
   habit: Habit;
   index: number;
   completedCount: number;
-  targetCount: number;
-  loggedToday: boolean;
   onClick: () => void;
-  onPositiveButtonClick: () => void;
-  onNegativeButtonClick: () => void;
+  onLog: (delta: number) => void;
 }) {
   const [showTick, setShowTick] = useState(false);
-  const { displayDate, isFutureDate, stats, osNotificationsGranted } = useHabitContext();
+  const { displayDate, isFutureDate, stats, osNotificationsGranted, completions } =
+    useHabitContext();
+  const targetCount = habit.frequency.times;
+  const loggedToday = completions.some(
+    c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
+  );
   const { ref, isDragging } = useSortable({ id: habit.id, index });
   const habitStats = stats.find(s => s.habitId === habit.id);
   const periodStart = startDatePeriod(habit, displayDate);
@@ -85,20 +83,22 @@ export default function HabitCard({
           </span>
           <div className='habit-card-actions'>
             <button
+              aria-label='Decrease count'
               className='btn-action'
               onClick={e => {
                 e.stopPropagation();
-                onNegativeButtonClick();
+                onLog(-1);
               }}
               disabled={isFutureDate}
             >
               <Minus size={16} />
             </button>
             <button
+              aria-label='Increase count'
               className='btn-action'
               onClick={e => {
                 e.stopPropagation();
-                onPositiveButtonClick();
+                onLog(1);
                 setShowTick(true);
               }}
               disabled={isFutureDate}

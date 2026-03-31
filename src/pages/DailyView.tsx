@@ -115,13 +115,8 @@ export default function DailyView() {
                 index={index}
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
-                targetCount={habit.frequency.times}
-                loggedToday={completions.some(
-                  c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
-                )}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
-                onPositiveButtonClick={() => updateCompletion(habit.id, 1)}
-                onNegativeButtonClick={() => updateCompletion(habit.id, -1)}
+                onLog={delta => updateCompletion(habit.id, delta)}
               />
             ))}
           </div>
