@@ -1,73 +1,41 @@
-# React + TypeScript + Vite
+# Turnip
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A habit tracker built with React, Vite, and Capacitor.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+pnpm install
+pnpm dev          # local web dev server
+pnpm test         # run tests
+pnpm build        # typecheck + test + production build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Android
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+- Android Studio with an SDK installed
+- A device connected via USB with USB debugging enabled, or an emulator running
+
+### Scripts
+
+| Command             | What it does                                     |
+| ------------------- | ------------------------------------------------ |
+| `pnpm android`      | Dev JS bundle → installs **Turnip QA** on device |
+| `pnpm android:prod` | Prod JS bundle → installs **Turnip** on device   |
+
+Both apps can be installed simultaneously — they have different package IDs so they don't overwrite each other and have completely separate data stores. This makes it easy to keep a stable personal install alongside a build you're actively changing.
+
+### How it works
+
+Two Gradle product flavors are defined in `android/app/build.gradle`:
+
+| Flavor | Package ID             | App name  | JS bundle                              |
+| ------ | ---------------------- | --------- | -------------------------------------- |
+| `qa`   | `com.getturnip.app.qa` | Turnip QA | development (unminified)               |
+| `prod` | `com.getturnip.app`    | Turnip    | production (minified, tests must pass) |
+
+Both flavors use the **debug** build type so no signing keystore is needed. The scripts call `./gradlew installQaDebug` and `./gradlew installProdDebug` directly, bypassing `cap run android` which always defaults to debug without flavor support.
+
+The QA app name comes from a string resource overlay at `android/app/src/qa/res/values/strings.xml`, which Android merges over the base `strings.xml` for that flavor.

@@ -9,7 +9,12 @@ import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate } from '../utils/date';
-import { calculateHabitStats, describeFrequency, getTotalCompletions, parseHabitEmoji } from '../utils/habits';
+import {
+  calculateHabitStats,
+  describeFrequency,
+  getTotalCompletions,
+  parseHabitEmoji,
+} from '../utils/habits';
 import {
   checkNotificationPermission,
   requestNotificationPermission,

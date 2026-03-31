@@ -16,6 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Two flavors so both can be installed on device simultaneously without signing.
+    // - prod (com.getturnip.app)    → pnpm android:prod → production JS bundle, "Turnip"
+    // - qa   (com.getturnip.app.qa) → pnpm android      → dev JS bundle,        "Turnip QA"
+    // String overrides live in src/qa/res/values/strings.xml.
+    // Both use the debug build type so no keystore is needed.
+    flavorDimensions "environment"
+    productFlavors {
+        prod {
+            dimension "environment"
+            applicationId "com.getturnip.app"
+        }
+        qa {
+            dimension "environment"
+            applicationId "com.getturnip.app.qa"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
