@@ -7,8 +7,8 @@ import { defaultNotifDays, habitNotificationId } from '../notifications';
 describe('habitNotificationId', () => {
   it('returns a positive integer', () => {
     const id = habitNotificationId('abc123');
-    expect(id).toBeGreaterThan(0);
-    expect(Number.isInteger(id)).toBe(true);
+    expect.soft(id).toBeGreaterThan(0);
+    expect.soft(Number.isInteger(id)).toBe(true);
   });
 
   it('is deterministic for the same input', () => {
@@ -23,8 +23,8 @@ describe('habitNotificationId', () => {
     const ids = ['abc', 'xyz', 'v3ryl0nghabitid1234567890', '!!!', 'a'];
     for (const input of ids) {
       const id = habitNotificationId(input);
-      expect(id).toBeGreaterThanOrEqual(0);
-      expect(id).toBeLessThan(2_147_483_647);
+      expect.soft(id).toBeGreaterThanOrEqual(0);
+      expect.soft(id).toBeLessThan(2_147_483_647);
     }
   });
 
@@ -60,8 +60,8 @@ describe('defaultNotifDays', () => {
   it('returns only valid weekday values (1–7)', () => {
     const days = defaultNotifDays(weekly3);
     for (const d of days) {
-      expect(d).toBeGreaterThanOrEqual(1);
-      expect(d).toBeLessThanOrEqual(7);
+      expect.soft(d).toBeGreaterThanOrEqual(1);
+      expect.soft(d).toBeLessThanOrEqual(7);
     }
   });
 

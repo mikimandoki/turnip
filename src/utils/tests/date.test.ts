@@ -78,6 +78,7 @@ describe('startDatePeriod', () => {
     const date = parseISO('2026-03-18'); // March 18 2026 is in the first week of the period
     expect(startDatePeriod(habit, date)).toBe('2026-03-16');
   });
+
   it(`returns start of current month if we're on the first month of 2-month cycle`, () => {
     const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
       frequency: { times: 1, periodLength: 2, periodUnit: 'month' },
@@ -86,6 +87,7 @@ describe('startDatePeriod', () => {
     const date = parseISO('2026-03-18');
     expect(startDatePeriod(habit, date)).toBe('2026-03-01');
   });
+
   it(`returns start of last month if we're on the second month of 2-month cycle`, () => {
     const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
       frequency: { times: 1, periodLength: 2, periodUnit: 'month' },
@@ -159,6 +161,7 @@ describe('endDatePeriod', () => {
     const date = parseISO('2026-04-25'); // March 25 2026 is in the second week of the period
     expect(endDatePeriod(habit, date)).toBe('2026-04-30');
   });
+
   it(`returns end of next month if we're on the first week of 2-month cycle`, () => {
     const habit: Pick<Habit, 'createdAt' | 'frequency'> = {
       frequency: { times: 1, periodLength: 2, periodUnit: 'month' },

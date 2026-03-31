@@ -149,9 +149,9 @@ describe('calculateHabitStats', () => {
         createdAt: '2026-03-01',
       };
       const stats = calculateHabitStats(habit, [], parseISO('2026-03-05'));
-      expect(stats.currentStreak).toBe(0);
-      expect(stats.previousStreak).toBe(0);
-      expect(stats.maxStreak).toBe(0);
+      expect.soft(stats.currentStreak).toBe(0);
+      expect.soft(stats.previousStreak).toBe(0);
+      expect.soft(stats.maxStreak).toBe(0);
     });
 
     it('counts a single completed day as a streak of 1', () => {
@@ -187,8 +187,8 @@ describe('calculateHabitStats', () => {
       // gap on 03-04: current streak 1, previous streak 2
       const completions = [c('2026-03-05'), c('2026-03-03'), c('2026-03-02')];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-05'));
-      expect(stats.currentStreak).toBe(1);
-      expect(stats.previousStreak).toBe(2);
+      expect.soft(stats.currentStreak).toBe(1);
+      expect.soft(stats.previousStreak).toBe(2);
     });
 
     it('preserves maxStreak from a past run', () => {
@@ -208,8 +208,8 @@ describe('calculateHabitStats', () => {
         c('2026-03-01'),
       ];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-10'));
-      expect(stats.currentStreak).toBe(2);
-      expect(stats.maxStreak).toBe(5);
+      expect.soft(stats.currentStreak).toBe(2);
+      expect.soft(stats.maxStreak).toBe(5);
     });
 
     it('counts consecutive weeks for a 3x weekly habit', () => {
@@ -268,8 +268,8 @@ describe('calculateHabitStats', () => {
       // 03-05 not done, 03-03 and 03-04 done
       const completions = [c('2026-03-04'), c('2026-03-03')];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-05'));
-      expect(stats.streakContinuable).toBe(true);
-      expect(stats.previousStreak).toBe(2);
+      expect.soft(stats.streakContinuable).toBe(true);
+      expect.soft(stats.previousStreak).toBe(2);
     });
 
     it('is true when this week is incomplete but last week was done (3x weekly)', () => {
@@ -333,9 +333,9 @@ describe('calculateHabitStats', () => {
         [c('2026-03-05'), c('2026-03-03'), c('2026-03-01')],
         parseISO('2026-03-05')
       );
-      expect(stats.totalPeriods).toBe(5);
-      expect(stats.completedPeriods).toBe(3);
-      expect(stats.completionRate).toBeCloseTo(0.6);
+      expect.soft(stats.totalPeriods).toBe(5);
+      expect.soft(stats.completedPeriods).toBe(3);
+      expect.soft(stats.completionRate).toBeCloseTo(3 / 5);
     });
 
     it('calculates partial completion rate (3x weekly)', () => {
@@ -356,9 +356,9 @@ describe('calculateHabitStats', () => {
         c('2026-03-25'),
       ];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-25'));
-      expect(stats.totalPeriods).toBe(3);
-      expect(stats.completedPeriods).toBe(2);
-      expect(stats.completionRate).toBeCloseTo(2 / 3);
+      expect.soft(stats.totalPeriods).toBe(3);
+      expect.soft(stats.completedPeriods).toBe(2);
+      expect.soft(stats.completionRate).toBeCloseTo(2 / 3);
     });
 
     it('is 1 when all periods are completed (monthly)', () => {
@@ -369,8 +369,8 @@ describe('calculateHabitStats', () => {
       };
       const completions = [c('2026-01-15'), c('2026-02-15'), c('2026-03-15')];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-27'));
-      expect(stats.totalPeriods).toBe(3);
-      expect(stats.completionRate).toBe(1);
+      expect.soft(stats.totalPeriods).toBe(3);
+      expect.soft(stats.completionRate).toBe(1);
     });
   });
 
@@ -382,8 +382,8 @@ describe('calculateHabitStats', () => {
         createdAt: '2026-03-01',
       };
       const stats = calculateHabitStats(habit, [c('2026-03-05', 2)], parseISO('2026-03-05'));
-      expect(stats.currentStreak).toBe(0);
-      expect(stats.completedPeriods).toBe(0);
+      expect.soft(stats.currentStreak).toBe(0);
+      expect.soft(stats.completedPeriods).toBe(0);
     });
 
     it('counts a day as complete when count meets target (3x daily)', () => {
@@ -393,8 +393,8 @@ describe('calculateHabitStats', () => {
         createdAt: '2026-03-01',
       };
       const stats = calculateHabitStats(habit, [c('2026-03-05', 3)], parseISO('2026-03-05'));
-      expect(stats.currentStreak).toBe(1);
-      expect(stats.completedPeriods).toBe(1);
+      expect.soft(stats.currentStreak).toBe(1);
+      expect.soft(stats.completedPeriods).toBe(1);
     });
 
     it('does not count a week as complete if spread completions fall short (3x weekly)', () => {
@@ -405,8 +405,8 @@ describe('calculateHabitStats', () => {
       };
       const completions = [c('2026-03-23'), c('2026-03-24')];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-27'));
-      expect(stats.currentStreak).toBe(0);
-      expect(stats.completedPeriods).toBe(0);
+      expect.soft(stats.currentStreak).toBe(0);
+      expect.soft(stats.completedPeriods).toBe(0);
     });
 
     it('completes a week when spread completions meet target (3x weekly)', () => {
@@ -417,8 +417,8 @@ describe('calculateHabitStats', () => {
       };
       const completions = [c('2026-03-23'), c('2026-03-25'), c('2026-03-27')];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-27'));
-      expect(stats.currentStreak).toBe(1);
-      expect(stats.completedPeriods).toBe(1);
+      expect.soft(stats.currentStreak).toBe(1);
+      expect.soft(stats.completedPeriods).toBe(1);
     });
   });
 });
