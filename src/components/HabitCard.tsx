@@ -89,7 +89,7 @@ export default function HabitCard({
                 e.stopPropagation();
                 onLog(-1);
               }}
-              disabled={isFutureDate}
+              disabled={isFutureDate || !loggedToday}
             >
               <Minus size={16} />
             </button>

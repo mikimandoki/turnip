@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HabitContextType } from '../contexts/useHabitContext';
@@ -167,24 +168,39 @@ describe('HabitCard', () => {
       expect(screen.getByRole('button', { name: 'Increase count' })).toBeDisabled();
     });
 
-    it('does not call onClick when action buttons are clicked', () => {
+    it('disables decrease button when nothing has been logged today', () => {
+      renderCard();
+      expect(screen.getByRole('button', { name: 'Decrease count' })).toBeDisabled();
+    });
+
+    it('enables decrease button when something has been logged today', () => {
+      mockContext({
+        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
+      });
+      renderCard();
+      expect(screen.getByRole('button', { name: 'Decrease count' })).not.toBeDisabled();
+    });
+
+    it('does not navigate when action buttons are clicked', async () => {
+      const user = userEvent.setup();
+      mockContext({
+        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
+      });
       const { onClick } = renderCard();
-      fireEvent.click(screen.getByRole('button', { name: 'Decrease count' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Increase count' }));
+      await user.click(screen.getByRole('button', { name: 'Decrease count' }));
+      await user.click(screen.getByRole('button', { name: 'Increase count' }));
       expect(onClick).not.toHaveBeenCalled();
     });
   });
 
   describe('card click', () => {
-    it('calls onClick when the card is clicked', () => {
-      const { onClick, container } = (() => {
-        const onClick = vi.fn();
-        const { container } = render(
-          <HabitCard habit={habit} index={0} completedCount={0} onClick={onClick} onLog={vi.fn()} />
-        );
-        return { onClick, container };
-      })();
-      fireEvent.click(container.querySelector('.card')!);
+    it('calls onClick when the card is clicked', async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      const { container } = render(
+        <HabitCard habit={habit} index={0} completedCount={0} onClick={onClick} onLog={vi.fn()} />
+      );
+      await user.click(container.querySelector('.card')!);
       expect(onClick).toHaveBeenCalled();
     });
   });

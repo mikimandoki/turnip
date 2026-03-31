@@ -233,19 +233,15 @@ describe('Heatmap', () => {
       expect(forwardBtn).toBeDisabled();
     });
 
-    it('navigates back to previous month', () => {
-      const habit: Habit = { ...dailyHabit, createdAt: '2026-01-01' };
-      render(<Heatmap habit={habit} completions={[]} />);
-      fireEvent.click(screen.getByRole('button', { name: /previous month/i }));
-      expect(screen.getByText('February 2026')).toBeInTheDocument();
-    });
-
-    it('shows correct number of days after navigating to previous month', () => {
+    // fireEvent instead of userEvent: fake timers are active in this file and userEvent's
+    // internal setTimeout delays hang indefinitely when the clock is frozen.
+    it('navigates back to previous month and shows correct day count', () => {
       const habit: Habit = { ...dailyHabit, createdAt: '2026-01-01' };
       const { container } = render(<Heatmap habit={habit} completions={[]} />);
       fireEvent.click(screen.getByRole('button', { name: /previous month/i }));
       const cells = container.querySelectorAll('.heatmap-cell:not(.heatmap-pad)');
-      expect(cells.length).toBe(28);
+      expect.soft(screen.getByText('February 2026')).toBeInTheDocument();
+      expect.soft(cells.length).toBe(28);
     });
   });
 });
