@@ -56,12 +56,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       loadFromStorage('habits', [], HabitsSchema),
       loadFromStorage('completions', [], CompletionsSchema),
       loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-      loadFromStorage('darkMode', false, z.boolean()),
+      loadFromStorage('darkMode', null, z.boolean().nullable()),
     ]).then(([h, c, o, dm]) => {
       setHabits(h);
       setCompletions(c);
       setHasOnboarded(o);
-      setDarkMode(dm);
+      setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
       setLoading(false);
     });
   }, []);
