@@ -45,18 +45,6 @@ export default function NotificationPicker({
               </button>
             ))}
           </div>
-          {value.mode === 'daily' && (
-            <>
-              <div className='form-row'>
-                <span className='form-label'>at</span>
-                <input
-                  type='time'
-                  value={value.time}
-                  onChange={e => onChange({ ...value, time: e.target.value })}
-                />
-              </div>
-            </>
-          )}
           {value.mode === 'days-of-week' && (
             <>
               <div className='notif-day-picker'>
@@ -76,62 +64,51 @@ export default function NotificationPicker({
                   </button>
                 ))}
               </div>
-              <div className='form-row'>
-                <span className='form-label'>at</span>
-                <input
-                  type='time'
-                  value={value.time}
-                  onChange={e => onChange({ ...value, time: e.target.value })}
-                />
-              </div>
             </>
           )}
           {value.mode === 'interval' && (
-            <div className='form-row'>
-              <span className='form-label'>Every</span>
-              <button
-                type='button'
-                className='btn-stepper'
-                aria-label='Decrease interval'
-                onClick={() => onChange({ ...value, intervalN: Math.max(1, value.intervalN - 1) })}
-              >
-                −
-              </button>
-              <input
-                type='text'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                className='input-stepper'
-                value={value.intervalN}
-                onChange={e =>
-                  onChange({ ...value, intervalN: Math.max(1, parseInt(e.target.value) || 1) })
-                }
-              />
-              <button
-                type='button'
-                className='btn-stepper'
-                aria-label='Increase interval'
-                onClick={() => onChange({ ...value, intervalN: value.intervalN + 1 })}
-              >
-                +
-              </button>
-              <select
-                value={value.intervalUnit}
-                onChange={e =>
-                  onChange({ ...value, intervalUnit: e.target.value as 'days' | 'weeks' })
-                }
-              >
-                <option value='days'>days</option>
-                <option value='weeks'>weeks</option>
-              </select>
-              <span className='form-label'>at</span>
-              <input
-                type='time'
-                value={value.time}
-                onChange={e => onChange({ ...value, time: e.target.value })}
-              />
-              <span className='form-label'>starting today</span>
-            </div>
+            <>
+              <div className='form-row'>
+                <span className='form-label'>Every</span>
+                <button
+                  type='button'
+                  className='btn-stepper'
+                  aria-label='Decrease interval'
+                  onClick={() =>
+                    onChange({ ...value, intervalN: Math.max(1, value.intervalN - 1) })
+                  }
+                >
+                  −
+                </button>
+                <input
+                  type='text'
+                  inputMode='numeric'
+                  pattern='[0-9]*'
+                  className='input-stepper'
+                  value={value.intervalN}
+                  onChange={e =>
+                    onChange({ ...value, intervalN: Math.max(1, parseInt(e.target.value) || 1) })
+                  }
+                />
+                <button
+                  type='button'
+                  className='btn-stepper'
+                  aria-label='Increase interval'
+                  onClick={() => onChange({ ...value, intervalN: value.intervalN + 1 })}
+                >
+                  +
+                </button>
+                <select
+                  value={value.intervalUnit}
+                  onChange={e =>
+                    onChange({ ...value, intervalUnit: e.target.value as 'days' | 'weeks' })
+                  }
+                >
+                  <option value='days'>days</option>
+                  <option value='weeks'>weeks</option>
+                </select>
+              </div>
+            </>
           )}
           {value.mode === 'days-of-month' && (
             <>
@@ -176,16 +153,17 @@ export default function NotificationPicker({
                   ))}
                 </div>
               )}
-              <div className='form-row'>
-                <span className='form-label'>at</span>
-                <input
-                  type='time'
-                  value={value.time}
-                  onChange={e => onChange({ ...value, time: e.target.value })}
-                />
-              </div>
             </>
           )}
+          <div className='form-row'>
+            <span className='form-label'>at</span>
+            <input
+              type='time'
+              value={value.time}
+              onChange={e => onChange({ ...value, time: e.target.value })}
+            />
+            {value.mode === 'interval' && <span className='form-label'>starting today</span>}
+          </div>
           <div className='form-row'>
             <input
               type='text'
