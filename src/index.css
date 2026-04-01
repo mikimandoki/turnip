@@ -536,6 +536,9 @@ textarea {
 .add-habit-form input[type='text'],
 .add-habit-form input[type='number'],
 .add-habit-form input[type='time'],
+.habit-detail-notif input[type='text'],
+.habit-detail-notif input[type='number'],
+.habit-detail-notif input[type='time'],
 .edit-name-input,
 input[type='time'] {
   padding: var(--spacing-md);
@@ -554,6 +557,10 @@ input[type='time'] {
 .add-habit-form input[type='number']:focus,
 .add-habit-form input[type='time']:focus,
 .add-habit-form select:focus,
+.habit-detail-notif input[type='text']:focus,
+.habit-detail-notif input[type='number']:focus,
+.habit-detail-notif input[type='time']:focus,
+.habit-detail-notif select:focus,
 .edit-name-input:focus,
 input[type='time']:focus {
   outline: none;
@@ -564,7 +571,7 @@ input[type='time']:focus {
 .habit-detail-notif {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
   padding: var(--spacing-md) var(--spacing-lg);
   border-top: 0.5px solid var(--color-border-secondary);
 }
@@ -574,7 +581,8 @@ input[type='time']:focus {
   opacity: 1;
 }
 
-.add-habit-form select {
+.add-habit-form select,
+.habit-detail-notif select {
   padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
   border-radius: var(--radius-md);
@@ -582,7 +590,8 @@ input[type='time']:focus {
   color: var(--color-text-primary);
 }
 
-.add-habit-form input[type='number'] {
+.add-habit-form input[type='number'],
+.habit-detail-notif input[type='number'] {
   width: 48px;
 }
 

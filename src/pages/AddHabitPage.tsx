@@ -79,7 +79,7 @@ export default function AddHabitPage() {
       void recheckNotificationPermission();
     }
     setErrors([]);
-    addHabit({
+    await addHabit({
       id: nanoid(),
       name: trimmedName,
       frequency,

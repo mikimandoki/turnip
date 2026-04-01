@@ -6,8 +6,8 @@ import { isNative } from '../utils/utils';
 const MODES: { id: NotificationMode; label: string }[] = [
   { id: 'daily', label: 'Daily' },
   { id: 'days-of-week', label: 'Days of week' },
-  { id: 'interval', label: 'WIP: Interval' },
-  { id: 'days-of-month', label: 'WIP: Days of month' },
+  { id: 'interval', label: 'Intervals' },
+  { id: 'days-of-month', label: 'Days of month' },
 ];
 
 export default function NotificationPicker({
@@ -118,11 +118,11 @@ export default function NotificationPicker({
               <select
                 value={value.intervalUnit}
                 onChange={e =>
-                  onChange({ ...value, intervalUnit: e.target.value as 'days' | 'hours' })
+                  onChange({ ...value, intervalUnit: e.target.value as 'days' | 'weeks' })
                 }
               >
-                <option value='hours'>hours</option>
                 <option value='days'>days</option>
+                <option value='weeks'>weeks</option>
               </select>
               <span className='form-label'>at</span>
               <input

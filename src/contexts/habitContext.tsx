@@ -106,21 +106,27 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void hapticsLight();
   }
 
-  function addHabit(newHabit: Habit) {
-    const updated = [...habits, newHabit];
+  async function addHabit(newHabit: Habit) {
+    let habitToSave = newHabit;
+
+    if (newHabit.notification?.enabled && isNative) {
+      const ids = await scheduleHabitNotifications(
+        newHabit.id,
+        newHabit.name,
+        newHabit.notification
+      );
+      habitToSave = {
+        ...newHabit,
+        notification: { ...newHabit.notification, notificationIds: ids },
+      };
+    }
+
+    const updated = [...habits, habitToSave];
     setHabits(updated);
     void saveToStorage('habits', updated);
     void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
     void hapticsMedium();
-    if (newHabit.notification?.enabled && newHabit.notification.mode === 'days-of-week') {
-      void scheduleHabitNotifications(
-        newHabit.id,
-        newHabit.name,
-        newHabit.notification.time,
-        newHabit.notification.days
-      );
-    }
   }
 
   function deleteHabit(habit: Habit) {
@@ -131,25 +137,25 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('habits', updatedHabits);
     void saveToStorage('completions', updatedCompletions);
     void hapticsMedium();
-    void cancelHabitNotifications(habit.id, habit.notification?.days ?? [1, 2, 3, 4, 5, 6, 7]);
+    void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
   }
 
-  function editHabit(habit: Habit, updates: Partial<Habit>) {
+  async function editHabit(habit: Habit, updates: Partial<Habit>) {
     const sanitized = updates.name ? { ...updates, name: updates.name.trim() } : updates;
-    const updated = habits.map(h => (h.id === habit.id ? { ...h, ...sanitized } : h));
+    const merged = { ...habit, ...sanitized };
+
+    void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
+
+    let notif = merged.notification;
+    if (notif?.enabled && isNative) {
+      const ids = await scheduleHabitNotifications(merged.id, merged.name, notif);
+      notif = { ...notif, notificationIds: ids };
+    }
+
+    const final = { ...merged, notification: notif };
+    const updated = habits.map(h => (h.id === habit.id ? final : h));
     setHabits(updated);
     void saveToStorage('habits', updated);
-    const merged = { ...habit, ...sanitized };
-    if (merged.notification?.enabled && merged.notification.mode === 'days-of-week') {
-      void scheduleHabitNotifications(
-        merged.id,
-        merged.name,
-        merged.notification.time,
-        merged.notification.days
-      );
-    } else {
-      void cancelHabitNotifications(merged.id, [1, 2, 3, 4, 5, 6, 7]);
-    }
   }
 
   function shiftDate(days: number) {
@@ -193,27 +199,30 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   ): Promise<{ success: boolean; error?: string; warning?: string }> {
     const result = await importData(json);
     if (result.success) {
-      setHabits(result.habits);
       setCompletions(result.completions);
-      const notifHabits = result.habits.filter(
-        h => h.notification?.enabled && h.notification.mode === 'days-of-week'
-      );
+      const notifHabits = result.habits.filter(h => h.notification?.enabled);
       if (isNative && notifHabits.length > 0) {
         const granted =
           (await checkNotificationPermission()) || (await requestNotificationPermission());
-        if (granted) {
-          await Promise.all(
-            notifHabits.map(h =>
-              scheduleHabitNotifications(h.id, h.name, h.notification!.time, h.notification!.days)
-            )
-          );
-        } else {
+        if (!granted) {
+          setHabits(result.habits);
           return {
             ...result,
             warning: `Import successful, but ${notifHabits.length} reminder${notifHabits.length === 1 ? '' : 's'} couldn't be scheduled — notification permission was denied. You can enable it in your device settings.`,
           };
         }
+        const habitsWithIds = await Promise.all(
+          result.habits.map(async h => {
+            if (!h.notification?.enabled) return h;
+            const ids = await scheduleHabitNotifications(h.id, h.name, h.notification);
+            return { ...h, notification: { ...h.notification, notificationIds: ids } };
+          })
+        );
+        setHabits(habitsWithIds);
+        void saveToStorage('habits', habitsWithIds);
+        return result;
       }
+      setHabits(result.habits);
     }
     return result;
   }

@@ -21,7 +21,7 @@ export type NotificationValue = {
   customMessage: string;
   days: number[]; // days-of-week mode
   intervalN: number; // interval mode: every N
-  intervalUnit: 'days' | 'hours';
+  intervalUnit: 'days' | 'weeks';
   monthDays: number[]; // days-of-month mode: 1–31
 };
 

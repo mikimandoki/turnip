@@ -9,10 +9,10 @@ export interface HabitContextType {
   isFutureDate: boolean;
   hasOnboarded: boolean;
   darkMode: boolean;
-  addHabit: (habit: Habit) => void;
+  addHabit: (habit: Habit) => Promise<void>;
   updateCompletion: (habitId: string, increment: number) => void;
   deleteHabit: (habit: Habit) => void;
-  editHabit: (habit: Habit, updates: Partial<Habit>) => void;
+  editHabit: (habit: Habit, updates: Partial<Habit>) => Promise<void>;
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => void;

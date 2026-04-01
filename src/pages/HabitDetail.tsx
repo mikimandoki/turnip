@@ -77,7 +77,7 @@ export default function HabitDetail() {
       void recheckNotificationPermission();
     }
     setErrors([]);
-    editHabit(habit, {
+    await editHabit(habit, {
       name: trimmedName,
       notification: editNotif.enabled ? editNotif : undefined,
     });
@@ -85,10 +85,22 @@ export default function HabitDetail() {
     setIsEditing(false);
   }
 
-  function buildDayLabels(days: number[]): string {
-    return DAYS.filter(d => days.includes(d.weekday))
-      .map(d => d.label)
-      .join(' ');
+  function buildNotifSuffix(notif: NotificationValue): string {
+    switch (notif.mode) {
+      case 'days-of-week':
+        return (
+          ' · ' +
+          DAYS.filter(d => notif.days.includes(d.weekday))
+            .map(d => d.label)
+            .join(' ')
+        );
+      case 'days-of-month':
+        return ' · days ' + notif.monthDays.join(', ');
+      case 'interval':
+        return ` · every ${notif.intervalN} ${notif.intervalUnit}`;
+      default:
+        return '';
+    }
   }
 
   return (
@@ -129,9 +141,7 @@ export default function HabitDetail() {
                     hour: 'numeric',
                     minute: '2-digit',
                   })}
-                  {habit.notification.days && habit.notification.days.length > 0
-                    ? ` · ${buildDayLabels(habit.notification.days)}`
-                    : ''}
+                  {buildNotifSuffix(habit.notification)}
                 </div>
               )}
             </div>
