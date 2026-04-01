@@ -24,6 +24,7 @@ import {
   defaultNotifDays,
   defaultNotificationValue,
   type NotificationValue,
+  notifModeForUnit,
 } from '../utils/notifications';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
 
@@ -38,6 +39,7 @@ export default function HabitDetail() {
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [editNotif, setEditNotif] = useState<NotificationValue>({
     ...defaultNotificationValue(),
+    mode: notifModeForUnit(habit?.frequency.periodUnit ?? 'day'),
     ...habit?.notification,
   });
   const [errors, setErrors] = useState<string[]>([]);
@@ -157,7 +159,11 @@ export default function HabitDetail() {
                       setErrors([]);
                       setIsEditing(false);
                       setEditName(habit.name);
-                      setEditNotif({ ...defaultNotificationValue(), ...habit.notification });
+                      setEditNotif({
+                        ...defaultNotificationValue(),
+                        mode: notifModeForUnit(habit.frequency.periodUnit),
+                        ...habit.notification,
+                      });
                     }}
                   >
                     <X size={16} />

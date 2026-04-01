@@ -15,8 +15,8 @@ import {
 import {
   defaultNotifDays,
   defaultNotificationValue,
-  type NotificationMode,
   type NotificationValue,
+  notifModeForUnit,
 } from '../utils/notifications';
 import { isNative, validateInputs } from '../utils/utils';
 
@@ -31,13 +31,6 @@ const placeholderExamples = [
   '🎸 Practice guitar',
   '🥗 Eat a healthy meal',
 ];
-
-function notifModeForUnit(unit: Frequency['periodUnit'] | 'custom'): NotificationMode {
-  if (unit === 'week') return 'days-of-week';
-  if (unit === 'month') return 'days-of-month';
-  if (unit === 'custom') return 'interval';
-  return 'daily';
-}
 
 export default function AddHabitPage() {
   const navigate = useNavigate();

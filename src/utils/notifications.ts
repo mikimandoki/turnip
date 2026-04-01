@@ -38,6 +38,13 @@ export function defaultNotificationValue(): NotificationValue {
   };
 }
 
+export function notifModeForUnit(unit: Frequency['periodUnit'] | 'custom'): NotificationMode {
+  if (unit === 'week') return 'days-of-week';
+  if (unit === 'month') return 'days-of-month';
+  if (unit === 'custom') return 'interval';
+  return 'daily';
+}
+
 // Deterministic integer ID from habit id, used to derive notification IDs.
 // Receives a weekday digit downstream to create unique IDs for each day.
 // Clamped to max 2,147,483,640 to avoid a theoretical overflow (...483_640+7).
