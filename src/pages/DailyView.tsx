@@ -1,12 +1,9 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { nanoid } from 'nanoid';
-import { Dialog } from 'radix-ui';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import AddHabitModal from '../components/AddHabitModal';
 import HabitCard from '../components/HabitCard';
 import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -30,7 +27,6 @@ export default function DailyView() {
     completions,
     displayDate,
     hasOnboarded,
-    addHabit,
     updateCompletion,
     reorderHabits,
     shiftDate,
@@ -39,7 +35,6 @@ export default function DailyView() {
     loadDemoData,
   } = useHabitContext();
 
-  const [showForm, setShowForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -124,7 +119,7 @@ export default function DailyView() {
       )}
 
       <div className='btn-row'>
-        <button className='btn-add-habit' onClick={() => setShowForm(true)}>
+        <button className='btn-add-habit' onClick={() => void navigate('/add')}>
           Add new habit
         </button>
         <button className='btn-action' onClick={() => setShowSettings(true)}>
@@ -137,28 +132,6 @@ export default function DailyView() {
           Explore demo data
         </button>
       )}
-
-      <Dialog.Root open={showForm} onOpenChange={setShowForm}>
-        <Dialog.Portal>
-          <Dialog.Overlay className='modal-overlay' />
-          <Dialog.Content className='modal-content'>
-            <Dialog.Title className='modal-title'>New habit</Dialog.Title>
-            <AddHabitModal
-              onAdd={({ name, frequency, notification }) => {
-                addHabit({
-                  id: nanoid(),
-                  name,
-                  frequency,
-                  createdAt: toDateString(displayDate),
-                  notification,
-                });
-                setShowForm(false);
-              }}
-              onCancel={() => setShowForm(false)}
-            />
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
       {import.meta.env.MODE === 'development' && (

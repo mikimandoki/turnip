@@ -113,12 +113,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     void saveToStorage('hasOnboarded', true);
     setHasOnboarded(true);
     void hapticsMedium();
-    if (newHabit.notification?.enabled && newHabit.notification.time) {
+    if (newHabit.notification?.enabled && newHabit.notification.mode === 'days-of-week') {
       void scheduleHabitNotifications(
         newHabit.id,
         newHabit.name,
         newHabit.notification.time,
-        newHabit.notification.days ?? [1, 2, 3, 4, 5, 6, 7]
+        newHabit.notification.days
       );
     }
   }
@@ -140,12 +140,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setHabits(updated);
     void saveToStorage('habits', updated);
     const merged = { ...habit, ...sanitized };
-    if (merged.notification?.enabled && merged.notification.time) {
+    if (merged.notification?.enabled && merged.notification.mode === 'days-of-week') {
       void scheduleHabitNotifications(
         merged.id,
         merged.name,
         merged.notification.time,
-        merged.notification.days ?? [1, 2, 3, 4, 5, 6, 7]
+        merged.notification.days
       );
     } else {
       void cancelHabitNotifications(merged.id, [1, 2, 3, 4, 5, 6, 7]);
@@ -195,19 +195,16 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     if (result.success) {
       setHabits(result.habits);
       setCompletions(result.completions);
-      const notifHabits = result.habits.filter(h => h.notification?.enabled && h.notification.time);
+      const notifHabits = result.habits.filter(
+        h => h.notification?.enabled && h.notification.mode === 'days-of-week'
+      );
       if (isNative && notifHabits.length > 0) {
         const granted =
           (await checkNotificationPermission()) || (await requestNotificationPermission());
         if (granted) {
           await Promise.all(
             notifHabits.map(h =>
-              scheduleHabitNotifications(
-                h.id,
-                h.name,
-                h.notification!.time,
-                h.notification!.days ?? [1, 2, 3, 4, 5, 6, 7]
-              )
+              scheduleHabitNotifications(h.id, h.name, h.notification!.time, h.notification!.days)
             )
           );
         } else {

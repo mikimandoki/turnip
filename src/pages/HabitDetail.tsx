@@ -19,7 +19,12 @@ import {
   checkNotificationPermission,
   requestNotificationPermission,
 } from '../utils/localNotifications';
-import { DAYS, defaultNotifDays, type NotificationValue } from '../utils/notifications';
+import {
+  DAYS,
+  defaultNotifDays,
+  defaultNotificationValue,
+  type NotificationValue,
+} from '../utils/notifications';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
@@ -32,9 +37,8 @@ export default function HabitDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [editNotif, setEditNotif] = useState<NotificationValue>({
-    enabled: habit?.notification?.enabled ?? false,
-    time: habit?.notification?.time ?? '09:00',
-    days: habit?.notification?.days ?? [1, 2, 3, 4, 5, 6, 7],
+    ...defaultNotificationValue(),
+    ...habit?.notification,
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -75,9 +79,7 @@ export default function HabitDetail() {
     setErrors([]);
     editHabit(habit, {
       name: trimmedName,
-      notification: editNotif.enabled
-        ? { enabled: true, time: editNotif.time, days: editNotif.days }
-        : undefined,
+      notification: editNotif.enabled ? editNotif : undefined,
     });
     setEditName(trimmedName);
     setIsEditing(false);
@@ -145,11 +147,7 @@ export default function HabitDetail() {
                       setErrors([]);
                       setIsEditing(false);
                       setEditName(habit.name);
-                      setEditNotif({
-                        enabled: habit.notification?.enabled ?? false,
-                        time: habit.notification?.time ?? '09:00',
-                        days: habit.notification?.days ?? [1, 2, 3, 4, 5, 6, 7],
-                      });
+                      setEditNotif({ ...defaultNotificationValue(), ...habit.notification });
                     }}
                   >
                     <X size={16} />

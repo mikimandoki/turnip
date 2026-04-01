@@ -12,11 +12,31 @@ export const DAYS = [
   { label: 'Su', weekday: 1 },
 ];
 
+export type NotificationMode = 'daily' | 'days-of-month' | 'days-of-week' | 'interval';
+
 export type NotificationValue = {
   enabled: boolean;
+  mode: NotificationMode;
   time: string;
-  days: number[];
+  customMessage: string;
+  days: number[]; // days-of-week mode
+  intervalN: number; // interval mode: every N
+  intervalUnit: 'days' | 'hours';
+  monthDays: number[]; // days-of-month mode: 1–31
 };
+
+export function defaultNotificationValue(): NotificationValue {
+  return {
+    enabled: false,
+    mode: 'daily',
+    time: '09:00',
+    customMessage: '',
+    days: [1, 2, 3, 4, 5, 6, 7],
+    intervalN: 1,
+    intervalUnit: 'days',
+    monthDays: [],
+  };
+}
 
 // Deterministic integer ID from habit id, used to derive notification IDs.
 // Receives a weekday digit downstream to create unique IDs for each day.

@@ -795,6 +795,35 @@ input[type='time']:focus {
   color: var(--color-accent-text);
 }
 
+.notif-mode-tabs {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-secondary);
+  margin-top: var(--spacing-sm);
+}
+
+.notif-mode-tab {
+  flex: 1;
+  padding: 6px 2px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-background-tertiary);
+  border: none;
+  border-right: 0.5px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.notif-mode-tab:last-child {
+  border-right: none;
+}
+
+.notif-mode-tab.active {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;

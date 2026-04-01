@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { validateInputs } from '../utils/utils';
-import AddHabitModal from './AddHabitModal';
+import AddHabitPage from './AddHabitPage';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router', () => ({
+  useNavigate: () => mockNavigate,
+}));
 
 vi.mock('../contexts/useHabitContext', () => ({
   useHabitContext: vi.fn(),
@@ -15,25 +21,33 @@ vi.mock('../utils/utils', () => ({
   validateInputs: vi.fn(() => []),
 }));
 
-vi.mock('./NotificationPicker', () => ({
+vi.mock('../components/NotificationPicker', () => ({
   default: () => null,
 }));
 
+vi.mock('../utils/date', () => ({
+  toDateString: () => '2026-04-01',
+}));
+
+let addHabit: ReturnType<typeof vi.fn>;
+
 function setup() {
   const user = userEvent.setup();
-  const onAdd = vi.fn();
-  const onCancel = vi.fn();
-  render(<AddHabitModal onAdd={onAdd} onCancel={onCancel} />);
-  return { user, onAdd, onCancel };
+  render(<AddHabitPage />);
+  return { user };
 }
 
 beforeEach(() => {
+  addHabit = vi.fn();
   vi.mocked(useHabitContext).mockReturnValue({
+    addHabit,
+    displayDate: new Date('2026-04-01'),
     recheckNotificationPermission: vi.fn(),
   } as unknown as ReturnType<typeof useHabitContext>);
+  mockNavigate.mockReset();
 });
 
-describe('AddHabitModal', () => {
+describe('AddHabitPage', () => {
   describe('rendering', () => {
     it('renders name input, stepper buttons, unit select and action buttons', () => {
       setup();
@@ -121,13 +135,13 @@ describe('AddHabitModal', () => {
   });
 
   describe('submission', () => {
-    it('calls onAdd with correct frequency for simple mode', async () => {
-      const { user, onAdd } = setup();
+    it('calls addHabit with correct frequency for simple mode', async () => {
+      const { user } = setup();
       await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
       await user.click(screen.getByRole('button', { name: 'Increase times' }));
       await user.selectOptions(screen.getByRole('combobox'), 'week');
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
-      expect(onAdd).toHaveBeenCalledWith(
+      expect(addHabit).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Exercise',
           frequency: { times: 2, periodLength: 1, periodUnit: 'week' },
@@ -135,43 +149,40 @@ describe('AddHabitModal', () => {
       );
     });
 
-    it('calls onAdd with correct frequency for custom mode', async () => {
-      const { user, onAdd } = setup();
+    it('calls addHabit with correct frequency for custom mode', async () => {
+      const { user } = setup();
       await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
       await user.selectOptions(screen.getByRole('combobox'), 'custom');
       await user.click(screen.getByRole('button', { name: 'Increase period' }));
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
-      expect(onAdd).toHaveBeenCalledWith(
+      expect(addHabit).toHaveBeenCalledWith(
         expect.objectContaining({
           frequency: { times: 1, periodLength: 3, periodUnit: 'day' },
         })
       );
     });
 
-    it('resets form after successful submit', async () => {
+    it('navigates to / after successful submit', async () => {
       const { user } = setup();
       await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
-      await user.click(screen.getByRole('button', { name: 'Increase times' }));
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
-      expect.soft(screen.getByRole('textbox', { name: 'Habit name' })).toHaveValue('');
-      expect.soft(screen.getByDisplayValue('1')).toBeInTheDocument();
-      expect.soft(screen.getByDisplayValue('day')).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/');
     });
 
     it('shows error when name is empty', async () => {
-      const { user, onAdd } = setup();
+      const { user } = setup();
       vi.mocked(validateInputs).mockReturnValueOnce(['Name is required']);
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
       expect.soft(screen.getByText('Name is required')).toBeInTheDocument();
-      expect.soft(onAdd).not.toHaveBeenCalled();
+      expect.soft(addHabit).not.toHaveBeenCalled();
     });
   });
 
   describe('cancel', () => {
-    it('calls onCancel when cancel is clicked', async () => {
-      const { user, onCancel } = setup();
+    it('navigates to / when cancel is clicked', async () => {
+      const { user } = setup();
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
-      expect(onCancel).toHaveBeenCalled();
+      expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
 });

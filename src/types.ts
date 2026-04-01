@@ -25,8 +25,13 @@ export const HabitSchema = z.object({
   notification: z
     .object({
       enabled: z.boolean(),
+      mode: z.enum(['daily', 'days-of-week', 'interval', 'days-of-month']).default('daily'),
       time: z.string(), // "HH:MM"
-      days: z.array(z.number().min(1).max(7)).default([1, 2, 3, 4, 5, 6, 7]), // 1=Sun … 7=Sat, Capacitor convention
+      customMessage: z.string().default(''),
+      days: z.array(z.number().min(1).max(7)).default([1, 2, 3, 4, 5, 6, 7]), // 1=Sun…7=Sat, Capacitor convention
+      intervalN: z.number().min(1).default(1),
+      intervalUnit: z.enum(['hours', 'days']).default('days'),
+      monthDays: z.array(z.number().min(1).max(31)).default([]),
     })
     .optional(),
 });
