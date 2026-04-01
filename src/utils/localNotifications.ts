@@ -3,7 +3,7 @@ import { addDays, endOfMonth, setHours, setMinutes, startOfDay } from 'date-fns'
 
 import { parseHabitEmoji } from './habits';
 import { habitNotificationId, type NotificationValue } from './notifications';
-import { isNative } from './utils';
+import { isCapacitorNative, isNative } from './utils';
 
 // Platform strategy: all functions are no-ops on web (guarded by isNative). UI components
 // import isNative directly to hide native-only UI (bell icon, NotificationPicker, etc.).
@@ -203,7 +203,7 @@ export async function scheduleHabitNotifications(
 
   console.log('[notifications] schedule', { habitId, habitName, notif, notifications });
 
-  if (import.meta.env.MODE !== 'development') {
+  if (isCapacitorNative) {
     await LocalNotifications.schedule({ notifications });
   }
 
@@ -214,7 +214,7 @@ export async function scheduleHabitNotifications(
 export async function cancelHabitNotifications(notificationIds: number[]): Promise<void> {
   if (!isNative || notificationIds.length === 0) return;
   console.log('[notifications] cancel', { notificationIds });
-  if (import.meta.env.MODE !== 'development') {
+  if (isCapacitorNative) {
     await LocalNotifications.cancel({
       notifications: notificationIds.map(id => ({ id })),
     });

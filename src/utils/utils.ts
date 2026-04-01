@@ -1,10 +1,10 @@
 import type { Frequency, Habit } from '../types';
 
-export const isNative =
-  import.meta.env.MODE === 'development' ||
-  !!(
-    window as unknown as { Capacitor?: { isNativePlatform: () => boolean } }
-  ).Capacitor?.isNativePlatform();
+export const isCapacitorNative = !!(
+  window as unknown as { Capacitor?: { isNativePlatform: () => boolean } }
+).Capacitor?.isNativePlatform();
+
+export const isNative = import.meta.env.MODE === 'development' || isCapacitorNative;
 
 import { parseHabitEmoji } from './habits';
 
