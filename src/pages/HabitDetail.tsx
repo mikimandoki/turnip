@@ -39,7 +39,9 @@ export default function HabitDetail() {
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [editNotif, setEditNotif] = useState<NotificationValue>({
     ...defaultNotificationValue(),
-    mode: notifModeForUnit(habit?.frequency.periodUnit ?? 'day'),
+    mode: notifModeForUnit(
+      (habit?.frequency.periodLength ?? 1) > 1 ? 'custom' : (habit?.frequency.periodUnit ?? 'day')
+    ),
     ...habit?.notification,
   });
   const [errors, setErrors] = useState<string[]>([]);
@@ -161,7 +163,9 @@ export default function HabitDetail() {
                       setEditName(habit.name);
                       setEditNotif({
                         ...defaultNotificationValue(),
-                        mode: notifModeForUnit(habit.frequency.periodUnit),
+                        mode: notifModeForUnit(
+                          habit.frequency.periodLength > 1 ? 'custom' : habit.frequency.periodUnit
+                        ),
                         ...habit.notification,
                       });
                     }}

@@ -175,11 +175,11 @@ export default function AddHabitPage() {
                     if (e.target.value === 'simple') {
                       setIsCustom(false);
                       setPeriodLengthStr('1');
-                      setNotif(n => ({ ...n, mode: notifModeForUnit('day') }));
+                      setNotif(n => ({ ...n, mode: notifModeForUnit(periodUnit) }));
                     } else {
                       const unit = e.target.value as Frequency['periodUnit'];
                       setPeriodUnit(unit);
-                      setNotif(n => ({ ...n, mode: notifModeForUnit(unit) }));
+                      setNotif(n => ({ ...n, mode: notifModeForUnit('custom') }));
                     }
                   }}
                 >
