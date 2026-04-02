@@ -1,13 +1,14 @@
 import { Switch } from 'radix-ui';
 
+import { isTimeInPast } from '../utils/date';
 import { DAYS, type NotificationMode, type NotificationValue } from '../utils/notifications';
 import { isNative } from '../utils/utils';
 
 const MODES: { id: NotificationMode; label: string }[] = [
   { id: 'daily', label: 'Daily' },
   { id: 'days-of-week', label: 'Days of week' },
-  { id: 'interval', label: 'Intervals' },
   { id: 'days-of-month', label: 'Days of month' },
+  { id: 'interval', label: 'Custom' },
 ];
 
 export default function NotificationPicker({
@@ -66,50 +67,6 @@ export default function NotificationPicker({
               </div>
             </>
           )}
-          {value.mode === 'interval' && (
-            <>
-              <div className='form-row'>
-                <span className='form-label'>Every</span>
-                <button
-                  type='button'
-                  className='btn-stepper'
-                  aria-label='Decrease interval'
-                  onClick={() =>
-                    onChange({ ...value, intervalN: Math.max(1, value.intervalN - 1) })
-                  }
-                >
-                  −
-                </button>
-                <input
-                  type='text'
-                  inputMode='numeric'
-                  pattern='[0-9]*'
-                  className='input-stepper'
-                  value={value.intervalN}
-                  onChange={e =>
-                    onChange({ ...value, intervalN: Math.max(1, parseInt(e.target.value) || 1) })
-                  }
-                />
-                <button
-                  type='button'
-                  className='btn-stepper'
-                  aria-label='Increase interval'
-                  onClick={() => onChange({ ...value, intervalN: value.intervalN + 1 })}
-                >
-                  +
-                </button>
-                <select
-                  value={value.intervalUnit}
-                  onChange={e =>
-                    onChange({ ...value, intervalUnit: e.target.value as 'days' | 'weeks' })
-                  }
-                >
-                  <option value='days'>days</option>
-                  <option value='weeks'>weeks</option>
-                </select>
-              </div>
-            </>
-          )}
           {value.mode === 'days-of-month' && (
             <>
               <div className='form-row'>
@@ -155,6 +112,50 @@ export default function NotificationPicker({
               )}
             </>
           )}
+          {value.mode === 'interval' && (
+            <>
+              <div className='form-row'>
+                <span className='form-label'>Every</span>
+                <button
+                  type='button'
+                  className='btn-stepper'
+                  aria-label='Decrease interval'
+                  onClick={() =>
+                    onChange({ ...value, intervalN: Math.max(1, value.intervalN - 1) })
+                  }
+                >
+                  −
+                </button>
+                <input
+                  type='text'
+                  inputMode='numeric'
+                  pattern='[0-9]*'
+                  className='input-stepper'
+                  value={value.intervalN}
+                  onChange={e =>
+                    onChange({ ...value, intervalN: Math.max(1, parseInt(e.target.value) || 1) })
+                  }
+                />
+                <button
+                  type='button'
+                  className='btn-stepper'
+                  aria-label='Increase interval'
+                  onClick={() => onChange({ ...value, intervalN: value.intervalN + 1 })}
+                >
+                  +
+                </button>
+                <select
+                  value={value.intervalUnit}
+                  onChange={e =>
+                    onChange({ ...value, intervalUnit: e.target.value as 'days' | 'weeks' })
+                  }
+                >
+                  <option value='days'>days</option>
+                  <option value='weeks'>weeks</option>
+                </select>
+              </div>
+            </>
+          )}
           <div className='form-row'>
             <span className='form-label'>at</span>
             <input
@@ -162,7 +163,18 @@ export default function NotificationPicker({
               value={value.time}
               onChange={e => onChange({ ...value, time: e.target.value })}
             />
-            {value.mode === 'interval' && <span className='form-label'>starting today</span>}
+            {value.mode === 'interval' && (
+              <span className='form-label'>
+                starting{' '}
+                {isTimeInPast(
+                  parseInt(value.time.split(':')[0]),
+                  parseInt(value.time.split(':')[1]), 
+                  new Date(),
+                )
+                  ? 'tomorrow'
+                  : 'today'}
+              </span>
+            )}
           </div>
           <div className='form-row'>
             <input

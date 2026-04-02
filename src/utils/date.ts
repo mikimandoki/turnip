@@ -9,6 +9,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isPast,
   isThisYear,
   isToday,
   isTomorrow,
@@ -78,4 +79,10 @@ export function namedDayOrDate(date: Date): string {
   if (isTomorrow(date)) return 'Tomorrow';
   if (isThisYear(date)) return format(date, baseDateFormat); // Saturday, March 28
   return format(date, baseDateFormat + ' y'); // Friday, March 28 2025
+}
+
+export function isTimeInPast(hh: number, mm: number, date: Date): boolean {
+  const inputDate = new Date(date.getTime());
+  inputDate.setHours(hh, mm, 0, 0);
+  return isPast(inputDate);
 }
