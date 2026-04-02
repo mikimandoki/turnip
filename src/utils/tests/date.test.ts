@@ -230,7 +230,6 @@ describe('isTimeInPast', () => {
     expect(isTimeInPast(11, 59, fakeToday)).toBe(true); // 11:59 AM
   })
   it('returns false for time in the future', () => {
-    console.log(fakeToday)
     expect(isTimeInPast(12, 1, fakeToday)).toBe(false); // 12:01 PM
   });
 });
