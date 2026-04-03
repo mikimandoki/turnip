@@ -50,7 +50,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
 // --- Perpetual builders (OS repeats forever, scheduledAt = null) ---
 
-function buildDailyNotifications(
+export function buildDailyNotifications(
   base: number,
   title: string,
   getBody: () => string,
@@ -60,7 +60,7 @@ function buildDailyNotifications(
   return [{ id: base, title, body: getBody(), schedule: { on: { hour, minute }, repeats: true } }];
 }
 
-function buildDowNotifications(
+export function buildDowNotifications(
   base: number,
   title: string,
   getBody: () => string,
@@ -77,7 +77,7 @@ function buildDowNotifications(
   }));
 }
 
-function buildSafeDomNotifications(
+export function buildSafeDomNotifications(
   base: number,
   title: string,
   getBody: () => string,
@@ -95,7 +95,7 @@ function buildSafeDomNotifications(
 
 // --- Windowed builders (one-shot `at` timestamps, scheduledAt = occurrence date) ---
 
-function buildUnsafeDomNotifications(
+export function buildUnsafeDomNotifications(
   habitId: string,
   title: string,
   getBody: () => string,
@@ -131,7 +131,7 @@ function buildUnsafeDomNotifications(
   return notifications;
 }
 
-function buildIntervalNotifications(
+export function buildIntervalNotifications(
   habitId: string,
   title: string,
   getBody: () => string,
@@ -238,6 +238,7 @@ export async function scheduleHabitNotifications(
     ...windowed.map(n => ({ id: n.id, scheduledAt: n.schedule!.at as Date })),
   ];
 }
+
 export async function cancelHabitNotifications(notificationIds: number[]): Promise<void> {
   if (!isNative || notificationIds.length === 0) return;
   console.log('[notifications] cancel', { notificationIds });
