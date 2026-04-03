@@ -1,7 +1,7 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import HabitCard from '../components/HabitCard';
@@ -10,6 +10,7 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { getPendingNotifications } from '../utils/localNotifications';
+import { initDB } from '../utils/sqlite';
 
 async function debugNotifs() {
   const { notifications } = await getPendingNotifications();
@@ -18,7 +19,7 @@ async function debugNotifs() {
       ? 'No pending notifications'
       : notifications.map(n => `[${n.id}] "${n.title}" — ${JSON.stringify(n.schedule)}`).join('\n')
   );
-}
+}; 
 
 export default function DailyView() {
   const navigate = useNavigate();
@@ -38,6 +39,13 @@ export default function DailyView() {
   const [showSettings, setShowSettings] = useState(false);
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    async function setup() {
+      await initDB();
+    }
+    void setup();
+  }, []);
 
   return (
     <div className='app'>
