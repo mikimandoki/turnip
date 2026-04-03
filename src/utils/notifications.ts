@@ -58,6 +58,14 @@ export function windowedNotificationId(habitId: string, scheduledAt: Date): numb
   return simpleHash(habitId + ':' + scheduledAt.toISOString()) % 2_147_483_640;
 }
 
+export function validateNotif(notif: NotificationValue): string | null {
+  if (!notif.enabled) return null;
+  if (notif.mode === 'days-of-week' && notif.days.length === 0) return 'Select at least one day';
+  if (notif.mode === 'days-of-month' && notif.monthDays.length === 0)
+    return 'Select at least one day of the month';
+  return null;
+}
+
 export function defaultNotifDays(frequency: Frequency): number[] {
   if (frequency.periodUnit !== 'week') return [1, 2, 3, 4, 5, 6, 7];
   const count = Math.min(frequency.times, 7);

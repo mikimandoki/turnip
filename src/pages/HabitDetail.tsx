@@ -25,6 +25,7 @@ import {
   defaultNotificationValue,
   type NotificationValue,
   notifModeForUnit,
+  validateNotif,
 } from '../utils/notifications';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
 
@@ -45,6 +46,7 @@ export default function HabitDetail() {
     ...habit?.notification,
   });
   const [errors, setErrors] = useState<string[]>([]);
+  const [notifValidated, setNotifValidated] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
@@ -62,11 +64,12 @@ export default function HabitDetail() {
     const trimmedName = editName.trim();
     const updated = { ...habit, name: trimmedName };
     const inputErrors = validateInputs(updated);
-    if (editNotif.enabled && editNotif.days.length === 0) {
-      inputErrors.push('Select at least one day for reminders');
-    }
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
+      return;
+    }
+    if (validateNotif(editNotif)) {
+      setNotifValidated(true);
       return;
     }
     if (isNative && editNotif.enabled) {
@@ -159,6 +162,7 @@ export default function HabitDetail() {
                     className='btn-action'
                     onClick={() => {
                       setErrors([]);
+                      setNotifValidated(false);
                       setIsEditing(false);
                       setEditName(habit.name);
                       setEditNotif({
@@ -189,7 +193,9 @@ export default function HabitDetail() {
             <div className='habit-detail-notif'>
               <NotificationPicker
                 value={editNotif}
+                validated={notifValidated}
                 onChange={next => {
+                  setNotifValidated(false);
                   if (!editNotif.enabled && next.enabled) {
                     setEditNotif({
                       ...next,

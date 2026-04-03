@@ -17,6 +17,7 @@ import {
   defaultNotificationValue,
   type NotificationValue,
   notifModeForUnit,
+  validateNotif,
 } from '../utils/notifications';
 import { isNative, validateInputs } from '../utils/utils';
 
@@ -47,17 +48,19 @@ export default function AddHabitPage() {
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
   );
   const [notif, setNotif] = useState<NotificationValue>(defaultNotificationValue);
+  const [notifValidated, setNotifValidated] = useState(false);
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
     const frequency: Frequency = { times, periodLength, periodUnit };
     const inputErrors = validateInputs({ name: trimmedName, frequency });
-    if (notif.enabled && notif.days.length === 0) {
-      inputErrors.push('Select at least one day for reminders');
-    }
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
+      return;
+    }
+    if (validateNotif(notif)) {
+      setNotifValidated(true);
       return;
     }
     if (isNative && notif.enabled) {
@@ -221,7 +224,9 @@ export default function AddHabitPage() {
           </div>
           <NotificationPicker
             value={notif}
+            validated={notifValidated}
             onChange={next => {
+              setNotifValidated(false);
               if (!notif.enabled && next.enabled) {
                 setNotif({
                   ...next,

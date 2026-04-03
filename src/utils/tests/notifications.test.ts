@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { Frequency } from '../../types';
 
-import { defaultNotifDays, habitNotificationId } from '../notifications';
+import {
+  defaultNotifDays,
+  habitNotificationId,
+  type NotificationValue,
+  validateNotif,
+} from '../notifications';
 
 describe('habitNotificationId', () => {
   it('returns a positive integer', () => {
@@ -77,5 +82,50 @@ describe('defaultNotifDays', () => {
       const days = defaultNotifDays(weekly3);
       expect(new Set(days).size).toBe(days.length);
     }
+  });
+});
+
+describe('validateNotif', () => {
+  const base: NotificationValue = {
+    enabled: true,
+    mode: 'daily',
+    time: '09:00',
+    customMessage: '',
+    days: [],
+    monthDays: [],
+    intervalN: 1,
+    intervalUnit: 'days',
+  };
+
+  it('returns null when disabled', () => {
+    expect(validateNotif({ ...base, enabled: false, mode: 'days-of-week', days: [] })).toBeNull();
+  });
+
+  it('returns null for daily mode', () => {
+    expect(validateNotif({ ...base, mode: 'daily' })).toBeNull();
+  });
+
+  it('returns null for interval mode', () => {
+    expect(validateNotif({ ...base, mode: 'interval' })).toBeNull();
+  });
+
+  it('returns null for days-of-week with days selected', () => {
+    expect(validateNotif({ ...base, mode: 'days-of-week', days: [1, 2] })).toBeNull();
+  });
+
+  it('returns error for days-of-week with no days selected', () => {
+    expect(validateNotif({ ...base, mode: 'days-of-week', days: [] })).toBe(
+      'Select at least one day'
+    );
+  });
+
+  it('returns null for days-of-month with days selected', () => {
+    expect(validateNotif({ ...base, mode: 'days-of-month', monthDays: [1, 15] })).toBeNull();
+  });
+
+  it('returns error for days-of-month with no days selected', () => {
+    expect(validateNotif({ ...base, mode: 'days-of-month', monthDays: [] })).toBe(
+      'Select at least one day of the month'
+    );
   });
 });

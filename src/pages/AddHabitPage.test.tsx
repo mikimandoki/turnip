@@ -22,7 +22,49 @@ vi.mock('../utils/utils', () => ({
 }));
 
 vi.mock('../components/NotificationPicker', () => ({
-  default: () => null,
+  default: ({
+    value,
+    onChange,
+  }: {
+    value: {
+      enabled: boolean;
+      mode: string;
+      days: number[];
+      monthDays: number[];
+      time: string;
+      customMessage: string;
+      intervalN: number;
+      intervalUnit: string;
+    };
+    onChange: (v: typeof value) => void;
+  }) => (
+    <>
+      {!value.enabled && (
+        <button type='button' onClick={() => onChange({ ...value, enabled: true })}>
+          Enable notifications
+        </button>
+      )}
+      {value.enabled && (
+        <>
+          <button
+            type='button'
+            onClick={() => onChange({ ...value, mode: 'days-of-week', days: [] })}
+          >
+            Set days-of-week no days
+          </button>
+          <button
+            type='button'
+            onClick={() => onChange({ ...value, mode: 'days-of-month', monthDays: [] })}
+          >
+            Set days-of-month no days
+          </button>
+          <button type='button' onClick={() => onChange({ ...value, mode: 'daily' })}>
+            Switch to daily
+          </button>
+        </>
+      )}
+    </>
+  ),
 }));
 
 vi.mock('../utils/date', () => ({
@@ -175,6 +217,26 @@ describe('AddHabitPage', () => {
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
       expect.soft(screen.getByText('Name is required')).toBeInTheDocument();
       expect.soft(addHabit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('notification validation', () => {
+    it('does not submit when days-of-week mode has no days selected', async () => {
+      const { user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
+      await user.click(screen.getByRole('button', { name: 'Enable notifications' }));
+      await user.click(screen.getByRole('button', { name: 'Set days-of-week no days' }));
+      await user.click(screen.getByRole('button', { name: 'Add habit' }));
+      expect(addHabit).not.toHaveBeenCalled();
+    });
+
+    it('does not submit when days-of-month mode has no days selected', async () => {
+      const { user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
+      await user.click(screen.getByRole('button', { name: 'Enable notifications' }));
+      await user.click(screen.getByRole('button', { name: 'Set days-of-month no days' }));
+      await user.click(screen.getByRole('button', { name: 'Add habit' }));
+      expect(addHabit).not.toHaveBeenCalled();
     });
   });
 

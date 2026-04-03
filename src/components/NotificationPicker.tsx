@@ -1,7 +1,12 @@
 import { Switch } from 'radix-ui';
 
 import { isTimeInPast } from '../utils/date';
-import { DAYS, type NotificationMode, type NotificationValue } from '../utils/notifications';
+import {
+  DAYS,
+  type NotificationMode,
+  type NotificationValue,
+  validateNotif,
+} from '../utils/notifications';
 import { isNative } from '../utils/utils';
 
 const MODES: { id: NotificationMode; label: string }[] = [
@@ -14,9 +19,11 @@ const MODES: { id: NotificationMode; label: string }[] = [
 export default function NotificationPicker({
   value,
   onChange,
+  validated = false,
 }: {
   value: NotificationValue;
   onChange: (next: NotificationValue) => void;
+  validated?: boolean;
 }) {
   if (!isNative && import.meta.env.MODE !== 'development') return null;
 
@@ -47,25 +54,23 @@ export default function NotificationPicker({
             ))}
           </div>
           {value.mode === 'days-of-week' && (
-            <>
-              <div className='notif-day-picker'>
-                {DAYS.map(({ label, weekday }) => (
-                  <button
-                    key={weekday}
-                    type='button'
-                    className={`notif-day-btn${value.days.includes(weekday) ? ' active' : ''}`}
-                    onClick={() => {
-                      const days = value.days.includes(weekday)
-                        ? value.days.filter(d => d !== weekday)
-                        : [...value.days, weekday].sort((a, b) => a - b);
-                      onChange({ ...value, days });
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className='notif-day-picker'>
+              {DAYS.map(({ label, weekday }) => (
+                <button
+                  key={weekday}
+                  type='button'
+                  className={`notif-day-btn${value.days.includes(weekday) ? ' active' : ''}`}
+                  onClick={() => {
+                    const days = value.days.includes(weekday)
+                      ? value.days.filter(d => d !== weekday)
+                      : [...value.days, weekday].sort((a, b) => a - b);
+                    onChange({ ...value, days });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           )}
           {value.mode === 'days-of-month' && (
             <>
@@ -111,6 +116,9 @@ export default function NotificationPicker({
                 </div>
               )}
             </>
+          )}
+          {validated && validateNotif(value) !== null && (
+            <p className='error-message'>{validateNotif(value)}</p>
           )}
           {value.mode === 'interval' && (
             <>
