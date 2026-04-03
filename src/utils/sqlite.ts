@@ -62,6 +62,15 @@ export async function getDB(): Promise<SQLiteDBConnection> {
           periodUnit TEXT NOT NULL DEFAULT 'day'
         );
       `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS completions (
+          habitId TEXT NOT NULL,
+          date TEXT NOT NULL,
+          count INTEGER NOT NULL DEFAULT 1,
+          PRIMARY KEY (habitId, date),
+          FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
+        );
+      `);
       return db;
     })();
   }

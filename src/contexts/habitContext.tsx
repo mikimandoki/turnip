@@ -4,7 +4,13 @@ import { addDays, isFuture, parseISO } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
-import { type Completion, type Habit, type HabitRowFromDB, HabitSchema } from '../types';
+import {
+  type Completion,
+  CompletionSchema,
+  type Habit,
+  type HabitRowFromDB,
+  HabitSchema,
+} from '../types';
 import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
 import { hapticsLight, hapticsMedium } from '../utils/haptics';
@@ -17,8 +23,6 @@ import {
 } from '../utils/localNotifications';
 import {
   clearStorage,
-  CompletionsSchema,
-  HabitsSchema,
   HasOnboardedSchema,
   importData,
   loadFromStorage,
@@ -69,27 +73,49 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }, [darkMode]);
 
-  function updateCompletion(habitId: string, increment: number) {
+  async function updateCompletion(habitId: string, increment: number) {
     const today = dateString;
-    const existing = completions.find(c => c.habitId === habitId && c.date === today);
-    let updated;
-    if (existing) {
-      const newCount = existing.count + increment;
+    const db = await getDB();
+
+    try {
+      // 1. Handle the "Delete if Zero" logic or "Decrement"
+      // We check the current count first to see if we're hitting zero
+      const existing = completions.find(c => c.habitId === habitId && c.date === today);
+      const newCount = (existing?.count ?? 0) + increment;
+
       if (newCount < 0) return;
+
       if (newCount === 0) {
-        updated = completions.filter(c => !(c.habitId === habitId && c.date === today));
+        await db.run(`DELETE FROM completions WHERE habitId = ? AND date = ?;`, [habitId, today]);
       } else {
-        updated = completions.map(c =>
-          c.habitId === habitId && c.date === today ? { ...c, count: newCount } : c
+        // 2. The UPSERT: Insert new row or update existing count
+        await db.run(
+          `INSERT INTO completions (habitId, date, count) 
+           VALUES (?, ?, ?)
+           ON CONFLICT(habitId, date) DO UPDATE SET count = excluded.count;`,
+          [habitId, today, newCount]
         );
       }
-    } else {
-      if (increment < 0) return;
-      updated = [...completions, { habitId, date: today, count: increment }];
+
+      await syncDB();
+
+      // 3. Update React State (Keep it snappy)
+      let updatedCompletions;
+      if (newCount === 0) {
+        updatedCompletions = completions.filter(c => !(c.habitId === habitId && c.date === today));
+      } else if (existing) {
+        updatedCompletions = completions.map(c =>
+          c.habitId === habitId && c.date === today ? { ...c, count: newCount } : c
+        );
+      } else {
+        updatedCompletions = [...completions, { habitId, date: today, count: newCount }];
+      }
+
+      setCompletions(updatedCompletions);
+      void hapticsLight();
+    } catch (e) {
+      console.error('Failed to update completion in SQLite:', e);
     }
-    setCompletions(updated);
-    void saveToStorage('completions', updated);
-    void hapticsLight();
   }
 
   async function addHabit(newHabit: Habit) {
@@ -162,18 +188,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function loadHabitsFromDB(): Promise<Habit[]> {
+  async function loadDataFromDB() {
     try {
       const db = await getDB();
-      const result = await db.query(`SELECT * FROM habits ORDER BY createdAt ASC`);
 
-      if (!result.values) return [];
+      // 1. Run queries in parallel for speed
+      const [habitsResult, completionsResult] = await Promise.all([
+        db.query(`SELECT * FROM habits ORDER BY createdAt ASC`),
+        db.query(`SELECT * FROM completions`),
+      ]);
 
-      void Toast.show({
-        text: `Loaded ${result.values.length} habit(s) from SQLite`,
-      });
-
-      const habits: Habit[] = (result.values as HabitRowFromDB[]).map(row => ({
+      // 2. Map Habits (using your existing row-to-object logic)
+      const habits: Habit[] = ((habitsResult.values as HabitRowFromDB[]) || []).map(row => ({
         id: row.id,
         name: row.name,
         createdAt: row.createdAt,
@@ -184,35 +210,36 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         },
       }));
 
-      // Validate with Zod
-      return z.array(HabitSchema).parse(habits);
+      // 3. Map Completions
+      const completions: Completion[] = (completionsResult.values as Completion[]) || [];
+
+      // 4. Validate and Return
+      return {
+        habits: z.array(HabitSchema).parse(habits),
+        completions: z.array(CompletionSchema).parse(completions), // Assuming you have a CompletionSchema
+      };
     } catch (e) {
-      await Toast.show({
-        text: 'Failed to load habits from SQLite: ' + (e instanceof Error ? e.message : String(e)),
-      });
-      return [];
+      console.error('Database hydration failed:', e);
+      return { habits: [], completions: [] };
     }
   }
-  useEffect(() => {
-    void Promise.all([
-      loadHabitsFromDB(), // Get habits from SQLite instead of LocalStorage
-      loadFromStorage('completions', [], CompletionsSchema),
-      loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-      loadFromStorage('darkMode', null, z.boolean().nullable()),
-    ]).then(([dbHabits, c, o, dm]) => {
-      // If SQLite is empty, check LocalStorage as a fallback (Migration)
-      if (dbHabits.length === 0) {
-        void loadFromStorage('habits', [], HabitsSchema).then(setHabits);
-      } else {
-        setHabits(dbHabits);
-        setHasOnboarded(true);
-      }
 
-      setCompletions(c);
-      setHasOnboarded(o || dbHabits.length > 0);
+  useEffect(() => {
+    void (async () => {
+      const [dbData, onboarded, dm] = await Promise.all([
+        loadDataFromDB(),
+        loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
+        loadFromStorage('darkMode', null, z.boolean().nullable()),
+      ]);
+
+      // Populate State
+      setHabits(dbData.habits);
+      setCompletions(dbData.completions);
+
+      setHasOnboarded(onboarded || dbData.habits.length > 0);
       setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
       setLoading(false);
-    });
+    })();
   }, []);
 
   async function deleteHabit(habit: Habit) {

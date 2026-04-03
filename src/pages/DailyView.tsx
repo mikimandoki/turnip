@@ -116,7 +116,7 @@ export default function DailyView() {
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
-                onLog={delta => updateCompletion(habit.id, delta)}
+                onLog={delta => void updateCompletion(habit.id, delta)}
               />
             ))}
           </div>
