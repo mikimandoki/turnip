@@ -1,10 +1,9 @@
 import type { Frequency, Habit } from '../types';
 
-export const isCapacitorNative = !!(
+export const isNative = !!(
   window as unknown as { Capacitor?: { isNativePlatform: () => boolean } }
 ).Capacitor?.isNativePlatform();
 
-export const isNative = import.meta.env.MODE === 'development' || isCapacitorNative;
 
 import { parseHabitEmoji } from './habits';
 

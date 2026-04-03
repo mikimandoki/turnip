@@ -106,6 +106,7 @@ export default function AddHabitPage() {
           <div className='form-row'>
             <input
               type='text'
+              name='habit-name'
               placeholder={placeholder}
               value={name}
               aria-label='Habit name'
@@ -124,6 +125,7 @@ export default function AddHabitPage() {
             </button>
             <input
               type='text'
+              name='times'
               inputMode='numeric'
               pattern='[0-9]*'
               className='input-stepper'
@@ -153,6 +155,7 @@ export default function AddHabitPage() {
                 </button>
                 <input
                   type='text'
+                  name='period-length'
                   inputMode='numeric'
                   pattern='[0-9]*'
                   className='input-stepper'
@@ -171,6 +174,8 @@ export default function AddHabitPage() {
                 </button>
                 <select
                   value={periodUnit}
+                  name='frequency-unit'
+                  aria-label='Frequency unit'
                   onChange={e => {
                     if (e.target.value === 'simple') {
                       setIsCustom(false);
@@ -192,6 +197,8 @@ export default function AddHabitPage() {
             ) : (
               <select
                 value={periodUnit}
+                name='frequency-unit'
+                aria-label='Frequency unit'
                 onChange={e => {
                   if (e.target.value === 'custom') {
                     setIsCustom(true);
