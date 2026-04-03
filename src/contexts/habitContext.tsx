@@ -24,7 +24,7 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
-import { getDB } from '../utils/sqlite';
+import { getDB, syncDB } from '../utils/sqlite';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
 
@@ -145,6 +145,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               'Failed to insert habit into SQLite: ' + (e instanceof Error ? e.message : String(e)),
           });
         });
+      await syncDB();
     });
 
     // Update React state
