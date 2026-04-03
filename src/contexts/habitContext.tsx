@@ -263,6 +263,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }));
 
       // 3. Fetch Completions
+      // TODO: filter by date range (e.g. last 90 days) once completion history grows large
       const compResult = await db.query(`SELECT * FROM completions`);
       const completions = compResult.values || [];
 
@@ -404,6 +405,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Perform updates in a single loop
       // Note: We use a loop here because we're usually reordering < 20 items.
+      // TODO: replace with executeSet for atomicity
       for (let i = 0; i < newOrderedHabits.length; i++) {
         await db.run(`UPDATE habits SET sortOrder = ? WHERE id = ?;`, [i, newOrderedHabits[i].id]);
       }

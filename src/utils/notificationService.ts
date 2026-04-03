@@ -110,13 +110,23 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
   const db = await getDB();
   const now = new Date();
   const warningThreshold = addDays(now, 7);
-  const until = addDays(now, 30);
+
+  // Prune fired entries so the queue doesn't grow indefinitely
+  await db.run(`DELETE FROM notification_queue WHERE scheduledAt < ?`, [now.toISOString()]);
 
   console.log('[maintenance] Checking notification horizons...');
 
   for (const habit of habits) {
     const { notification } = habit;
     if (!notification?.enabled || !isWindowedMode(notification)) continue;
+
+    const stepDays =
+      notification.mode === 'interval'
+        ? (notification.intervalN ?? 1) * (notification.intervalUnit === 'weeks' ? 7 : 1)
+        : 1;
+
+    // Ensure `until` is always far enough to fit at least one more occurrence beyond the horizon
+    const until = addDays(now, Math.max(30, stepDays + 7));
 
     const result = await db.query(
       `SELECT MAX(scheduledAt) as maxDate FROM notification_queue WHERE habitId = ?`,
@@ -131,10 +141,6 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
       console.log(`[maintenance] Top-up needed for: ${habit.name}`);
       // For interval mode the next occurrence is exactly horizon + intervalDays.
       // For unsafe DOM mode +1 is correct — the builder scans month-by-month from there.
-      const stepDays =
-        notification.mode === 'interval'
-          ? (notification.intervalN ?? 1) * (notification.intervalUnit === 'weeks' ? 7 : 1)
-          : 1;
       const from = horizon ? addDays(horizon, stepDays) : now;
 
       try {
@@ -147,7 +153,7 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
         );
         for (const entry of scheduled.filter(s => s.scheduledAt !== null)) {
           await db.run(
-            `INSERT INTO notification_queue (habitId, scheduledAt, osNotificationId) VALUES (?, ?, ?)`,
+            `INSERT OR IGNORE INTO notification_queue (habitId, scheduledAt, osNotificationId) VALUES (?, ?, ?)`,
             [habit.id, entry.scheduledAt!.toISOString(), entry.id]
           );
         }
