@@ -165,8 +165,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       } else {
         await syncDB();
       }
-
-      void Toast.show({ text: 'Habit added successfully ✅' });
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       console.error('❌ Add Habit Failed:', errorMsg);
@@ -213,7 +211,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       setHabits(updatedData.habits);
 
       void hapticsMedium();
-      void Toast.show({ text: 'Habit updated' });
     } catch (e) {
       console.error('❌ Could not edit habit:', e);
       void Toast.show({
