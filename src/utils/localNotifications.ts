@@ -143,8 +143,10 @@ function buildIntervalNotifications(
 ): LocalNotificationSchema[] {
   const anchor = new Date(from);
   anchor.setHours(hour, minute, 0, 0);
-  // If anchor is in the past relative to `from`, step forward to the first future occurrence
-  if (anchor <= from) anchor.setDate(anchor.getDate() + intervalDays);
+  // Advance one day at a time until anchor is strictly after `from`.
+  // Using < (not <=) so that when maintenance passes horizon+intervalDays as `from`,
+  // anchor landing exactly on that timestamp is used directly, not skipped.
+  while (anchor < from) anchor.setDate(anchor.getDate() + 1);
 
   const notifications: LocalNotificationSchema[] = [];
   let current = new Date(anchor);

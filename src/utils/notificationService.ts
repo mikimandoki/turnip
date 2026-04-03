@@ -129,8 +129,13 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
 
     if (!horizon || isBefore(horizon, warningThreshold)) {
       console.log(`[maintenance] Top-up needed for: ${habit.name}`);
-      // Start from the day after the current horizon (or now if queue is empty)
-      const from = horizon ? addDays(horizon, 1) : now;
+      // For interval mode the next occurrence is exactly horizon + intervalDays.
+      // For unsafe DOM mode +1 is correct — the builder scans month-by-month from there.
+      const stepDays =
+        notification.mode === 'interval'
+          ? (notification.intervalN ?? 1) * (notification.intervalUnit === 'weeks' ? 7 : 1)
+          : 1;
+      const from = horizon ? addDays(horizon, stepDays) : now;
 
       try {
         const scheduled = await scheduleHabitNotifications(

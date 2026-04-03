@@ -161,7 +161,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Notifications: schedule OS reminders + persist settings + fill queue
       if (newHabit.notification?.enabled) {
-        await syncHabitNotification(newHabit, newHabit.notification, displayDate);
+        await syncHabitNotification(newHabit, newHabit.notification, new Date());
       } else {
         await syncDB();
       }
@@ -368,7 +368,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         { statement: `DELETE FROM habits`, values: [] },
         ...demoHabits.map((h, i) => ({
           statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          values: [h.id, h.name, h.createdAt, h.frequency.times, h.frequency.periodLength, h.frequency.periodUnit, i],
+          values: [
+            h.id,
+            h.name,
+            h.createdAt,
+            h.frequency.times,
+            h.frequency.periodLength,
+            h.frequency.periodUnit,
+            i,
+          ],
         })),
         ...demoCompletions.map(c => ({
           statement: `INSERT INTO completions (habitId, date, count) VALUES (?, ?, ?)`,
@@ -433,7 +441,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           { statement: `DELETE FROM habits`, values: [] },
           ...parsed.habits.map((h, i) => ({
             statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            values: [h.id, h.name, h.createdAt, h.frequency.times, h.frequency.periodLength, h.frequency.periodUnit, i],
+            values: [
+              h.id,
+              h.name,
+              h.createdAt,
+              h.frequency.times,
+              h.frequency.periodLength,
+              h.frequency.periodUnit,
+              i,
+            ],
           })),
           ...parsed.completions.map(c => ({
             statement: `INSERT INTO completions (habitId, date, count) VALUES (?, ?, ?)`,
@@ -454,7 +470,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         } else {
           for (const h of notifHabits) {
             try {
-              await syncHabitNotification(h, h.notification!, displayDate);
+              await syncHabitNotification(h, h.notification!, new Date());
             } catch (e) {
               console.warn(`[import] Failed to schedule notifications for ${h.name}`, e);
             }
