@@ -98,7 +98,7 @@ export default function AddHabitPage() {
             pointerEvents: 'none',
           }}
         >
-          New habit
+          <h1>New habit</h1>
         </div>
       </div>
       <div className='card'>
