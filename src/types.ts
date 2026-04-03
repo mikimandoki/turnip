@@ -40,6 +40,15 @@ export const HabitSchema = z.object({
 // A habit the user wants to track
 export type Habit = z.infer<typeof HabitSchema>;
 
+export type HabitRowFromDB = {
+  id: string;
+  name: string;
+  createdAt: string;
+  times: number;
+  periodLength: number;
+  periodUnit: Frequency['periodUnit'];
+};
+
 export const CompletionSchema = z.object({
   habitId: z.string(),
   date: z.string(),

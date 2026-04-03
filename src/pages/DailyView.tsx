@@ -10,7 +10,7 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { getPendingNotifications } from '../utils/localNotifications';
-import { initDB } from '../utils/sqlite';
+import { getDB } from '../utils/sqlite';
 
 async function debugNotifs() {
   const { notifications } = await getPendingNotifications();
@@ -19,7 +19,7 @@ async function debugNotifs() {
       ? 'No pending notifications'
       : notifications.map(n => `[${n.id}] "${n.title}" — ${JSON.stringify(n.schedule)}`).join('\n')
   );
-}; 
+}
 
 export default function DailyView() {
   const navigate = useNavigate();
@@ -41,10 +41,7 @@ export default function DailyView() {
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function setup() {
-      await initDB();
-    }
-    void setup();
+    void getDB();
   }, []);
 
   return (

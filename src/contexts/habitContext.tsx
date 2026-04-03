@@ -1,10 +1,10 @@
 import { SystemBars, SystemBarsStyle } from '@capacitor/core';
+import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
-import type { Completion, Habit } from '../types';
-
+import { type Completion, type Habit, type HabitRowFromDB, HabitSchema } from '../types';
 import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
 import { hapticsLight, hapticsMedium } from '../utils/haptics';
@@ -24,6 +24,7 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
+import { getDB } from '../utils/sqlite';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
 
@@ -120,14 +121,82 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         notification: { ...newHabit.notification, notificationIds: ids },
       };
     }
-
+    const previous = [...habits];
     const updated = [...habits, habitToSave];
-    setHabits(updated);
-    void saveToStorage('habits', updated);
-    void saveToStorage('hasOnboarded', true);
+    setHabits(updated); // optimistic
+    // save to DB in the background
+    void getDB().then(async db => {
+      await db
+        .run(
+          `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            newHabit.id,
+            newHabit.name,
+            newHabit.createdAt,
+            newHabit.frequency.times,
+            newHabit.frequency.periodLength,
+            newHabit.frequency.periodUnit,
+          ]
+        )
+        .catch(async e => {
+          setHabits(previous); // rollback
+          await Toast.show({
+            text:
+              'Failed to insert habit into SQLite: ' + (e instanceof Error ? e.message : String(e)),
+          });
+        });
+    });
+
+    // Update React state
     setHasOnboarded(true);
+    void Toast.show({
+      text: 'Habit added successfully ✅',
+    });
+
+    // Haptics feedback
     void hapticsMedium();
   }
+
+  async function loadHabitsFromDB(): Promise<Habit[]> {
+    try {
+      const db = await getDB();
+      const result = await db.query(`SELECT * FROM habits ORDER BY createdAt ASC`);
+
+      if (!result.values) return [];
+
+      void Toast.show({
+        text: `Loaded ${result.values.length} habit(s) from SQLite`,
+      });
+
+      const habits: Habit[] = (result.values as HabitRowFromDB[]).map(row => ({
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+        frequency: {
+          times: row.times,
+          periodLength: row.periodLength,
+          periodUnit: row.periodUnit,
+        },
+      }));
+
+      // Validate with Zod
+      return z.array(HabitSchema).parse(habits);
+    } catch (e) {
+      await Toast.show({
+        text: 'Failed to load habits from SQLite: ' + (e instanceof Error ? e.message : String(e)),
+      });
+      return [];
+    }
+  }
+
+  useEffect(() => {
+    void loadHabitsFromDB().then(dbHabits => {
+      if (dbHabits.length > 0) {
+        setHabits(dbHabits);
+        setHasOnboarded(true);
+      }
+    });
+  }, []);
 
   function deleteHabit(habit: Habit) {
     const updatedHabits = habits.filter(h => h.id !== habit.id);
