@@ -18,7 +18,7 @@ export interface HabitContextType {
   clearAll: () => void;
   loadDemoData: () => void;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string; warning?: string }>;
-  reorderHabits: (habits: Habit[]) => void;
+  reorderHabits: (habits: Habit[]) => Promise<void>;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;

@@ -98,14 +98,30 @@ export default function DailyView() {
             if (event.canceled) return;
             const { source } = event.operation;
             if (!isSortable(source)) return;
+
             const from = source.initialIndex;
             const to = source.index;
             if (from === to) return;
-            const reordered = [...visibleHabits];
-            reordered.splice(to, 0, reordered.splice(from, 1)[0]);
+
+            // 1. Calculate the new order for ONLY the visible items
+            const reorderedVisible = [...visibleHabits];
+            const [movedItem] = reorderedVisible.splice(from, 1);
+            reorderedVisible.splice(to, 0, movedItem);
+
+            // 2. Map those changes back into the MASTER list
+            // We keep non-visible habits where they are, and update the visible ones in place
             const visibleIds = new Set(visibleHabits.map(h => h.id));
-            let i = 0;
-            reorderHabits(habits.map(h => (visibleIds.has(h.id) ? reordered[i++] : h)));
+            let visibleIdx = 0;
+
+            const finalMasterList = habits.map(h => {
+              if (visibleIds.has(h.id)) {
+                return reorderedVisible[visibleIdx++];
+              }
+              return h;
+            });
+
+            // 3. Send the master list to the DB handler
+            void reorderHabits(finalMasterList);
           }}
         >
           <div className='habit-list'>

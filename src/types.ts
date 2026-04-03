@@ -47,6 +47,18 @@ export type HabitRowFromDB = {
   times: number;
   periodLength: number;
   periodUnit: Frequency['periodUnit'];
+  sortOrder: number;
+  // Joined Notification Columns (Nullable due to LEFT JOIN)
+  notifEnabled: number | null; // SQLite stores booleans as 0/1
+  mode: 'daily' | 'days-of-month' | 'days-of-week' | 'interval' | null;
+  time: string | null;
+  days: string | null; // JSON string
+  monthDays: string | null; // JSON string
+  customMessage: string | null;
+  notificationIds: string | null; // JSON string
+  lastScheduledAt: string | null;
+  intervalN: number | null;
+  intervalUnit: 'days' | 'weeks' | null;
 };
 
 export const CompletionSchema = z.object({

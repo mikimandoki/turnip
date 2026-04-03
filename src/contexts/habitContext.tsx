@@ -28,6 +28,7 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
+import { syncHabitNotification } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
@@ -119,47 +120,51 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function addHabit(newHabit: Habit) {
-    let habitToSave = newHabit;
-
-    if (newHabit.notification?.enabled && isNative) {
-      const ids = await scheduleHabitNotifications(
-        newHabit.id,
-        newHabit.name,
-        newHabit.notification
-      );
-      habitToSave = {
-        ...newHabit,
-        notification: { ...newHabit.notification, notificationIds: ids },
-      };
-    }
-
-    // 1. Optimistic UI Update
-    setHabits(prev => [...prev, habitToSave]);
+    // 1. Optimistic UI Update (Keep the user moving)
+    setHabits(prev => [...prev, newHabit]);
     setHasOnboarded(true);
+    void hapticsMedium();
 
-    // 2. Database Write
     try {
       const db = await getDB();
+
+      // 2. Database Write: Core Habit
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit) VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          habitToSave.id,
-          habitToSave.name,
-          habitToSave.createdAt,
-          habitToSave.frequency.times,
-          habitToSave.frequency.periodLength,
-          habitToSave.frequency.periodUnit,
+          newHabit.id,
+          newHabit.name,
+          newHabit.createdAt,
+          newHabit.frequency.times,
+          newHabit.frequency.periodLength,
+          newHabit.frequency.periodUnit,
+          habits.length,
         ]
       );
-      await syncDB(); // Crucial for persistence on refresh
+
+      // 3. Database Write: Notifications (The Service Layer)
+      // This handles the Capacitor scheduling AND the second table insert
+      if (newHabit.notification) {
+        await syncHabitNotification(newHabit, newHabit.notification);
+      } else {
+        // Even if no notification is provided, we sync the core DB change
+        await syncDB();
+      }
+
       void Toast.show({ text: 'Habit added successfully ✅' });
     } catch (e) {
-      console.error('DB Insert Failed', e);
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error';
+      console.error('❌ Add Habit Failed:', errorMsg);
+
+      void Toast.show({
+        text: `Failed to save: ${errorMsg}`,
+        duration: 'long',
+      });
+
       // Rollback UI if DB fails
       setHabits(prev => prev.filter(h => h.id !== newHabit.id));
     }
-
-    void hapticsMedium();
   }
 
   async function editHabit(habit: Habit, updates: Partial<Habit>) {
@@ -172,54 +177,101 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await db.run(`UPDATE habits SET name = ? WHERE id = ?;`, [merged.name.trim(), habit.id]);
       await syncDB();
 
-      // 2. Handle Notifications
-      void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
-      let notif = merged.notification;
-      if (notif?.enabled && isNative) {
-        const ids = await scheduleHabitNotifications(merged.id, merged.name, notif);
-        notif = { ...notif, notificationIds: ids };
+      // 2. Sync Notification Table & OS Reminders
+      // If the habit has notification settings, the service handles:
+      // - Cancelling old OS IDs
+      // - Scheduling new ones
+      // - Upserting the 'habit_notifications' table
+      if (merged.notification) {
+        await syncHabitNotification(merged, merged.notification);
+      } else {
+        // If no notifications, just ensure the file is synced
+        await syncDB();
       }
 
-      // 3. Update State (Stop using saveToStorage for habits!)
-      const final = { ...merged, notification: notif };
-      setHabits(prev => prev.map(h => (h.id === habit.id ? final : h)));
+      // 3. Update React State
+      // We fetch fresh from DB to ensure 'notificationIds' from the service are captured
+      const updatedData = await loadDataFromDB();
+      setHabits(updatedData.habits);
+
+      void hapticsMedium();
+      void Toast.show({ text: 'Habit updated' });
     } catch (e) {
-      console.error('Could not edit habit in SQLite:', e);
+      console.error('❌ Could not edit habit:', e);
+      void Toast.show({
+        text: `Update failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        duration: 'long',
+      });
     }
   }
 
   async function loadDataFromDB() {
+    const db = await getDB();
+
     try {
-      const db = await getDB();
+      // 1. Fetch Habits + Notifications in one pass
+      const habitResult = await db.query(
+      `SELECT 
+        h.id, h.name, h.createdAt, h.times, h.periodLength, h.periodUnit, h.sortOrder,
+        n.enabled as notifEnabled, n.mode, n.time, n.days, 
+        n.monthDays, n.customMessage, n.notificationIds, 
+        n.lastScheduledAt, n.intervalN, n.intervalUnit
+      FROM habits h
+      LEFT JOIN habit_notifications n ON h.id = n.habitId
+      ORDER BY h.sortOrder ASC;
+    `);
 
-      // 1. Run queries in parallel for speed
-      const [habitsResult, completionsResult] = await Promise.all([
-        db.query(`SELECT * FROM habits ORDER BY createdAt ASC`),
-        db.query(`SELECT * FROM completions`),
-      ]);
+      // 2. Map Rows to TypeScript Objects
+      const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => {
+        const hasNotification = row.mode !== null;
 
-      // 2. Map Habits (using your existing row-to-object logic)
-      const habits: Habit[] = ((habitsResult.values as HabitRowFromDB[]) || []).map(row => ({
-        id: row.id,
-        name: row.name,
-        createdAt: row.createdAt,
-        frequency: {
-          times: row.times,
-          periodLength: row.periodLength,
-          periodUnit: row.periodUnit,
-        },
-      }));
+        return {
+          id: row.id,
+          name: row.name,
+          createdAt: row.createdAt,
+          sortOrder: row.sortOrder,
+          frequency: {
+            times: row.times,
+            periodLength: row.periodLength,
+            periodUnit: row.periodUnit,
+          },
+          // Reconstruct notification object if joined data exists
+          notification: hasNotification
+            ? {
+                enabled: Boolean(row.notifEnabled),
+                mode: row.mode!,
+                time: row.time!,
+                days: JSON.parse(row.days || '[]') as number[],
+                monthDays: JSON.parse(row.monthDays || '[]') as number[],
+                customMessage: row.customMessage || '',
+                notificationIds: JSON.parse(row.notificationIds || '[]') as number[],
+                // Fallback to 1 and 'days' if they are missing in the DB to satisfy required types
+                intervalN: row.intervalN ?? 1,
+                intervalUnit: row.intervalUnit ?? 'days',
+              }
+            : undefined,
+        };
+      });
 
-      // 3. Map Completions
-      const completions: Completion[] = (completionsResult.values as Completion[]) || [];
+      // 3. Fetch Completions
+      const compResult = await db.query(`SELECT * FROM completions`);
+      const completions = compResult.values || [];
 
-      // 4. Validate and Return
+      // 4. Final Zod Validation
       return {
         habits: z.array(HabitSchema).parse(habits),
-        completions: z.array(CompletionSchema).parse(completions), // Assuming you have a CompletionSchema
+        completions: z.array(CompletionSchema).parse(completions),
       };
     } catch (e) {
-      console.error('Database hydration failed:', e);
+      // Shout if anything goes wrong
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      console.error('❌ Database Hydration Failed:', errorMsg);
+
+      void Toast.show({
+        text: 'DB Error: ' + errorMsg,
+        duration: 'long',
+      });
+
       return { habits: [], completions: [] };
     }
   }
@@ -246,27 +298,33 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const db = await getDB();
 
     try {
-      // 1. Database Delete
+      // 1. OS Cleanup First
+      // We use the IDs currently in the habit object to clear the system tray
+      if (habit.notification?.notificationIds) {
+        await cancelHabitNotifications(habit.notification.notificationIds);
+      }
+
+      // 2. Database Delete
+      // This triggers the CASCADE to habit_notifications and completions automatically
       await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
-      // 2. Web Persistence Sync
+
+      // 3. Sync the SQLite file to IndexedDB (Web layer)
       await syncDB();
 
-      // 3. Keep existing memory/UI logic for now
+      // 4. Update React State
+      // We filter both habits and completions out of memory
       const updatedHabits = habits.filter(h => h.id !== habit.id);
       const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
 
       setHabits(updatedHabits);
       setCompletions(updatedCompletions);
 
-      // Still saving completions to the old storage until that table is ready
-      void saveToStorage('completions', updatedCompletions);
-
-      // 4. System Feedback
+      // 5. Feedback
       void hapticsMedium();
-      void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
+      void Toast.show({ text: 'Habit deleted' });
     } catch (e) {
-      console.error('Could not delete habit from SQLite:', e);
-      // Optional: Show a toast to the user if the DB fails
+      console.error('❌ Could not delete habit:', e);
+      void Toast.show({ text: 'Delete failed', duration: 'short' });
     }
   }
 
@@ -295,9 +353,28 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setHasOnboarded(true);
   }
 
-  function reorderHabits(newOrder: Habit[]) {
-    setHabits(newOrder);
-    void saveToStorage('habits', newOrder);
+  async function reorderHabits(newOrderedHabits: Habit[]) {
+    // 1. Optimistic State Update
+    setHabits(newOrderedHabits);
+
+    try {
+      const db = await getDB();
+
+      // 2. Perform updates in a single loop
+      // Note: We use a loop here because we're usually reordering < 20 items.
+      for (let i = 0; i < newOrderedHabits.length; i++) {
+        await db.run(`UPDATE habits SET sortOrder = ? WHERE id = ?;`, [i, newOrderedHabits[i].id]);
+      }
+
+      // 3. Persist to IndexedDB (Web only)
+      await syncDB();
+      void hapticsLight();
+    } catch (e) {
+      console.error('Failed to sync reorder to DB:', e);
+      // Optional: Re-fetch from DB to reset UI on failure
+      const fresh = await loadDataFromDB();
+      setHabits(fresh.habits);
+    }
   }
 
   function toggleDarkMode() {

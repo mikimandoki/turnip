@@ -52,25 +52,44 @@ export async function getDB(): Promise<SQLiteDBConnection> {
 
       await db.open();
 
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS habits (
+      await db.execute(
+        `CREATE TABLE IF NOT EXISTS habits (
           id TEXT PRIMARY KEY NOT NULL,
           name TEXT NOT NULL,
           createdAt TEXT NOT NULL,
           times INTEGER NOT NULL DEFAULT 1,
           periodLength INTEGER NOT NULL DEFAULT 1,
-          periodUnit TEXT NOT NULL DEFAULT 'day'
+          periodUnit TEXT NOT NULL DEFAULT 'day',
+          sortOrder INTEGER NOT NULL DEFAULT 0
         );
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS completions (
+      `
+      );
+      await db.execute(
+        `CREATE TABLE IF NOT EXISTS completions (
           habitId TEXT NOT NULL,
           date TEXT NOT NULL,
           count INTEGER NOT NULL DEFAULT 1,
           PRIMARY KEY (habitId, date),
           FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
         );
-      `);
+      `
+      );
+      await db.execute(
+        `CREATE TABLE IF NOT EXISTS habit_notifications (
+          habitId TEXT PRIMARY KEY NOT NULL,
+          enabled INTEGER DEFAULT 1,
+          mode TEXT NOT NULL,                -- 'daily', 'days-of-week', 'days-of-month', 'interval'
+          time TEXT NOT NULL,                -- 'HH:mm'
+          days TEXT,                         -- JSON string of number[] (days of week)
+          monthDays TEXT,                    -- JSON string of number[] (days of month)
+          customMessage TEXT,
+          notificationIds TEXT,              -- JSON string of number[] (OS IDs)
+          lastScheduledAt TEXT,              -- ISO string of the furthest scheduled date
+          intervalN INTEGER,                 -- For 'interval' mode
+          intervalUnit TEXT,                 -- 'days' or 'weeks'
+          FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
+        );`
+      );
       return db;
     })();
   }
