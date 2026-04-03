@@ -44,13 +44,13 @@ export async function getDB(): Promise<SQLiteDBConnection> {
       let db: SQLiteDBConnection;
       try {
         db = await sqlite.createConnection('turnip', false, 'no-encryption', 1, false);
-      } catch (e) {
-        // If connection exists, retrieve it
+      } catch {
+        // Connection already exists — retrieve it
         db = await sqlite.retrieveConnection('turnip', false);
-        console.log(e);
       }
 
       await db.open();
+      await db.execute(`PRAGMA foreign_keys = ON;`);
 
       await db.execute(
         `CREATE TABLE IF NOT EXISTS habits (
@@ -60,7 +60,15 @@ export async function getDB(): Promise<SQLiteDBConnection> {
           times INTEGER NOT NULL DEFAULT 1,
           periodLength INTEGER NOT NULL DEFAULT 1,
           periodUnit TEXT NOT NULL DEFAULT 'day',
-          sortOrder INTEGER NOT NULL DEFAULT 0
+          sortOrder INTEGER NOT NULL DEFAULT 0,
+          notif_enabled INTEGER DEFAULT 0,
+          notif_mode TEXT,
+          notif_time TEXT,
+          notif_days TEXT,
+          notif_monthDays TEXT,
+          notif_customMessage TEXT,
+          notif_intervalN INTEGER,
+          notif_intervalUnit TEXT
         );
       `
       );
@@ -74,24 +82,22 @@ export async function getDB(): Promise<SQLiteDBConnection> {
         );
       `
       );
+      // One row per future occurrence — only used for windowed modes (interval, dom days 29–31).
+      // Perpetual modes (daily, dow, dom days 1–28) use OS repeating notifications and need no queue.
       await db.execute(
-        `CREATE TABLE IF NOT EXISTS habit_notifications (
-          habitId TEXT PRIMARY KEY NOT NULL,
-          enabled INTEGER DEFAULT 1,
-          mode TEXT NOT NULL,                -- 'daily', 'days-of-week', 'days-of-month', 'interval'
-          time TEXT NOT NULL,                -- 'HH:mm'
-          days TEXT,                         -- JSON string of number[] (days of week)
-          monthDays TEXT,                    -- JSON string of number[] (days of month)
-          customMessage TEXT,
-          notificationIds TEXT,              -- JSON string of number[] (OS IDs)
-          lastScheduledAt TEXT,              -- ISO string of the furthest scheduled date
-          intervalN INTEGER,                 -- For 'interval' mode
-          intervalUnit TEXT,                 -- 'days' or 'weeks'
+        `CREATE TABLE IF NOT EXISTS notification_queue (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          habitId TEXT NOT NULL,
+          scheduledAt TEXT NOT NULL,
+          osNotificationId INTEGER NOT NULL,
           FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
         );`
       );
       return db;
-    })();
+    })().catch((e: unknown) => {
+      dbPromise = null;
+      throw e;
+    });
   }
 
   return dbPromise;

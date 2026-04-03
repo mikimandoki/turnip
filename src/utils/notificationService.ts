@@ -1,116 +1,153 @@
 import { addDays, isBefore } from 'date-fns';
-import { z } from 'zod';
 
 import type { Habit } from '../types';
 import type { NotificationValue } from './notifications';
 
-import { toDateString } from './date';
 import { cancelHabitNotifications, scheduleHabitNotifications } from './localNotifications';
+import { habitNotificationId } from './notifications';
 import { getDB, syncDB } from './sqlite';
 
-const NotificationIdsSchema = z.array(z.number());
-
-interface PendingNotificationResult {
-  notificationIds: string | null;
-}
-
-export async function syncHabitNotification(habit: Habit, settings: NotificationValue, startDate: Date) {
+/**
+ * Returns all OS notification IDs that could possibly be registered for a habit.
+ * Used for cancellation before rescheduling — covers both perpetual and windowed IDs.
+ *
+ * Perpetual IDs are deterministic (base, base+day 1–28).
+ * Windowed IDs are read from the queue.
+ */
+async function getAllNotificationIdsForHabit(habitId: string): Promise<number[]> {
   const db = await getDB();
+  const base = habitNotificationId(habitId);
 
-  // 1. Fetch old IDs with a typed result
+  // Perpetual range: daily (base), dow (base+1..+7), safe dom (base+1..+28)
+  const perpetualIds: number[] = [base];
+  for (let i = 1; i <= 28; i++) perpetualIds.push(base + i);
+
+  // Windowed: whatever is currently in the queue
   const result = await db.query(
-    `SELECT notificationIds FROM habit_notifications WHERE habitId = ?`,
-    [habit.id]
+    `SELECT osNotificationId FROM notification_queue WHERE habitId = ?`,
+    [habitId]
+  );
+  const queueIds = (result.values ?? []).map(
+    (r: { osNotificationId: number }) => r.osNotificationId
   );
 
-  // Cast the values to our specific interface to kill the 'any'
-  const rows = (result.values || []) as PendingNotificationResult[];
-  const firstRow = rows[0];
+  return [...perpetualIds, ...queueIds];
+}
 
-  if (firstRow?.notificationIds) {
-    try {
-      const parsed = JSON.parse(firstRow.notificationIds) as PendingNotificationResult;
-      // Zod validates the structure and provides the correct type (number[])
-      const oldIds = NotificationIdsSchema.parse(parsed);
+/**
+ * Cancels all OS notifications for a habit (perpetual + queued) without touching the DB.
+ * Use before deleting a habit.
+ */
+export async function cancelNotificationsForHabit(habitId: string): Promise<void> {
+  const ids = await getAllNotificationIdsForHabit(habitId);
+  await cancelHabitNotifications(ids);
+}
 
-      if (oldIds.length > 0) {
-        await cancelHabitNotifications(oldIds);
-      }
-    } catch (e) {
-      // If parsing or validation fails, we log it but don't crash
-      console.warn(`[notifications] Failed to parse old IDs for habit ${habit.id}`, e);
-    }
+/**
+ * Cancels all existing OS notifications for a habit, clears the queue,
+ * schedules fresh notifications, and persists settings to the habit row.
+ */
+export async function syncHabitNotification(
+  habit: Habit,
+  settings: NotificationValue,
+  from: Date
+): Promise<void> {
+  const db = await getDB();
+
+  // 1. Cancel all existing OS notifications for this habit
+  const oldIds = await getAllNotificationIdsForHabit(habit.id);
+  await cancelHabitNotifications(oldIds);
+
+  // 2. Clear the queue
+  await db.run(`DELETE FROM notification_queue WHERE habitId = ?`, [habit.id]);
+
+  // 3. Schedule fresh notifications
+  const until = addDays(from, 30);
+  const scheduled = await scheduleHabitNotifications(habit.id, habit.name, settings, from, until);
+
+  // 4. Insert windowed entries into queue
+  const windowed = scheduled.filter(s => s.scheduledAt !== null);
+  for (const entry of windowed) {
+    await db.run(
+      `INSERT INTO notification_queue (habitId, scheduledAt, osNotificationId) VALUES (?, ?, ?)`,
+      [habit.id, entry.scheduledAt!.toISOString(), entry.id]
+    );
   }
 
-  // 2. Schedule new ones using your "Beast" logic
-  const newIds = await scheduleHabitNotifications(habit.id, habit.name, settings, startDate);
-
-  // Find the max date scheduled to update 'lastScheduledAt'
-  // (You might need to adjust your schedule function to return this,
-  // or just estimate it as +30 days for now)
-  // TODO I need more clarity on this. Is this the horizon date or the "I scheduled this last at" date
-  const lastDate = toDateString(addDays(startDate, 30));
-
-  // 3. Upsert to SQLite
+  // 5. Persist notification settings onto the habit row
   await db.run(
-    `INSERT INTO habit_notifications (
-      habitId, enabled, mode, time, days, monthDays, 
-      customMessage, notificationIds, lastScheduledAt, intervalN, intervalUnit
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(habitId) DO UPDATE SET
-      enabled=excluded.enabled, mode=excluded.mode, time=excluded.time,
-      days=excluded.days, monthDays=excluded.monthDays,
-      customMessage=excluded.customMessage, notificationIds=excluded.notificationIds,
-      lastScheduledAt=excluded.lastScheduledAt, 
-      intervalN=excluded.intervalN, intervalUnit=excluded.intervalUnit;
-  `,
+    `UPDATE habits SET
+      notif_enabled = ?, notif_mode = ?, notif_time = ?, notif_days = ?,
+      notif_monthDays = ?, notif_customMessage = ?, notif_intervalN = ?, notif_intervalUnit = ?
+    WHERE id = ?`,
     [
-      habit.id,
       settings.enabled ? 1 : 0,
       settings.mode,
       settings.time,
       JSON.stringify(settings.days),
       JSON.stringify(settings.monthDays),
       settings.customMessage,
-      JSON.stringify(newIds),
-      lastDate,
       settings.intervalN,
       settings.intervalUnit,
+      habit.id,
     ]
   );
 
   await syncDB();
 }
 
+function isWindowedMode(notification: NotificationValue): boolean {
+  if (notification.mode === 'interval') return true;
+  if (notification.mode === 'days-of-month') return notification.monthDays.some(d => d > 28);
+  return false;
+}
+
 /**
- * Scans all habits and "tops up" notifications if they are 
- * within 7 days of running out.
+ * Tops up windowed notification queues for any habit whose runway is within 7 days.
+ * Perpetual modes (daily, dow, safe dom) never need maintenance.
  */
-export async function performNotificationMaintenance(habits: Habit[]) {
+export async function performNotificationMaintenance(habits: Habit[]): Promise<void> {
+  const db = await getDB();
   const now = new Date();
-  const warningThreshold = addDays(now, 7); // We want at least a week of runway
+  const warningThreshold = addDays(now, 7);
+  const until = addDays(now, 30);
 
   console.log('[maintenance] Checking notification horizons...');
 
   for (const habit of habits) {
     const { notification } = habit;
+    if (!notification?.enabled || !isWindowedMode(notification)) continue;
 
-    // Skip if notifications are disabled or have no horizon yet
-    if (!notification?.enabled || !notification.lastScheduledAt) continue;
+    const result = await db.query(
+      `SELECT MAX(scheduledAt) as maxDate FROM notification_queue WHERE habitId = ?`,
+      [habit.id]
+    );
+    const maxDate: string | null =
+      (result.values?.[0] as { maxDate: string | null } | undefined)?.maxDate ?? null;
 
-    const horizon = new Date(notification.lastScheduledAt);
+    const horizon = maxDate ? new Date(maxDate) : null;
 
-    // If the horizon (the last scheduled ping) is before our 7-day threshold...
-    if (isBefore(horizon, warningThreshold)) {
-      console.log(`[maintenance] 🚨 Top-up needed for: ${habit.name}`);
-
-      // The new start date is the day AFTER the current horizon
-      const nextBatchStart = addDays(horizon, 1);
+    if (!horizon || isBefore(horizon, warningThreshold)) {
+      console.log(`[maintenance] Top-up needed for: ${habit.name}`);
+      // Start from the day after the current horizon (or now if queue is empty)
+      const from = horizon ? addDays(horizon, 1) : now;
 
       try {
-        // This will schedule the next 30 and update the 'lastScheduledAt' in SQLite
-        await syncHabitNotification(habit, notification, nextBatchStart);
-        console.log(`[maintenance] ✅ Success: ${habit.name} topped up.`);
+        const scheduled = await scheduleHabitNotifications(
+          habit.id,
+          habit.name,
+          notification,
+          from,
+          until
+        );
+        for (const entry of scheduled.filter(s => s.scheduledAt !== null)) {
+          await db.run(
+            `INSERT INTO notification_queue (habitId, scheduledAt, osNotificationId) VALUES (?, ?, ?)`,
+            [habit.id, entry.scheduledAt!.toISOString(), entry.id]
+          );
+        }
+        await syncDB();
+        console.log(`[maintenance] ✅ Topped up: ${habit.name}`);
       } catch (error) {
         console.error(`[maintenance] ❌ Failed to top up ${habit.name}:`, error);
       }

@@ -15,8 +15,8 @@ export interface HabitContextType {
   editHabit: (habit: Habit, updates: Partial<Habit>) => Promise<void>;
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
-  clearAll: () => void;
-  loadDemoData: () => void;
+  clearAll: () => Promise<void>;
+  loadDemoData: () => Promise<void>;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string; warning?: string }>;
   reorderHabits: (habits: Habit[]) => Promise<void>;
   toggleDarkMode: () => void;

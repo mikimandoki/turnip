@@ -11,24 +11,26 @@ import {
   type HabitRowFromDB,
   HabitSchema,
 } from '../types';
+import { importData } from '../utils/dataTransfer';
 import { toDateString } from '../utils/date';
 import { generateDemoData } from '../utils/demoData';
 import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
   cancelAllHabitNotifications,
-  cancelHabitNotifications,
   checkNotificationPermission,
   requestNotificationPermission,
-  scheduleHabitNotifications,
 } from '../utils/localNotifications';
 import {
   clearStorage,
   HasOnboardedSchema,
-  importData,
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
-import { performNotificationMaintenance, syncHabitNotification } from '../utils/notificationService';
+import {
+  cancelNotificationsForHabit,
+  performNotificationMaintenance,
+  syncHabitNotification,
+} from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
@@ -60,6 +62,17 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
+
+  useEffect(() => {
+    if (!isNative || habits.length === 0) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void performNotificationMaintenance(habits);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [habits]);
 
   useEffect(() => {
     const html = document.documentElement;
@@ -129,9 +142,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const db = await getDB();
 
       // 2. Database Write: Core Habit
+      const sortResult = await db.query(`SELECT MAX(sortOrder) as maxSort FROM habits`);
+      const maxSort =
+        (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           newHabit.id,
           newHabit.name,
@@ -139,16 +155,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           newHabit.frequency.times,
           newHabit.frequency.periodLength,
           newHabit.frequency.periodUnit,
-          habits.length,
+          maxSort + 1,
         ]
       );
 
-      // 3. Database Write: Notifications (The Service Layer)
-      // This handles the Capacitor scheduling AND the second table insert
-      if (newHabit.notification) {
+      // 3. Notifications: schedule OS reminders + persist settings + fill queue
+      if (newHabit.notification?.enabled) {
         await syncHabitNotification(newHabit, newHabit.notification, displayDate);
       } else {
-        // Even if no notification is provided, we sync the core DB change
         await syncDB();
       }
 
@@ -173,24 +187,28 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const merged = { ...habit, ...sanitized };
 
     try {
-      // 1. Update DB
-      await db.run(`UPDATE habits SET name = ? WHERE id = ?;`, [merged.name.trim(), habit.id]);
-      await syncDB();
+      // 1. Update core habit fields
+      await db.run(
+        `UPDATE habits SET name = ?, times = ?, periodLength = ?, periodUnit = ? WHERE id = ?;`,
+        [
+          merged.name.trim(),
+          merged.frequency.times,
+          merged.frequency.periodLength,
+          merged.frequency.periodUnit,
+          habit.id,
+        ]
+      );
 
-      // 2. Sync Notification Table & OS Reminders
-      // If the habit has notification settings, the service handles:
-      // - Cancelling old OS IDs
-      // - Scheduling new ones
-      // - Upserting the 'habit_notifications' table
-      if (merged.notification) {
+      // 2. Sync notifications: cancel old, reschedule, update queue + notif columns on habit row
+      if (merged.notification?.enabled) {
         await syncHabitNotification(merged, merged.notification, new Date());
       } else {
-        // If no notifications, just ensure the file is synced
+        await cancelNotificationsForHabit(habit.id);
+        await db.run(`UPDATE habits SET notif_enabled = 0 WHERE id = ?`, [habit.id]);
         await syncDB();
       }
 
-      // 3. Update React State
-      // We fetch fresh from DB to ensure 'notificationIds' from the service are captured
+      // 3. Reload state from DB
       const updatedData = await loadDataFromDB();
       setHabits(updatedData.habits);
 
@@ -209,50 +227,40 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const db = await getDB();
 
     try {
-      // 1. Fetch Habits + Notifications in one pass
+      // 1. Fetch habits (notif settings are columns on the habit row now)
       const habitResult = await db.query(
-      `SELECT 
-        h.id, h.name, h.createdAt, h.times, h.periodLength, h.periodUnit, h.sortOrder,
-        n.enabled as notifEnabled, n.mode, n.time, n.days, 
-        n.monthDays, n.customMessage, n.notificationIds, 
-        n.lastScheduledAt, n.intervalN, n.intervalUnit
-      FROM habits h
-      LEFT JOIN habit_notifications n ON h.id = n.habitId
-      ORDER BY h.sortOrder ASC;
-    `);
+        `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder,
+                notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
+                notif_customMessage, notif_intervalN, notif_intervalUnit
+         FROM habits
+         ORDER BY sortOrder ASC;`
+      );
 
-      // 2. Map Rows to TypeScript Objects
-      const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => {
-        const hasNotification = row.mode !== null;
-
-        return {
-          id: row.id,
-          name: row.name,
-          createdAt: row.createdAt,
-          sortOrder: row.sortOrder,
-          frequency: {
-            times: row.times,
-            periodLength: row.periodLength,
-            periodUnit: row.periodUnit,
-          },
-          // Reconstruct notification object if joined data exists
-          notification: hasNotification
+      // 2. Map rows to TypeScript objects
+      const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => ({
+        id: row.id,
+        name: row.name,
+        createdAt: row.createdAt,
+        sortOrder: row.sortOrder,
+        frequency: {
+          times: row.times,
+          periodLength: row.periodLength,
+          periodUnit: row.periodUnit,
+        },
+        notification:
+          row.notif_mode !== null
             ? {
-                enabled: Boolean(row.notifEnabled),
-                mode: row.mode!,
-                time: row.time!,
-                days: JSON.parse(row.days || '[]') as number[],
-                monthDays: JSON.parse(row.monthDays || '[]') as number[],
-                customMessage: row.customMessage || '',
-                notificationIds: JSON.parse(row.notificationIds || '[]') as number[],
-                // Fallback to 1 and 'days' if they are missing in the DB to satisfy required types
-                intervalN: row.intervalN ?? 1,
-                intervalUnit: row.intervalUnit ?? 'days',
-                lastScheduledAt: row.lastScheduledAt!
+                enabled: Boolean(row.notif_enabled),
+                mode: row.notif_mode,
+                time: row.notif_time!,
+                days: JSON.parse(row.notif_days || '[]') as number[],
+                monthDays: JSON.parse(row.notif_monthDays || '[]') as number[],
+                customMessage: row.notif_customMessage ?? '',
+                intervalN: row.notif_intervalN ?? 1,
+                intervalUnit: row.notif_intervalUnit ?? 'days',
               }
             : undefined,
-        };
-      });
+      }));
 
       // 3. Fetch Completions
       const compResult = await db.query(`SELECT * FROM completions`);
@@ -303,14 +311,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const db = await getDB();
 
     try {
-      // 1. OS Cleanup First
-      // We use the IDs currently in the habit object to clear the system tray
-      if (habit.notification?.notificationIds) {
-        await cancelHabitNotifications(habit.notification.notificationIds);
+      // 1. Cancel OS notifications (perpetual + queued) before the cascade wipes the queue
+      if (habit.notification?.enabled) {
+        await cancelNotificationsForHabit(habit.id);
       }
 
-      // 2. Database Delete
-      // This triggers the CASCADE to habit_notifications and completions automatically
+      // 2. Delete habit — cascades to completions and notification_queue
       await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
 
       // 3. Sync the SQLite file to IndexedDB (Web layer)
@@ -341,20 +347,43 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setDateString(value ?? toDateString(new Date()));
   }
 
-  function clearAll() {
-    void cancelAllHabitNotifications();
-    void clearStorage();
+  async function clearAll() {
+    const db = await getDB();
+    await cancelAllHabitNotifications();
+    await db.run(`DELETE FROM habits`);
+    await syncDB();
+    await clearStorage();
     setHabits([]);
     setCompletions([]);
+    setHasOnboarded(false);
   }
 
-  function loadDemoData() {
+  async function loadDemoData() {
     const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
-    setHabits(demoHabits);
-    setCompletions(demoCompletions);
-    void saveToStorage('habits', demoHabits);
-    void saveToStorage('completions', demoCompletions);
-    void saveToStorage('hasOnboarded', true);
+    const db = await getDB();
+
+    await cancelAllHabitNotifications();
+    await db.executeSet(
+      [
+        { statement: `DELETE FROM habits`, values: [] },
+        ...demoHabits.map((h, i) => ({
+          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          values: [h.id, h.name, h.createdAt, h.frequency.times, h.frequency.periodLength, h.frequency.periodUnit, i],
+        })),
+        ...demoCompletions.map(c => ({
+          statement: `INSERT INTO completions (habitId, date, count) VALUES (?, ?, ?)`,
+          values: [c.habitId, c.date, c.count],
+        })),
+      ],
+      true
+    );
+
+    await syncDB();
+    await saveToStorage('hasOnboarded', true);
+
+    const fresh = await loadDataFromDB();
+    setHabits(fresh.habits);
+    setCompletions(fresh.completions);
     setHasOnboarded(true);
   }
 
@@ -391,34 +420,64 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function applyImport(
     json: string
   ): Promise<{ success: boolean; error?: string; warning?: string }> {
-    const result = await importData(json);
-    if (result.success) {
-      setCompletions(result.completions);
-      const notifHabits = result.habits.filter(h => h.notification?.enabled);
+    const parsed = importData(json);
+    if (!parsed.success) return parsed;
+
+    const db = await getDB();
+
+    try {
+      // Cancel existing OS notifications then wipe all data (cascade handles completions + queue)
+      await cancelAllHabitNotifications();
+      await db.executeSet(
+        [
+          { statement: `DELETE FROM habits`, values: [] },
+          ...parsed.habits.map((h, i) => ({
+            statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            values: [h.id, h.name, h.createdAt, h.frequency.times, h.frequency.periodLength, h.frequency.periodUnit, i],
+          })),
+          ...parsed.completions.map(c => ({
+            statement: `INSERT INTO completions (habitId, date, count) VALUES (?, ?, ?)`,
+            values: [c.habitId, c.date, c.count],
+          })),
+        ],
+        true
+      );
+
+      // Schedule notifications, request permission if needed
+      let warning: string | undefined;
+      const notifHabits = parsed.habits.filter(h => h.notification?.enabled);
       if (isNative && notifHabits.length > 0) {
         const granted =
           (await checkNotificationPermission()) || (await requestNotificationPermission());
         if (!granted) {
-          setHabits(result.habits);
-          return {
-            ...result,
-            warning: `Import successful, but ${notifHabits.length} reminder${notifHabits.length === 1 ? '' : 's'} couldn't be scheduled — notification permission was denied. You can enable it in your device settings.`,
-          };
+          warning = `Import successful, but ${notifHabits.length} reminder${notifHabits.length === 1 ? '' : 's'} couldn't be scheduled — notification permission was denied.`;
+        } else {
+          for (const h of notifHabits) {
+            try {
+              await syncHabitNotification(h, h.notification!, displayDate);
+            } catch (e) {
+              console.warn(`[import] Failed to schedule notifications for ${h.name}`, e);
+            }
+          }
         }
-        const habitsWithIds = await Promise.all(
-          result.habits.map(async h => {
-            if (!h.notification?.enabled) return h;
-            const result = await scheduleHabitNotifications(h.id, h.name, h.notification, displayDate);
-            return { ...h, notification: { ...h.notification, notificationIds: result.ids } };
-          })
-        );
-        setHabits(habitsWithIds);
-        void saveToStorage('habits', habitsWithIds);
-        return result;
       }
-      setHabits(result.habits);
+
+      await syncDB();
+      await saveToStorage('hasOnboarded', true);
+
+      const fresh = await loadDataFromDB();
+      setHabits(fresh.habits);
+      setCompletions(fresh.completions);
+      setHasOnboarded(true);
+
+      return { success: true, warning };
+    } catch (e) {
+      console.error('❌ Import failed:', e);
+      return {
+        success: false,
+        error: `Import failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      };
     }
-    return result;
   }
 
   if (loading)

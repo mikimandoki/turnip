@@ -149,7 +149,7 @@ export default function DailyView() {
       </div>
 
       {!hasOnboarded && habits.length === 0 && (
-        <button className='btn-add-habit' onClick={loadDemoData}>
+        <button className='btn-add-habit' onClick={() => void loadDemoData()}>
           Explore demo data
         </button>
       )}
@@ -157,7 +157,7 @@ export default function DailyView() {
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
       {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
-          <button className='btn-add-habit' onClick={clearAll}>
+          <button className='btn-add-habit' onClick={() => void clearAll()}>
             Delete All
           </button>
           <button className='btn-add-habit' onClick={() => void debugNotifs()}>
