@@ -57,21 +57,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void Promise.all([
-      loadFromStorage('habits', [], HabitsSchema),
-      loadFromStorage('completions', [], CompletionsSchema),
-      loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-      loadFromStorage('darkMode', null, z.boolean().nullable()),
-    ]).then(([h, c, o, dm]) => {
-      setHabits(h);
-      setCompletions(c);
-      setHasOnboarded(o);
-      setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
-      setLoading(false);
-    });
-  }, []);
-
-  useEffect(() => {
     const html = document.documentElement;
     if (darkMode) {
       html.setAttribute('data-theme', 'dark');
@@ -121,41 +106,60 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         notification: { ...newHabit.notification, notificationIds: ids },
       };
     }
-    const previous = [...habits];
-    const updated = [...habits, habitToSave];
-    setHabits(updated); // optimistic
-    // save to DB in the background
-    void getDB().then(async db => {
-      await db
-        .run(
-          `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit) VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            newHabit.id,
-            newHabit.name,
-            newHabit.createdAt,
-            newHabit.frequency.times,
-            newHabit.frequency.periodLength,
-            newHabit.frequency.periodUnit,
-          ]
-        )
-        .catch(async e => {
-          setHabits(previous); // rollback
-          await Toast.show({
-            text:
-              'Failed to insert habit into SQLite: ' + (e instanceof Error ? e.message : String(e)),
-          });
-        });
-      await syncDB();
-    });
 
-    // Update React state
+    // 1. Optimistic UI Update
+    setHabits(prev => [...prev, habitToSave]);
     setHasOnboarded(true);
-    void Toast.show({
-      text: 'Habit added successfully ✅',
-    });
 
-    // Haptics feedback
+    // 2. Database Write
+    try {
+      const db = await getDB();
+      await db.run(
+        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit) VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          habitToSave.id,
+          habitToSave.name,
+          habitToSave.createdAt,
+          habitToSave.frequency.times,
+          habitToSave.frequency.periodLength,
+          habitToSave.frequency.periodUnit,
+        ]
+      );
+      await syncDB(); // Crucial for persistence on refresh
+      void Toast.show({ text: 'Habit added successfully ✅' });
+    } catch (e) {
+      console.error('DB Insert Failed', e);
+      // Rollback UI if DB fails
+      setHabits(prev => prev.filter(h => h.id !== newHabit.id));
+    }
+
     void hapticsMedium();
+  }
+
+  async function editHabit(habit: Habit, updates: Partial<Habit>) {
+    const db = await getDB();
+    const sanitized = updates.name ? { ...updates, name: updates.name.trim() } : updates;
+    const merged = { ...habit, ...sanitized };
+
+    try {
+      // 1. Update DB
+      await db.run(`UPDATE habits SET name = ? WHERE id = ?;`, [merged.name.trim(), habit.id]);
+      await syncDB();
+
+      // 2. Handle Notifications
+      void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
+      let notif = merged.notification;
+      if (notif?.enabled && isNative) {
+        const ids = await scheduleHabitNotifications(merged.id, merged.name, notif);
+        notif = { ...notif, notificationIds: ids };
+      }
+
+      // 3. Update State (Stop using saveToStorage for habits!)
+      const final = { ...merged, notification: notif };
+      setHabits(prev => prev.map(h => (h.id === habit.id ? final : h)));
+    } catch (e) {
+      console.error('Could not edit habit in SQLite:', e);
+    }
   }
 
   async function loadHabitsFromDB(): Promise<Habit[]> {
@@ -189,43 +193,54 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       return [];
     }
   }
-
   useEffect(() => {
-    void loadHabitsFromDB().then(dbHabits => {
-      if (dbHabits.length > 0) {
+    void Promise.all([
+      loadHabitsFromDB(), // Get habits from SQLite instead of LocalStorage
+      loadFromStorage('completions', [], CompletionsSchema),
+      loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
+      loadFromStorage('darkMode', null, z.boolean().nullable()),
+    ]).then(([dbHabits, c, o, dm]) => {
+      // If SQLite is empty, check LocalStorage as a fallback (Migration)
+      if (dbHabits.length === 0) {
+        void loadFromStorage('habits', [], HabitsSchema).then(setHabits);
+      } else {
         setHabits(dbHabits);
         setHasOnboarded(true);
       }
+
+      setCompletions(c);
+      setHasOnboarded(o || dbHabits.length > 0);
+      setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
+      setLoading(false);
     });
   }, []);
 
-  function deleteHabit(habit: Habit) {
-    const updatedHabits = habits.filter(h => h.id !== habit.id);
-    const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
-    setHabits(updatedHabits);
-    setCompletions(updatedCompletions);
-    void saveToStorage('habits', updatedHabits);
-    void saveToStorage('completions', updatedCompletions);
-    void hapticsMedium();
-    void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
-  }
+  async function deleteHabit(habit: Habit) {
+    const db = await getDB();
 
-  async function editHabit(habit: Habit, updates: Partial<Habit>) {
-    const sanitized = updates.name ? { ...updates, name: updates.name.trim() } : updates;
-    const merged = { ...habit, ...sanitized };
+    try {
+      // 1. Database Delete
+      await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
+      // 2. Web Persistence Sync
+      await syncDB();
 
-    void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
+      // 3. Keep existing memory/UI logic for now
+      const updatedHabits = habits.filter(h => h.id !== habit.id);
+      const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
 
-    let notif = merged.notification;
-    if (notif?.enabled && isNative) {
-      const ids = await scheduleHabitNotifications(merged.id, merged.name, notif);
-      notif = { ...notif, notificationIds: ids };
+      setHabits(updatedHabits);
+      setCompletions(updatedCompletions);
+
+      // Still saving completions to the old storage until that table is ready
+      void saveToStorage('completions', updatedCompletions);
+
+      // 4. System Feedback
+      void hapticsMedium();
+      void cancelHabitNotifications(habit.notification?.notificationIds ?? []);
+    } catch (e) {
+      console.error('Could not delete habit from SQLite:', e);
+      // Optional: Show a toast to the user if the DB fails
     }
-
-    const final = { ...merged, notification: notif };
-    const updated = habits.map(h => (h.id === habit.id ? final : h));
-    setHabits(updated);
-    void saveToStorage('habits', updated);
   }
 
   function shiftDate(days: number) {

@@ -11,7 +11,7 @@ export interface HabitContextType {
   darkMode: boolean;
   addHabit: (habit: Habit) => Promise<void>;
   updateCompletion: (habitId: string, increment: number) => void;
-  deleteHabit: (habit: Habit) => void;
+  deleteHabit: (habit: Habit) => Promise<void>;
   editHabit: (habit: Habit, updates: Partial<Habit>) => Promise<void>;
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
