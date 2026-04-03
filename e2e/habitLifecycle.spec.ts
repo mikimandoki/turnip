@@ -9,7 +9,7 @@ const dailyHabit: Habit = {
   name: 'Go for a run',
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: new Date().toISOString(),
-}
+};
 
 test('can add new habit', async ({ page }) => {
   await page.goto('/');
@@ -19,11 +19,13 @@ test('can add new habit', async ({ page }) => {
 });
 
 test('can mark habit as done', async ({ page }) => {
-  await page.goto('/'); 
+  await page.goto('/');
   await addHabit(page, dailyHabit);
   await page.getByRole('button').and(page.getByLabel('Increase count')).click();
-  const count = page.locator('.completion-count')
-  const progress = page.locator('.progress-bar').filter({ has: page.locator('.progress-fill.done') });
+  const count = page.locator('.completion-count');
+  const progress = page
+    .locator('.progress-bar')
+    .filter({ has: page.locator('.progress-fill.done') });
   await expect.soft(count).toHaveText('1/1');
   await expect.soft(progress).toBeVisible();
 });
