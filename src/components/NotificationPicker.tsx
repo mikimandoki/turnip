@@ -168,8 +168,8 @@ export default function NotificationPicker({
                 starting{' '}
                 {isTimeInPast(
                   parseInt(value.time.split(':')[0]),
-                  parseInt(value.time.split(':')[1]), 
-                  new Date(),
+                  parseInt(value.time.split(':')[1]),
+                  new Date()
                 )
                   ? 'tomorrow'
                   : 'today'}

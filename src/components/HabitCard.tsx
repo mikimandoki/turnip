@@ -71,13 +71,13 @@ export default function HabitCard({
           <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
         </div>
         <div className='habit-card-right'>
-          {isNative && habit.notification?.enabled && (
-            osNotificationsGranted ? (
+          {isNative &&
+            habit.notification?.enabled &&
+            (osNotificationsGranted ? (
               <BellRing size={12} className='habit-card-notif-icon' />
             ) : (
               <BellOff size={12} className='habit-card-notif-icon' />
-            )
-          )}
+            ))}
           <span className={`completion-count ${status}`}>
             {completedCount}/{targetCount}
           </span>

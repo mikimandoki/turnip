@@ -32,13 +32,30 @@ export const HabitSchema = z.object({
       intervalN: z.number().min(1).default(1),
       intervalUnit: z.enum(['days', 'weeks']).default('days'),
       monthDays: z.array(z.number().min(1).max(31)).default([]),
-      notificationIds: z.array(z.number()).optional(),
     })
     .optional(),
 });
 
 // A habit the user wants to track
 export type Habit = z.infer<typeof HabitSchema>;
+
+export type HabitRowFromDB = {
+  id: string;
+  name: string;
+  createdAt: string;
+  times: number;
+  periodLength: number;
+  periodUnit: Frequency['periodUnit'];
+  sortOrder: number;
+  notif_enabled: number | null;
+  notif_mode: 'daily' | 'days-of-month' | 'days-of-week' | 'interval' | null;
+  notif_time: string | null;
+  notif_days: string | null; // JSON string
+  notif_monthDays: string | null; // JSON string
+  notif_customMessage: string | null;
+  notif_intervalN: number | null;
+  notif_intervalUnit: 'days' | 'weeks' | null;
+};
 
 export const CompletionSchema = z.object({
   habitId: z.string(),

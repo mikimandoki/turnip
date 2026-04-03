@@ -1,9 +1,15 @@
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
-import { addDays, endOfMonth, setHours, setMinutes, startOfDay } from 'date-fns';
+import { addDays, endOfMonth, isAfter, setHours, setMinutes } from 'date-fns';
 
 import { parseHabitEmoji } from './habits';
-import { habitNotificationId, type NotificationValue } from './notifications';
+import {
+  habitNotificationId,
+  type NotificationValue,
+  windowedNotificationId,
+} from './notifications';
 import { isNative } from './utils';
+
+export type ScheduledEntry = { id: number; scheduledAt: Date | null };
 
 // Platform strategy: all functions are no-ops on web (guarded by isNative). UI components
 // import isNative directly to hide native-only UI (bell icon, NotificationPicker, etc.).
@@ -42,33 +48,19 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return display === 'granted';
 }
 
-// Number of future `at` occurrences to pre-schedule for interval/days-of-month edge cases
-const AT_LOOKAHEAD = 30;
+// --- Perpetual builders (OS repeats forever, scheduledAt = null) ---
 
-function getNextOccurrenceAt(hour: number, minute: number): Date {
-  const now = new Date();
-  const candidate = setMinutes(setHours(startOfDay(now), hour), minute);
-  return candidate <= now ? addDays(candidate, 1) : candidate;
-}
-
-function buildDailyNotifications(
+export function buildDailyNotifications(
   base: number,
   title: string,
   getBody: () => string,
   hour: number,
   minute: number
 ): LocalNotificationSchema[] {
-  return [
-    {
-      id: base,
-      title,
-      body: getBody(),
-      schedule: { on: { hour, minute }, repeats: true },
-    },
-  ];
+  return [{ id: base, title, body: getBody(), schedule: { on: { hour, minute }, repeats: true } }];
 }
 
-function buildDowNotifications(
+export function buildDowNotifications(
   base: number,
   title: string,
   getBody: () => string,
@@ -76,10 +68,7 @@ function buildDowNotifications(
   minute: number,
   days: number[] // 1–7, Capacitor weekday convention
 ): LocalNotificationSchema[] {
-  // All 7 days selected — secretly treat as daily, save 6 slots
-  if (days.length === 7) {
-    return buildDailyNotifications(base, title, getBody, hour, minute);
-  }
+  if (days.length === 7) return buildDailyNotifications(base, title, getBody, hour, minute);
   return days.map(weekday => ({
     id: base + weekday,
     title,
@@ -88,45 +77,49 @@ function buildDowNotifications(
   }));
 }
 
-function buildDaysOfMonthNotifications(
+export function buildSafeDomNotifications(
   base: number,
   title: string,
   getBody: () => string,
   hour: number,
   minute: number,
-  days: number[] // 1–31
+  days: number[] // only days 1–28
 ): LocalNotificationSchema[] {
-  const safeDays = days.filter(d => d <= 28);
-  const unsafeDays = days.filter(d => d > 28);
-
-  const nativeNotifs: LocalNotificationSchema[] = safeDays.map(day => ({
+  return days.map(day => ({
     id: base + day,
     title,
     body: getBody(),
     schedule: { on: { day, hour, minute }, repeats: true },
   }));
+}
 
-  // Days 29–31: compute next AT_LOOKAHEAD occurrences, clamping to end of month
-  const atNotifs: LocalNotificationSchema[] = [];
-  unsafeDays.forEach((day, dayIndex) => {
-    const now = new Date();
-    let count = 0;
-    let month = now.getMonth(); // 0-indexed
-    let year = now.getFullYear();
+// --- Windowed builders (one-shot `at` timestamps, scheduledAt = occurrence date) ---
 
-    while (count < AT_LOOKAHEAD) {
-      const lastDayOfMonth = endOfMonth(new Date(year, month)).getDate();
-      const clampedDay = Math.min(day, lastDayOfMonth);
+export function buildUnsafeDomNotifications(
+  habitId: string,
+  title: string,
+  getBody: () => string,
+  hour: number,
+  minute: number,
+  days: number[], // only days 29–31
+  from: Date,
+  until: Date
+): LocalNotificationSchema[] {
+  const notifications: LocalNotificationSchema[] = [];
+  days.forEach(day => {
+    let month = from.getMonth();
+    let year = from.getFullYear();
+    // Walk month by month from `from` to `until`
+    while (new Date(year, month, 1) <= until) {
+      const clampedDay = Math.min(day, endOfMonth(new Date(year, month)).getDate());
       const occurrence = setMinutes(setHours(new Date(year, month, clampedDay), hour), minute);
-      if (occurrence > now) {
-        atNotifs.push({
-          // offset by 100 + dayIndex * AT_LOOKAHEAD + count to avoid ID collisions
-          id: base + 100 + dayIndex * AT_LOOKAHEAD + count,
+      if (isAfter(occurrence, from) && occurrence <= until) {
+        notifications.push({
+          id: windowedNotificationId(habitId, occurrence),
           title,
           body: getBody(),
           schedule: { at: occurrence },
         });
-        count++;
       }
       month++;
       if (month > 11) {
@@ -135,33 +128,54 @@ function buildDaysOfMonthNotifications(
       }
     }
   });
-
-  return [...nativeNotifs, ...atNotifs];
+  return notifications;
 }
 
-function buildIntervalNotifications(
-  base: number,
+export function buildIntervalNotifications(
+  habitId: string,
   title: string,
   getBody: () => string,
   hour: number,
   minute: number,
-  intervalDays: number
+  intervalDays: number,
+  from: Date,
+  until: Date
 ): LocalNotificationSchema[] {
-  // No native support for arbitrary intervals — pre-schedule AT_LOOKAHEAD occurrences
-  const start = getNextOccurrenceAt(hour, minute);
-  return Array.from({ length: AT_LOOKAHEAD }, (_, i) => ({
-    id: base + 200 + i,
-    title,
-    body: getBody(),
-    schedule: { at: addDays(start, i * intervalDays) },
-  }));
+  const anchor = new Date(from);
+  anchor.setHours(hour, minute, 0, 0);
+  // Advance one day at a time until anchor is strictly after `from`.
+  // Using < (not <=) so that when maintenance passes horizon+intervalDays as `from`,
+  // anchor landing exactly on that timestamp is used directly, not skipped.
+  while (anchor < from) anchor.setDate(anchor.getDate() + 1);
+
+  const notifications: LocalNotificationSchema[] = [];
+  let current = new Date(anchor);
+  while (current <= until) {
+    notifications.push({
+      id: windowedNotificationId(habitId, current),
+      title,
+      body: getBody(),
+      schedule: { at: new Date(current) },
+    });
+    current = addDays(current, intervalDays);
+  }
+  return notifications;
 }
 
+/**
+ * Schedules OS notifications for a habit within [from, until].
+ * - Perpetual modes (daily, dow, dom 1–28): schedules repeating OS notifications, returns scheduledAt=null.
+ * - Windowed modes (interval, dom 29–31): schedules one-shot `at` notifications, returns scheduledAt=occurrence.
+ *
+ * `until` is only meaningful for windowed modes. Defaults to 30 days out.
+ */
 export async function scheduleHabitNotifications(
   habitId: string,
   habitName: string,
-  notif: NotificationValue
-): Promise<number[]> {
+  notif: NotificationValue,
+  from: Date,
+  until: Date = addDays(from, 30)
+): Promise<ScheduledEntry[]> {
   if (!isNative || !notif.enabled) return [];
 
   const [hour, minute] = notif.time.split(':').map(Number);
@@ -170,45 +184,59 @@ export async function scheduleHabitNotifications(
   const custom = notif.customMessage.trim();
   const getBody = custom ? () => custom : getHabitNudge;
 
-  let notifications: LocalNotificationSchema[] = [];
+  let perpetual: LocalNotificationSchema[] = [];
+  let windowed: LocalNotificationSchema[] = [];
 
   switch (notif.mode) {
     case 'daily':
-      notifications = buildDailyNotifications(base, title, getBody, hour, minute);
+      perpetual = buildDailyNotifications(base, title, getBody, hour, minute);
       break;
     case 'days-of-week':
-      notifications = buildDowNotifications(base, title, getBody, hour, minute, notif.days);
+      perpetual = buildDowNotifications(base, title, getBody, hour, minute, notif.days);
       break;
-    case 'days-of-month':
-      notifications = buildDaysOfMonthNotifications(
-        base,
-        title,
-        getBody,
-        hour,
-        minute,
-        notif.monthDays
-      );
+    case 'days-of-month': {
+      const safe = notif.monthDays.filter(d => d <= 28);
+      const unsafe = notif.monthDays.filter(d => d > 28);
+      if (safe.length)
+        perpetual = buildSafeDomNotifications(base, title, getBody, hour, minute, safe);
+      if (unsafe.length)
+        windowed = buildUnsafeDomNotifications(
+          habitId,
+          title,
+          getBody,
+          hour,
+          minute,
+          unsafe,
+          from,
+          until
+        );
       break;
+    }
     case 'interval':
-      notifications = buildIntervalNotifications(
-        base,
+      windowed = buildIntervalNotifications(
+        habitId,
         title,
         getBody,
         hour,
         minute,
-        (notif.intervalN ?? 1) * (notif.intervalUnit === 'weeks' ? 7 : 1)
+        (notif.intervalN ?? 1) * (notif.intervalUnit === 'weeks' ? 7 : 1),
+        from,
+        until
       );
       break;
   }
 
-  console.log('[notifications] schedule', { habitId, habitName, notif, notifications });
+  const all = [...perpetual, ...windowed];
+  console.log('[notifications] schedule', { habitId, habitName, count: all.length });
 
-  if (isNative) {
-    await LocalNotifications.schedule({ notifications });
+  if (isNative && all.length > 0) {
+    await LocalNotifications.schedule({ notifications: all });
   }
 
-  // Return registered IDs so caller can persist them on the habit
-  return notifications.map(n => n.id);
+  return [
+    ...perpetual.map(n => ({ id: n.id, scheduledAt: null as Date | null })),
+    ...windowed.map(n => ({ id: n.id, scheduledAt: n.schedule!.at as Date })),
+  ];
 }
 
 export async function cancelHabitNotifications(notificationIds: number[]): Promise<void> {

@@ -3,7 +3,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { Habit } from '../../types';
 
-import { endDatePeriod, isTimeInPast, namedDayOrDate, startDatePeriod, toDateString } from '../date';
+import {
+  endDatePeriod,
+  isTimeInPast,
+  namedDayOrDate,
+  startDatePeriod,
+  toDateString,
+} from '../date';
 
 describe('startDatePeriod', () => {
   // Intentional startDatePeriod before createdAt to count it as a full week
@@ -218,7 +224,7 @@ describe('namedDayOrDate', () => {
 });
 
 describe('isTimeInPast', () => {
-  const fakeToday = new Date("2026-01-11T12:00:00"); // January 11, 2026 12:00 PM local time
+  const fakeToday = new Date('2026-01-11T12:00:00'); // January 11, 2026 12:00 PM local time
   beforeAll(() => {
     vi.useFakeTimers();
     vi.setSystemTime(fakeToday);
@@ -228,7 +234,7 @@ describe('isTimeInPast', () => {
   });
   it('returns true for time in the past', () => {
     expect(isTimeInPast(11, 59, fakeToday)).toBe(true); // 11:59 AM
-  })
+  });
   it('returns false for time in the future', () => {
     expect(isTimeInPast(12, 1, fakeToday)).toBe(false); // 12:01 PM
   });

@@ -1,7 +1,7 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import HabitCard from '../components/HabitCard';
@@ -10,6 +10,7 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { getPendingNotifications } from '../utils/localNotifications';
+import { getDB } from '../utils/sqlite';
 
 async function debugNotifs() {
   const { notifications } = await getPendingNotifications();
@@ -38,6 +39,10 @@ export default function DailyView() {
   const [showSettings, setShowSettings] = useState(false);
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const dateInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    void getDB();
+  }, []);
 
   return (
     <div className='app'>
@@ -93,14 +98,30 @@ export default function DailyView() {
             if (event.canceled) return;
             const { source } = event.operation;
             if (!isSortable(source)) return;
+
             const from = source.initialIndex;
             const to = source.index;
             if (from === to) return;
-            const reordered = [...visibleHabits];
-            reordered.splice(to, 0, reordered.splice(from, 1)[0]);
+
+            // 1. Calculate the new order for ONLY the visible items
+            const reorderedVisible = [...visibleHabits];
+            const [movedItem] = reorderedVisible.splice(from, 1);
+            reorderedVisible.splice(to, 0, movedItem);
+
+            // 2. Map those changes back into the MASTER list
+            // We keep non-visible habits where they are, and update the visible ones in place
             const visibleIds = new Set(visibleHabits.map(h => h.id));
-            let i = 0;
-            reorderHabits(habits.map(h => (visibleIds.has(h.id) ? reordered[i++] : h)));
+            let visibleIdx = 0;
+
+            const finalMasterList = habits.map(h => {
+              if (visibleIds.has(h.id)) {
+                return reorderedVisible[visibleIdx++];
+              }
+              return h;
+            });
+
+            // 3. Send the master list to the DB handler
+            void reorderHabits(finalMasterList);
           }}
         >
           <div className='habit-list'>
@@ -111,7 +132,7 @@ export default function DailyView() {
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
                 onClick={() => void navigate(`/habit/${habit.id}`)}
-                onLog={delta => updateCompletion(habit.id, delta)}
+                onLog={delta => void updateCompletion(habit.id, delta)}
               />
             ))}
           </div>
@@ -128,7 +149,7 @@ export default function DailyView() {
       </div>
 
       {!hasOnboarded && habits.length === 0 && (
-        <button className='btn-add-habit' onClick={loadDemoData}>
+        <button className='btn-add-habit' onClick={() => void loadDemoData()}>
           Explore demo data
         </button>
       )}
@@ -136,7 +157,7 @@ export default function DailyView() {
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
       {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
-          <button className='btn-add-habit' onClick={clearAll}>
+          <button className='btn-add-habit' onClick={() => void clearAll()}>
             Delete All
           </button>
           <button className='btn-add-habit' onClick={() => void debugNotifs()}>

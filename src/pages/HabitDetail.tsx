@@ -258,8 +258,11 @@ export default function HabitDetail() {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         onConfirm={() => {
-          deleteHabit(habit);
-          void navigate('/');
+          // We call the async logic here, but the handler itself returns void
+          void (async () => {
+            await deleteHabit(habit);
+            void navigate('/');
+          })();
         }}
       />
     </>

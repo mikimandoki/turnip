@@ -39,3 +39,9 @@ Two Gradle product flavors are defined in `android/app/build.gradle`:
 Both flavors use the **debug** build type so no signing keystore is needed. The scripts call `./gradlew installQaDebug` and `./gradlew installProdDebug` directly, bypassing `cap run android` which always defaults to debug without flavor support.
 
 The QA app name comes from a string resource overlay at `android/app/src/qa/res/values/strings.xml`, which Android merges over the base `strings.xml` for that flavor.
+
+# Web
+
+`jeep-sqlite` requires the `sql-wasm.wasm` binary in `public/assets/` to run the SQLite engine in the browser.
+
+It is necessary to use `pnpm` overrides to pin `sql.js` to the version expected by `jeep-sqlite` (currently **1.11.0**) to avoid `LinkError` instantiation failures.

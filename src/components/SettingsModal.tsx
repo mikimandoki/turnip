@@ -2,7 +2,7 @@ import { Dialog, Switch } from 'radix-ui';
 import { useRef, useState } from 'react';
 
 import { useHabitContext } from '../contexts/useHabitContext';
-import { exportData } from '../utils/localStorage';
+import { exportData } from '../utils/dataTransfer';
 
 export default function SettingsModal({
   open,
@@ -11,7 +11,7 @@ export default function SettingsModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { habits, applyImport, darkMode, toggleDarkMode } = useHabitContext();
+  const { habits, completions, applyImport, darkMode, toggleDarkMode } = useHabitContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{
     message: string;
@@ -84,7 +84,7 @@ export default function SettingsModal({
                 className='btn-base btn-ghost'
                 disabled={habitCount === 0}
                 onClick={() => {
-                  void exportData().then(result => {
+                  void exportData(habits, completions).then(result => {
                     if (result.error) setStatus({ message: result.error, state: 'error' });
                   });
                 }}

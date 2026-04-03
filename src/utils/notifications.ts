@@ -52,6 +52,12 @@ export function habitNotificationId(habitId: string): number {
   return simpleHash(habitId) % 2_147_483_640;
 }
 
+// Deterministic ID for a single windowed (one-shot) notification occurrence.
+// Keyed on habitId + ISO timestamp so top-up batches never collide with prior batches.
+export function windowedNotificationId(habitId: string, scheduledAt: Date): number {
+  return simpleHash(habitId + ':' + scheduledAt.toISOString()) % 2_147_483_640;
+}
+
 export function defaultNotifDays(frequency: Frequency): number[] {
   if (frequency.periodUnit !== 'week') return [1, 2, 3, 4, 5, 6, 7];
   const count = Math.min(frequency.times, 7);
