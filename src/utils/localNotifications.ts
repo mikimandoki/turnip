@@ -1,5 +1,5 @@
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
-import { addDays, endOfMonth, setHours, setMinutes, startOfDay } from 'date-fns';
+import { addDays, endOfMonth, isAfter, setHours, setMinutes, startOfDay } from 'date-fns';
 
 import { parseHabitEmoji } from './habits';
 import { habitNotificationId, type NotificationValue } from './notifications';
@@ -145,24 +145,43 @@ function buildIntervalNotifications(
   getBody: () => string,
   hour: number,
   minute: number,
-  intervalDays: number
+  intervalDays: number,
+  startDate: Date
 ): LocalNotificationSchema[] {
-  // No native support for arbitrary intervals — pre-schedule AT_LOOKAHEAD occurrences
-  const start = getNextOccurrenceAt(hour, minute);
-  return Array.from({ length: AT_LOOKAHEAD }, (_, i) => ({
-    id: base + 200 + i,
-    title,
-    body: getBody(),
-    schedule: { at: addDays(start, i * intervalDays) },
-  }));
-}
+  const now = new Date();
+  const anchor = startDate || getNextOccurrenceAt(hour, minute);
 
+  const start = new Date(anchor);
+  start.setHours(hour, minute, 0, 0);
+
+  const idOffset = startDate ? 500 : 200;
+  const notifications: LocalNotificationSchema[] = [];
+
+  let i = 0;
+  while (notifications.length < AT_LOOKAHEAD && i < 100) { // Safety cap at 100
+    const scheduledAt = new Date(start);
+    scheduledAt.setDate(start.getDate() + (i * intervalDays));
+
+    if (isAfter(scheduledAt, now)) {
+      notifications.push({
+        id: base + idOffset + i,
+        title,
+        body: getBody(),
+        schedule: { at: scheduledAt },
+      });
+    }
+    i++
+  }
+
+  return notifications;
+}
 export async function scheduleHabitNotifications(
   habitId: string,
   habitName: string,
-  notif: NotificationValue
-): Promise<number[]> {
-  if (!isNative || !notif.enabled) return [];
+  notif: NotificationValue,
+  startDate: Date
+): Promise<{ ids: number[], lastDate: Date }> {
+  if (!isNative || !notif.enabled) return { ids: [], lastDate: startDate };
 
   const [hour, minute] = notif.time.split(':').map(Number);
   const base = habitNotificationId(habitId);
@@ -196,21 +215,27 @@ export async function scheduleHabitNotifications(
         getBody,
         hour,
         minute,
-        (notif.intervalN ?? 1) * (notif.intervalUnit === 'weeks' ? 7 : 1)
+        (notif.intervalN ?? 1) * (notif.intervalUnit === 'weeks' ? 7 : 1),
+        startDate
       );
       break;
   }
 
   console.log('[notifications] schedule', { habitId, habitName, notif, notifications });
 
+  const lastDate = notifications.length > 0 
+    ? new Date(notifications[notifications.length - 1].schedule?.at || startDate)
+    : startDate;
+
   if (isCapacitorNative) {
     await LocalNotifications.schedule({ notifications });
   }
 
-  // Return registered IDs so caller can persist them on the habit
-  return notifications.map(n => n.id);
+  return { 
+    ids: notifications.map(n => n.id), 
+    lastDate 
+  };
 }
-
 export async function cancelHabitNotifications(notificationIds: number[]): Promise<void> {
   if (!isNative || notificationIds.length === 0) return;
   console.log('[notifications] cancel', { notificationIds });

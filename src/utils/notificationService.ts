@@ -1,4 +1,4 @@
-import { addDays } from 'date-fns';
+import { addDays, isBefore } from 'date-fns';
 import { z } from 'zod';
 
 import type { Habit } from '../types';
@@ -14,7 +14,7 @@ interface PendingNotificationResult {
   notificationIds: string | null;
 }
 
-export async function syncHabitNotification(habit: Habit, settings: NotificationValue) {
+export async function syncHabitNotification(habit: Habit, settings: NotificationValue, startDate: Date) {
   const db = await getDB();
 
   // 1. Fetch old IDs with a typed result
@@ -43,17 +43,17 @@ export async function syncHabitNotification(habit: Habit, settings: Notification
   }
 
   // 2. Schedule new ones using your "Beast" logic
-  const newIds = await scheduleHabitNotifications(habit.id, habit.name, settings);
+  const newIds = await scheduleHabitNotifications(habit.id, habit.name, settings, startDate);
 
   // Find the max date scheduled to update 'lastScheduledAt'
   // (You might need to adjust your schedule function to return this,
   // or just estimate it as +30 days for now)
-  const lastDate = toDateString(addDays(new Date(), 30));
+  // TODO I need more clarity on this. Is this the horizon date or the "I scheduled this last at" date
+  const lastDate = toDateString(addDays(startDate, 30));
 
   // 3. Upsert to SQLite
   await db.run(
-    /* sql */ `
-    INSERT INTO habit_notifications (
+    `INSERT INTO habit_notifications (
       habitId, enabled, mode, time, days, monthDays, 
       customMessage, notificationIds, lastScheduledAt, intervalN, intervalUnit
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -80,4 +80,40 @@ export async function syncHabitNotification(habit: Habit, settings: Notification
   );
 
   await syncDB();
+}
+
+/**
+ * Scans all habits and "tops up" notifications if they are 
+ * within 7 days of running out.
+ */
+export async function performNotificationMaintenance(habits: Habit[]) {
+  const now = new Date();
+  const warningThreshold = addDays(now, 7); // We want at least a week of runway
+
+  console.log('[maintenance] Checking notification horizons...');
+
+  for (const habit of habits) {
+    const { notification } = habit;
+
+    // Skip if notifications are disabled or have no horizon yet
+    if (!notification?.enabled || !notification.lastScheduledAt) continue;
+
+    const horizon = new Date(notification.lastScheduledAt);
+
+    // If the horizon (the last scheduled ping) is before our 7-day threshold...
+    if (isBefore(horizon, warningThreshold)) {
+      console.log(`[maintenance] 🚨 Top-up needed for: ${habit.name}`);
+
+      // The new start date is the day AFTER the current horizon
+      const nextBatchStart = addDays(horizon, 1);
+
+      try {
+        // This will schedule the next 30 and update the 'lastScheduledAt' in SQLite
+        await syncHabitNotification(habit, notification, nextBatchStart);
+        console.log(`[maintenance] ✅ Success: ${habit.name} topped up.`);
+      } catch (error) {
+        console.error(`[maintenance] ❌ Failed to top up ${habit.name}:`, error);
+      }
+    }
+  }
 }

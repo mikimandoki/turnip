@@ -28,7 +28,7 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
-import { syncHabitNotification } from '../utils/notificationService';
+import { performNotificationMaintenance, syncHabitNotification } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
@@ -146,7 +146,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 3. Database Write: Notifications (The Service Layer)
       // This handles the Capacitor scheduling AND the second table insert
       if (newHabit.notification) {
-        await syncHabitNotification(newHabit, newHabit.notification);
+        await syncHabitNotification(newHabit, newHabit.notification, displayDate);
       } else {
         // Even if no notification is provided, we sync the core DB change
         await syncDB();
@@ -183,7 +183,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // - Scheduling new ones
       // - Upserting the 'habit_notifications' table
       if (merged.notification) {
-        await syncHabitNotification(merged, merged.notification);
+        await syncHabitNotification(merged, merged.notification, new Date());
       } else {
         // If no notifications, just ensure the file is synced
         await syncDB();
@@ -248,6 +248,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
                 // Fallback to 1 and 'days' if they are missing in the DB to satisfy required types
                 intervalN: row.intervalN ?? 1,
                 intervalUnit: row.intervalUnit ?? 'days',
+                lastScheduledAt: row.lastScheduledAt!
               }
             : undefined,
         };
@@ -283,7 +284,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
         loadFromStorage('darkMode', null, z.boolean().nullable()),
       ]);
-
+      // Trigger the maintenance loop once data is loaded
+      if (dbData.habits.length > 0) {
+        // We don't 'await' this so it doesn't block the UI render
+        void performNotificationMaintenance(dbData.habits);
+      }
       // Populate State
       setHabits(dbData.habits);
       setCompletions(dbData.completions);
@@ -403,8 +408,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const habitsWithIds = await Promise.all(
           result.habits.map(async h => {
             if (!h.notification?.enabled) return h;
-            const ids = await scheduleHabitNotifications(h.id, h.name, h.notification);
-            return { ...h, notification: { ...h.notification, notificationIds: ids } };
+            const result = await scheduleHabitNotifications(h.id, h.name, h.notification, displayDate);
+            return { ...h, notification: { ...h.notification, notificationIds: result.ids } };
           })
         );
         setHabits(habitsWithIds);

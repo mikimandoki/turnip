@@ -33,6 +33,7 @@ export const HabitSchema = z.object({
       intervalUnit: z.enum(['days', 'weeks']).default('days'),
       monthDays: z.array(z.number().min(1).max(31)).default([]),
       notificationIds: z.array(z.number()).optional(),
+      lastScheduledAt: z.string().optional(),
     })
     .optional(),
 });
