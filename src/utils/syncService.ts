@@ -9,7 +9,7 @@ async function getUser() {
   return data.session?.user ?? null;
 }
 
-function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, now: string) {
+export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, now: string) {
   return {
     id: habit.id,
     user_id: userId,
