@@ -35,7 +35,12 @@ export default function HabitDetail() {
   const { habits, completions, deleteHabit, editHabit, recheckNotificationPermission } =
     useHabitContext();
   const habit = habits.find(h => h.id === id);
+  // TODO: calculateHabitStats is memoized with useMemo in HabitCard but called raw here.
+  // Memoize for consistency and to avoid recalculating on every render.
   const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
+  // TODO: these 6 state variables all belong to the same edit flow and move together.
+  // Replace with a single useReducer (or grouped state object) to simplify reset logic and
+  // avoid stale-closure bugs when multiple setters fire in the same event.
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(habit?.name ?? '');
   const [editNotif, setEditNotif] = useState<NotificationValue>({

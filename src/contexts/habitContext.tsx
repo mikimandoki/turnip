@@ -55,6 +55,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [darkMode, setDarkMode] = useState(false);
   const [osNotificationsGranted, setOsNotificationsGranted] = useState(false);
   const [loading, setLoading] = useState(true);
+  // TODO: store displayDate as a Date directly instead of round-tripping through string.
+  // Currently: new Date() → toDateString (string) → parseISO (Date) on every render.
+  // Store a Date in state and only convert to string when writing to DB or comparing dates.
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const [notifPermissionPrompt, setNotifPermissionPrompt] = useState<{
     message: string;
@@ -82,6 +85,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setOsNotificationsGranted(await checkNotificationPermission());
   }
 
+  // TODO: there are 3 separate visibilitychange listeners across this provider (here, below, and
+  // the Supabase sync one). Consolidate into a single handler that runs all concerns via
+  // Promise.allSettled so they're easier to reason about and extend.
   useEffect(() => {
     if (!isNative) return;
     void checkNotificationPermission().then(setOsNotificationsGranted);
@@ -133,6 +139,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const now = new Date().toISOString();
       if (newCount === 0) {
         await db.run(`DELETE FROM completions WHERE habitId = ? AND date = ?;`, [habitId, today]);
+        // TODO: fire-and-forget sync ops like these silently swallow failures. At minimum add
+        // .catch(e => console.error(...)) so failures are visible; ideally queue with retry.
         void softDeleteCompletion(habitId, today);
       } else {
         // 2. The UPSERT: Insert new row or update existing count
@@ -142,6 +150,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
            ON CONFLICT(habitId, date) DO UPDATE SET count = excluded.count, updated_at = excluded.updated_at;`,
           [habitId, today, newCount, now]
         );
+        // TODO: same as above — fire-and-forget with no error visibility.
         void pushCompletion(habitId, today, newCount);
       }
 
@@ -207,6 +216,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       ]);
       const sortOrder =
         (sortResult2.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
+      // TODO: fire-and-forget — add .catch or a background sync queue with retry.
       void pushHabit(newHabit, sortOrder);
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
@@ -384,6 +394,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // On sign-in: push local data up, then pull remote down, then refresh UI
+  // TODO: this IIFE has race conditions — if SIGNED_IN fires twice quickly (e.g. token refresh)
+  // both runs execute concurrently with no guard. Also, errors at any step fail silently.
+  // Consider a dedicated sync state machine or at minimum an in-flight flag.
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
@@ -510,7 +523,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Perform updates in a single loop
       // Note: We use a loop here because we're usually reordering < 20 items.
-      // TODO: replace with executeSet for atomicity
+      // TODO: replace with executeSet for atomicity — also the reorderHabits fire-and-forget below
+      // (void pushAllHabits) swallows errors; add .catch or retry.
       const reorderNow = new Date().toISOString();
       for (let i = 0; i < newOrderedHabits.length; i++) {
         await db.run(`UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`, [

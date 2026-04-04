@@ -48,6 +48,8 @@ export function notifModeForUnit(unit: Frequency['periodUnit'] | 'custom'): Noti
 // Deterministic integer ID from habit id, used to derive notification IDs.
 // Receives a weekday digit downstream to create unique IDs for each day.
 // Clamped to max 2,147,483,640 to avoid a theoretical overflow (...483_640+7).
+// TODO: extract 2_147_483_640 to a named constant (e.g. MAX_NOTIFICATION_ID_BASE) so its
+// purpose and relationship to the +7 offset is obvious at the call sites.
 export function habitNotificationId(habitId: string): number {
   return simpleHash(habitId) % 2_147_483_640;
 }

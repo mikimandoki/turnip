@@ -62,6 +62,8 @@ export async function syncHabitNotification(
   await db.run(`DELETE FROM notification_queue WHERE habitId = ?`, [habit.id]);
 
   // 3. Schedule fresh notifications
+  // TODO: magic number — extract 30 to a named constant (e.g. NOTIFICATION_WINDOW_DAYS).
+  // Same value appears in performNotificationMaintenance below; keep them in sync.
   const until = addDays(from, 30);
   const scheduled = await scheduleHabitNotifications(habit.id, habit.name, settings, from, until);
 
@@ -126,6 +128,7 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
         : 1;
 
     // Ensure `until` is always far enough to fit at least one more occurrence beyond the horizon
+    // TODO: the 30 here should be the same NOTIFICATION_WINDOW_DAYS constant as in syncHabitNotification.
     const until = addDays(now, Math.max(30, stepDays + 7));
 
     const result = await db.query(

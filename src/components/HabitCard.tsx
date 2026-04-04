@@ -45,6 +45,9 @@ export default function HabitCard({
     c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
   );
   const { ref, isDragging } = useSortable({ id: habit.id, index });
+  // TODO: `completions` comes from context and is a new array reference on every render, so this
+  // useMemo will almost never skip. To make it effective, either memoize the completions array in
+  // context, or pass only the relevant completions for this habit as a prop.
   const habitStats = useMemo(
     () => calculateHabitStats(habit, completions, displayDate),
     [habit, completions, displayDate]

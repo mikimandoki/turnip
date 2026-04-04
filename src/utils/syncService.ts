@@ -172,6 +172,9 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
             notif_customMessage, notif_intervalN, notif_intervalUnit, updated_at
      FROM habits WHERE deleted_at IS NULL`
   );
+  // TODO: these `as string` / `as number` casts on Record<string, unknown> are unsafe. If the
+  // SQLite column names or types drift, this silently produces garbage. Replace with a Zod schema
+  // that validates the raw row shape before mapping, the same way loadDataFromDB does.
   const remoteHabits = (habitRows.values ?? []).map((row: Record<string, unknown>) => ({
     id: row.id as string,
     user_id: user.id,

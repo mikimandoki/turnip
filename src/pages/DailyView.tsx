@@ -92,6 +92,9 @@ export default function DailyView() {
         </div>
       )}
 
+      {/* TODO: extract the onDragEnd body into a standalone pure utility function
+          (e.g. applyDragReorder(habits, visibleHabits, from, to) → Habit[]) so it can be
+          unit-tested without mounting a component. */}
       {habits.length > 0 && (
         <DragDropProvider
           onDragEnd={event => {
@@ -126,6 +129,8 @@ export default function DailyView() {
         >
           <div className='habit-list'>
             {visibleHabits.map((habit, index) => (
+              // TODO: onClick and onLog are recreated every render. Wrap with useCallback (keyed
+              // by habit.id) so a memoized HabitCard can skip re-renders.
               <HabitCard
                 key={habit.id}
                 index={index}
@@ -155,6 +160,9 @@ export default function DailyView() {
       )}
 
       <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
+      {/* TODO: these dev buttons (and the debugNotifs function above) are present in the
+          production bundle — only the render is gated. Move them to a dev-only module so
+          tree-shaking removes them entirely in production builds. */}
       {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
           <button className='btn-add-habit' onClick={() => void clearAll()}>
