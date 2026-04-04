@@ -1,8 +1,10 @@
+import { type User } from '@supabase/supabase-js';
 import { Dialog, Switch } from 'radix-ui';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { exportData } from '../utils/dataTransfer';
+import { supabase } from '../utils/supabase';
 
 export default function SettingsModal({
   open,
@@ -17,6 +19,49 @@ export default function SettingsModal({
     message: string;
     state: 'error' | 'ok' | 'warning';
   } | null>(null);
+
+  // --- Auth state ---
+  const [user, setUser] = useState<User | null>(null);
+  const [authStep, setAuthStep] = useState<'idle' | 'verifying'>('idle');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function handleSendOtp() {
+    setAuthLoading(true);
+    setAuthError(null);
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    setAuthLoading(false);
+    if (error) { setAuthError(error.message); return; }
+    setAuthStep('verifying');
+  }
+
+  async function handleVerifyOtp() {
+    setAuthLoading(true);
+    setAuthError(null);
+    const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
+    setAuthLoading(false);
+    if (error) { setAuthError(error.message); return; }
+    setAuthStep('idle');
+    setEmail('');
+    setOtp('');
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setAuthStep('idle');
+    setEmail('');
+    setOtp('');
+  }
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -106,6 +151,68 @@ export default function SettingsModal({
                 Import from file
               </button>
             </div>
+          </div>
+
+          <div className='settings-section settings-section-divided'>
+            {user ? (
+              <div className='settings-item-stack'>
+                <span className='settings-item-label'>Backup &amp; sync</span>
+                <span className='settings-item-desc'>Signed in as {user.email}</span>
+                <button className='btn-base btn-ghost' onClick={() => void handleSignOut()}>
+                  Sign out
+                </button>
+              </div>
+            ) : authStep === 'verifying' ? (
+              <div className='settings-item-stack'>
+                <span className='settings-item-label'>Check your email</span>
+                <span className='settings-item-desc'>Enter the 8-digit code sent to {email}</span>
+                <input
+                  className='text-input'
+                  type='text'
+                  inputMode='numeric'
+                  placeholder='12345678'
+                  maxLength={8}
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                />
+                <button
+                  className='btn-base btn-ghost'
+                  disabled={otp.length < 8 || authLoading}
+                  onClick={() => void handleVerifyOtp()}
+                >
+                  {authLoading ? 'Verifying…' : 'Verify'}
+                </button>
+                <button
+                  className='btn-base btn-ghost'
+                  onClick={() => { setAuthStep('idle'); setAuthError(null); }}
+                >
+                  Back
+                </button>
+                {authError && <p className='settings-status-error'>{authError}</p>}
+              </div>
+            ) : (
+              <div className='settings-item-stack'>
+                <span className='settings-item-label'>Backup &amp; sync</span>
+                <span className='settings-item-desc'>
+                  Sign in to back up your habits and sync across devices.
+                </span>
+                <input
+                  className='text-input'
+                  type='email'
+                  placeholder='you@example.com'
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+                <button
+                  className='btn-base btn-ghost'
+                  disabled={!email.includes('@') || authLoading}
+                  onClick={() => void handleSendOtp()}
+                >
+                  {authLoading ? 'Sending…' : 'Send code'}
+                </button>
+                {authError && <p className='settings-status-error'>{authError}</p>}
+              </div>
+            )}
           </div>
 
           {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}

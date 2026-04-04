@@ -534,6 +534,7 @@ h1,
   gap: var(--spacing-lg);
 }
 
+.text-input,
 .add-habit-form input[type='text'],
 .add-habit-form input[type='number'],
 .add-habit-form input[type='time'],
@@ -554,6 +555,7 @@ input[type='time'] {
   margin-right: var(--spacing-md);
 }
 
+.text-input:focus,
 .add-habit-form input[type='text']:focus,
 .add-habit-form input[type='number']:focus,
 .add-habit-form input[type='time']:focus,
@@ -577,6 +579,7 @@ input[type='time']:focus {
   border-top: 0.5px solid var(--color-border-secondary);
 }
 
+.text-input::placeholder,
 .add-habit-form input::placeholder {
   color: var(--color-text-secondary);
   opacity: 1;
