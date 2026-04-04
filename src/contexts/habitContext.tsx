@@ -1,3 +1,4 @@
+import { App } from '@capacitor/app';
 import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
@@ -61,6 +62,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   } | null>(null);
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
+
+  useEffect(() => {
+    if (!isNative) return;
+    const listener = App.addListener('backButton', ({ canGoBack }) => {
+      if (canGoBack) {
+        window.history.back();
+      } else {
+        void App.exitApp();
+      }
+    });
+    return () => {
+      void listener.then(l => void l.remove());
+    };
+  }, []);
 
   async function recheckNotificationPermission() {
     if (!isNative) return;
