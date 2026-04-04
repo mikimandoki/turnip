@@ -445,6 +445,30 @@ h1,
   gap: var(--spacing-md);
 }
 
+/* Alert dialog sits above an open settings/detail modal */
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+}
+
+.alert-content {
+  position: fixed;
+  top: calc(var(--screen-height) * 0.25);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 201;
+  width: min(360px, 90vw);
+  background: var(--color-background-primary);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
 .modal-title {
   font-size: 16px;
   font-weight: 600;

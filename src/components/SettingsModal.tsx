@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { exportData } from '../utils/dataTransfer';
 import { supabase } from '../utils/supabase';
+import Alert from './Alert';
 
 export default function SettingsModal({
   open,
@@ -13,7 +14,16 @@ export default function SettingsModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { habits, completions, applyImport, darkMode, toggleDarkMode } = useHabitContext();
+  const {
+    habits,
+    completions,
+    applyImport,
+    darkMode,
+    toggleDarkMode,
+    notifPermissionPrompt,
+    dismissNotifPrompt,
+    confirmNotifPrompt,
+  } = useHabitContext();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{
     message: string;
@@ -39,9 +49,15 @@ export default function SettingsModal({
   async function handleSendOtp() {
     setAuthLoading(true);
     setAuthError(null);
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true },
+    });
     setAuthLoading(false);
-    if (error) { setAuthError(error.message); return; }
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
     setAuthStep('verifying');
   }
 
@@ -50,7 +66,10 @@ export default function SettingsModal({
     setAuthError(null);
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
     setAuthLoading(false);
-    if (error) { setAuthError(error.message); return; }
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
     setAuthStep('idle');
     setEmail('');
     setOtp('');
@@ -62,6 +81,7 @@ export default function SettingsModal({
     setEmail('');
     setOtp('');
   }
+
   function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -69,14 +89,11 @@ export default function SettingsModal({
     reader.onload = ev => {
       const json = ev.target?.result as string;
       void applyImport(json).then(result => {
-        setStatus(
-          result.success
-            ? {
-                message: result.warning ?? 'Import successful.',
-                state: result.warning ? 'warning' : 'ok',
-              }
-            : { message: result.error ?? 'Import failed.', state: 'error' }
-        );
+        if (result.success) {
+          setStatus({ message: 'Import successful.', state: 'ok' });
+        } else {
+          setStatus({ message: result.error ?? 'Import failed.', state: 'error' });
+        }
       });
     };
     reader.readAsText(file);
@@ -184,7 +201,10 @@ export default function SettingsModal({
                 </button>
                 <button
                   className='btn-base btn-ghost'
-                  onClick={() => { setAuthStep('idle'); setAuthError(null); }}
+                  onClick={() => {
+                    setAuthStep('idle');
+                    setAuthError(null);
+                  }}
                 >
                   Back
                 </button>
@@ -217,6 +237,19 @@ export default function SettingsModal({
 
           {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
         </Dialog.Content>
+
+        <Alert
+          open={!!notifPermissionPrompt}
+          title='Enable notifications'
+          description={notifPermissionPrompt?.message ?? ''}
+          confirm='Enable'
+          cancel='Not now'
+          variant='primary'
+          onOpenChange={isOpen => {
+            if (!isOpen) dismissNotifPrompt();
+          }}
+          onConfirm={confirmNotifPrompt}
+        />
       </Dialog.Portal>
     </Dialog.Root>
   );

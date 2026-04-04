@@ -32,6 +32,18 @@ import {
   syncHabitNotification,
 } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
+import { supabase } from '../utils/supabase';
+import {
+  pullAll,
+  pushAllCompletions,
+  pushAllHabits,
+  pushCompletion,
+  pushHabit,
+  softDeleteAllHabits,
+  softDeleteCompletion,
+  softDeleteHabit,
+  syncOnSignIn,
+} from '../utils/syncService';
 import { isNative } from '../utils/utils';
 import { HabitContext } from './useHabitContext';
 
@@ -43,6 +55,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [osNotificationsGranted, setOsNotificationsGranted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
+  const [notifPermissionPrompt, setNotifPermissionPrompt] = useState<{
+    message: string;
+    habits: Habit[];
+  } | null>(null);
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
 
@@ -99,16 +115,19 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       if (newCount < 0) return;
 
+      const now = new Date().toISOString();
       if (newCount === 0) {
         await db.run(`DELETE FROM completions WHERE habitId = ? AND date = ?;`, [habitId, today]);
+        void softDeleteCompletion(habitId, today);
       } else {
         // 2. The UPSERT: Insert new row or update existing count
         await db.run(
-          `INSERT INTO completions (habitId, date, count) 
-           VALUES (?, ?, ?)
-           ON CONFLICT(habitId, date) DO UPDATE SET count = excluded.count;`,
-          [habitId, today, newCount]
+          `INSERT INTO completions (habitId, date, count, updated_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(habitId, date) DO UPDATE SET count = excluded.count, updated_at = excluded.updated_at;`,
+          [habitId, today, newCount, now]
         );
+        void pushCompletion(habitId, today, newCount);
       }
 
       await syncDB();
@@ -146,8 +165,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const maxSort =
         (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newHabit.id,
           newHabit.name,
@@ -156,6 +175,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           newHabit.frequency.periodLength,
           newHabit.frequency.periodUnit,
           maxSort + 1,
+          new Date().toISOString(),
         ]
       );
 
@@ -165,6 +185,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       } else {
         await syncDB();
       }
+
+      // 4. Push to Supabase (fire-and-forget)
+      const sortResult2 = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [
+        newHabit.id,
+      ]);
+      const sortOrder =
+        (sortResult2.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
+      void pushHabit(newHabit, sortOrder);
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       console.error('❌ Add Habit Failed:', errorMsg);
@@ -187,12 +215,13 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Update core habit fields
       await db.run(
-        `UPDATE habits SET name = ?, times = ?, periodLength = ?, periodUnit = ? WHERE id = ?;`,
+        `UPDATE habits SET name = ?, times = ?, periodLength = ?, periodUnit = ?, updated_at = ? WHERE id = ?;`,
         [
           merged.name.trim(),
           merged.frequency.times,
           merged.frequency.periodLength,
           merged.frequency.periodUnit,
+          new Date().toISOString(),
           habit.id,
         ]
       );
@@ -209,6 +238,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 3. Reload state from DB
       const updatedData = await loadDataFromDB();
       setHabits(updatedData.habits);
+
+      // 4. Push to Supabase (fire-and-forget)
+      const sortRes = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [habit.id]);
+      const sortOrder = (sortRes.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
+      void pushHabit(merged, sortOrder);
 
       void hapticsMedium();
     } catch (e) {
@@ -284,25 +318,82 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void (async () => {
+          const { data } = await supabase.auth.getSession();
+          if (!data.session) return;
+          const db = await getDB();
+          await pullAll(db);
+          const synced = await loadDataFromDB();
+          setHabits(synced.habits);
+          setCompletions(synced.completions);
+        })();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  useEffect(() => {
     void (async () => {
+      const db = await getDB();
       const [dbData, onboarded, dm] = await Promise.all([
         loadDataFromDB(),
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
         loadFromStorage('darkMode', null, z.boolean().nullable()),
       ]);
+
+      // Pull from Supabase if signed in, then reload local state
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        await pullAll(db);
+        const synced = await loadDataFromDB();
+        setHabits(synced.habits);
+        setCompletions(synced.completions);
+      } else {
+        setHabits(dbData.habits);
+        setCompletions(dbData.completions);
+      }
+
       // Trigger the maintenance loop once data is loaded
       if (dbData.habits.length > 0) {
         // We don't 'await' this so it doesn't block the UI render
         void performNotificationMaintenance(dbData.habits);
       }
-      // Populate State
-      setHabits(dbData.habits);
-      setCompletions(dbData.completions);
 
       setHasOnboarded(onboarded || dbData.habits.length > 0);
       setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
       setLoading(false);
     })();
+  }, []);
+
+  // On sign-in: push local data up, then pull remote down, then refresh UI
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        void (async () => {
+          const db = await getDB();
+          await syncOnSignIn(db);
+          const synced = await loadDataFromDB();
+          setHabits(synced.habits);
+          setCompletions(synced.completions);
+          if (isNative && synced.habits.some(h => h.notification?.enabled)) {
+            const alreadyGranted = await checkNotificationPermission();
+            if (alreadyGranted) {
+              void performNotificationMaintenance(synced.habits);
+            } else {
+              setNotifPermissionPrompt({
+                message:
+                  'Some of your synced habits have reminders set up. Grant notification permission to receive them on this device.',
+                habits: synced.habits,
+              });
+            }
+          }
+        })();
+      }
+    });
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   async function deleteHabit(habit: Habit) {
@@ -316,6 +407,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Delete habit — cascades to completions and notification_queue
       await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
+      void softDeleteHabit(habit.id);
 
       // 3. Sync the SQLite file to IndexedDB (Web layer)
       await syncDB();
@@ -348,6 +440,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function clearAll() {
     const db = await getDB();
     await cancelAllHabitNotifications();
+    void softDeleteAllHabits();
     await db.run(`DELETE FROM habits`);
     await syncDB();
     await clearStorage();
@@ -403,12 +496,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 2. Perform updates in a single loop
       // Note: We use a loop here because we're usually reordering < 20 items.
       // TODO: replace with executeSet for atomicity
+      const reorderNow = new Date().toISOString();
       for (let i = 0; i < newOrderedHabits.length; i++) {
-        await db.run(`UPDATE habits SET sortOrder = ? WHERE id = ?;`, [i, newOrderedHabits[i].id]);
+        await db.run(`UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`, [
+          i,
+          reorderNow,
+          newOrderedHabits[i].id,
+        ]);
       }
 
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
+      void pushAllHabits(newOrderedHabits);
       void hapticsLight();
     } catch (e) {
       console.error('Failed to sync reorder to DB:', e);
@@ -439,7 +538,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         [
           { statement: `DELETE FROM habits`, values: [] },
           ...parsed.habits.map((h, i) => ({
-            statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at,
+              notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays, notif_customMessage, notif_intervalN, notif_intervalUnit)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             values: [
               h.id,
               h.name,
@@ -448,6 +549,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               h.frequency.periodLength,
               h.frequency.periodUnit,
               i,
+              new Date().toISOString(),
+              h.notification?.enabled ? 1 : 0,
+              h.notification?.mode ?? null,
+              h.notification?.time ?? null,
+              h.notification?.days ? JSON.stringify(h.notification.days) : null,
+              h.notification?.monthDays ? JSON.stringify(h.notification.monthDays) : null,
+              h.notification?.customMessage ?? null,
+              h.notification?.intervalN ?? null,
+              h.notification?.intervalUnit ?? null,
             ],
           })),
           ...parsed.completions.map(c => ({
@@ -459,14 +569,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       );
 
       // Schedule notifications, request permission if needed
-      let warning: string | undefined;
       const notifHabits = parsed.habits.filter(h => h.notification?.enabled);
       if (isNative && notifHabits.length > 0) {
-        const granted =
-          (await checkNotificationPermission()) || (await requestNotificationPermission());
-        if (!granted) {
-          warning = `Import successful, but ${notifHabits.length} reminder${notifHabits.length === 1 ? '' : 's'} couldn't be scheduled — notification permission was denied.`;
-        } else {
+        const alreadyGranted = await checkNotificationPermission();
+        if (alreadyGranted) {
           for (const h of notifHabits) {
             try {
               await syncHabitNotification(h, h.notification!, new Date());
@@ -474,18 +580,26 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               console.warn(`[import] Failed to schedule notifications for ${h.name}`, e);
             }
           }
+        } else {
+          setNotifPermissionPrompt({
+            message: `${notifHabits.length} of your imported habits ${notifHabits.length === 1 ? 'has a reminder' : 'have reminders'} set up. Grant notification permission to activate them.`,
+            habits: parsed.habits,
+          });
         }
       }
 
       await syncDB();
       await saveToStorage('hasOnboarded', true);
 
+      void pushAllHabits(parsed.habits);
+      void pushAllCompletions(parsed.completions);
+
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
       setCompletions(fresh.completions);
       setHasOnboarded(true);
 
-      return { success: true, warning };
+      return { success: true };
     } catch (e) {
       console.error('❌ Import failed:', e);
       return {
@@ -520,6 +634,17 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         toggleDarkMode,
         osNotificationsGranted,
         recheckNotificationPermission,
+        notifPermissionPrompt,
+        dismissNotifPrompt: () => setNotifPermissionPrompt(null),
+        confirmNotifPrompt: () => {
+          const habits = notifPermissionPrompt!.habits;
+          setNotifPermissionPrompt(null);
+          void (async () => {
+            const granted = await requestNotificationPermission();
+            setOsNotificationsGranted(granted);
+            if (granted) void performNotificationMaintenance(habits);
+          })();
+        },
       }}
     >
       {children}

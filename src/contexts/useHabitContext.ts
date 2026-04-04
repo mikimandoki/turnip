@@ -17,11 +17,14 @@ export interface HabitContextType {
   setDate: (dateString: string | null) => void;
   clearAll: () => Promise<void>;
   loadDemoData: () => Promise<void>;
-  applyImport: (json: string) => Promise<{ success: boolean; error?: string; warning?: string }>;
+  applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
   reorderHabits: (habits: Habit[]) => Promise<void>;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;
+  notifPermissionPrompt: { message: string; habits: Habit[] } | null;
+  dismissNotifPrompt: () => void;
+  confirmNotifPrompt: () => void;
 }
 
 export const HabitContext = createContext<HabitContextType | null>(null);

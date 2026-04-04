@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
@@ -97,8 +97,30 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     await db.run(`PRAGMA user_version = 1`);
   }
 
+  if (currentVersion < 2) {
+    // Add updated_at and deleted_at for sync conflict resolution.
+    const h2 = await db.query(`PRAGMA table_info(habits)`);
+    const hCols = new Set((h2.values ?? []).map((r: { name: string }) => r.name));
+    if (!hCols.has('updated_at')) {
+      await db.execute(`ALTER TABLE habits ADD COLUMN updated_at TEXT`);
+      await db.execute(`UPDATE habits SET updated_at = createdAt WHERE updated_at IS NULL`);
+    }
+    if (!hCols.has('deleted_at')) {
+      await db.execute(`ALTER TABLE habits ADD COLUMN deleted_at TEXT`);
+    }
+
+    const c2 = await db.query(`PRAGMA table_info(completions)`);
+    const cCols = new Set((c2.values ?? []).map((r: { name: string }) => r.name));
+    if (!cCols.has('updated_at')) {
+      await db.execute(`ALTER TABLE completions ADD COLUMN updated_at TEXT`);
+      await db.execute(`UPDATE completions SET updated_at = date WHERE updated_at IS NULL`);
+    }
+
+    await db.run(`PRAGMA user_version = 2`);
+  }
+
   // Future versions go here:
-  // if (currentVersion < 2) { ... await db.run(`PRAGMA user_version = 2`); }
+  // if (currentVersion < 3) { ... await db.run(`PRAGMA user_version = 3`); }
 }
 
 /**
