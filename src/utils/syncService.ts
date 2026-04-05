@@ -60,6 +60,12 @@ export async function softDeleteHabit(habitId: string): Promise<void> {
     console.error('[sync] softDeleteHabit completions failed:', compRes.error.message);
 }
 
+export async function deleteSupabaseAccount(): Promise<{ error?: string }> {
+  const { error } = (await supabase.functions.invoke('delete-account')) as { error: unknown };
+  if (error) return { error: error instanceof Error ? error.message : 'Failed to delete account' };
+  return {};
+}
+
 export async function softDeleteAllHabits(): Promise<void> {
   const user = await getUser();
   if (!user) return;

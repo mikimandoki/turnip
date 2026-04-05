@@ -20,6 +20,7 @@ export default function SettingsModal({
     applyImport,
     darkMode,
     toggleDarkMode,
+    deleteAccount,
     notifPermissionPrompt,
     dismissNotifPrompt,
     confirmNotifPrompt,
@@ -32,16 +33,24 @@ export default function SettingsModal({
 
   // --- Auth state ---
   const [user, setUser] = useState<User | null>(null);
-  const [authStep, setAuthStep] = useState<'idle' | 'verifying'>('idle');
+  const [authStep, setAuthStep] = useState<'check-inbox' | 'idle' | 'verifying'>('idle');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (!session) {
+        setAuthStep('idle');
+        setEmail('');
+        setOtp('');
+        setAuthError(null);
+      }
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -49,16 +58,30 @@ export default function SettingsModal({
   async function handleSendOtp() {
     setAuthLoading(true);
     setAuthError(null);
-    const { error } = await supabase.auth.signInWithOtp({
+
+    // Try existing user first — if it succeeds, an OTP was sent
+    const { error: existingError } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+
+    if (!existingError) {
+      setAuthLoading(false);
+      setAuthStep('verifying');
+      return;
+    }
+
+    // User doesn't exist — create account and send magic link
+    const { error: newError } = await supabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: true },
     });
     setAuthLoading(false);
-    if (error) {
-      setAuthError(error.message);
+    if (newError) {
+      setAuthError(newError.message);
       return;
     }
-    setAuthStep('verifying');
+    setAuthStep('check-inbox');
   }
 
   async function handleVerifyOtp() {
@@ -178,11 +201,34 @@ export default function SettingsModal({
                 <button className='btn-base btn-ghost' onClick={() => void handleSignOut()}>
                   Sign out
                 </button>
+                <button className='btn-base btn-danger' onClick={() => setDeleteAccountOpen(true)}>
+                  Delete account
+                </button>
+                {deleteAccountError && (
+                  <p className='settings-status-error'>{deleteAccountError}</p>
+                )}
+              </div>
+            ) : authStep === 'check-inbox' ? (
+              <div className='settings-item-stack'>
+                <span className='settings-item-label'>Check your inbox</span>
+                <span className='settings-item-desc'>
+                  We sent a magic link to {email}. Check your inbox to create your account and start
+                  syncing.
+                </span>
+                <button
+                  className='btn-base btn-ghost'
+                  onClick={() => {
+                    setAuthStep('idle');
+                    setAuthError(null);
+                  }}
+                >
+                  Back
+                </button>
               </div>
             ) : authStep === 'verifying' ? (
               <div className='settings-item-stack'>
                 <span className='settings-item-label'>Check your email</span>
-                <span className='settings-item-desc'>Enter the 8-digit code sent to {email}</span>
+                <span className='settings-item-desc'>Welcome back! Enter the 8-digit code sent to {email}</span>
                 <input
                   className='text-input'
                   type='text'
@@ -228,7 +274,7 @@ export default function SettingsModal({
                   disabled={!email.includes('@') || authLoading}
                   onClick={() => void handleSendOtp()}
                 >
-                  {authLoading ? 'Sending…' : 'Send code'}
+                  {authLoading ? 'Sending…' : 'Continue'}
                 </button>
                 {authError && <p className='settings-status-error'>{authError}</p>}
               </div>
@@ -237,6 +283,26 @@ export default function SettingsModal({
 
           {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
         </Dialog.Content>
+
+        <Alert
+          open={deleteAccountOpen}
+          title='Delete account?'
+          description={
+            'Your account, all habits, and your entire history will be permanently erased, including the cloud backup.\n\nThis cannot be undone.\n\nAre you sure you want to continue?'
+          }
+          confirm='Delete account'
+          cancel='Cancel'
+          onOpenChange={isOpen => {
+            setDeleteAccountOpen(isOpen);
+            if (!isOpen) setDeleteAccountError(null);
+          }}
+          onConfirm={() => {
+            void (async () => {
+              const result = await deleteAccount();
+              if (result.error) setDeleteAccountError(result.error);
+            })();
+          }}
+        />
 
         <Alert
           open={!!notifPermissionPrompt}

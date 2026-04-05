@@ -35,6 +35,7 @@ import {
 import { getDB, syncDB } from '../utils/sqlite';
 import { supabase } from '../utils/supabase';
 import {
+  deleteSupabaseAccount,
   pullAll,
   pushAllCompletions,
   pushAllHabits,
@@ -477,6 +478,25 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setHasOnboarded(false);
   }
 
+  async function deleteAccount(): Promise<{ error?: string }> {
+    const result = await deleteSupabaseAccount();
+    if (result.error) return result;
+
+    const db = await getDB();
+    await cancelAllHabitNotifications();
+    await db.run(`DELETE FROM habits`);
+    await syncDB();
+    await clearStorage();
+    // Session is already invalidated by account deletion — signOut may 403, that's fine.
+    await supabase.auth.signOut().catch(() => undefined);
+
+    setHabits([]);
+    setCompletions([]);
+    setHasOnboarded(false);
+
+    return {};
+  }
+
   async function loadDemoData() {
     const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
     const db = await getDB();
@@ -657,6 +677,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         shiftDate,
         setDate,
         clearAll,
+        deleteAccount,
         loadDemoData,
         applyImport,
         reorderHabits,

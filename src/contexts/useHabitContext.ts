@@ -16,6 +16,7 @@ export interface HabitContextType {
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;
   clearAll: () => Promise<void>;
+  deleteAccount: () => Promise<{ error?: string }>;
   loadDemoData: () => Promise<void>;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
   reorderHabits: (habits: Habit[]) => Promise<void>;
