@@ -141,14 +141,15 @@ export default function SettingsModal({
       <Dialog.Portal>
         <Dialog.Overlay className='modal-overlay' />
         <Dialog.Content className='modal-content'>
-          {!notifPermissionPrompt && (
-            <Dialog.Title className='modal-title'>Settings</Dialog.Title>
-          )}
+          {!notifPermissionPrompt && <Dialog.Title className='modal-title'>Settings</Dialog.Title>}
 
           {notifPermissionPrompt ? (
             <div className='notif-prompt-panel'>
               <span className='settings-item-label'>
-                {notifPermissionPrompt.title ?? (notifPermissionPrompt.blocked ? 'Notifications blocked' : 'Enable notifications')}
+                {notifPermissionPrompt.title ??
+                  (notifPermissionPrompt.blocked
+                    ? 'Notifications blocked'
+                    : 'Enable notifications')}
               </span>
               <span className='settings-item-desc'>{notifPermissionPrompt.message}</span>
               {notifPermissionPrompt.blocked ? (
@@ -347,7 +348,6 @@ export default function SettingsModal({
             })();
           }}
         />
-
       </Dialog.Portal>
     </Dialog.Root>
   );

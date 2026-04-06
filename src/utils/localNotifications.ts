@@ -1,6 +1,6 @@
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
-import { addDays, endOfMonth, isAfter, setHours, setMinutes } from 'date-fns';
 import { AndroidSettings, IOSSettings, NativeSettings } from 'capacitor-native-settings';
+import { addDays, endOfMonth, isAfter, setHours, setMinutes } from 'date-fns';
 
 import { parseHabitEmoji } from './habits';
 import {
@@ -45,7 +45,7 @@ export async function openAppSettings(): Promise<void> {
   });
 }
 
-export async function checkNotificationPermission(): Promise<'granted' | 'prompt' | 'blocked'> {
+export async function checkNotificationPermission(): Promise<'blocked' | 'granted' | 'prompt'> {
   if (!isNative) return 'blocked';
   const { display } = await LocalNotifications.checkPermissions();
   if (display === 'granted') return 'granted';

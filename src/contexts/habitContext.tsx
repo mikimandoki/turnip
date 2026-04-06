@@ -1,10 +1,11 @@
-import { App } from '@capacitor/app';
-import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
+import { useBackButton } from '../hooks/useBackButton';
+import { useDarkMode } from '../hooks/useDarkMode';
+import { useNotificationPermission } from '../hooks/useNotificationPermission';
 import {
   type Completion,
   CompletionSchema,
@@ -19,7 +20,6 @@ import { hapticsLight, hapticsMedium } from '../utils/haptics';
 import {
   cancelAllHabitNotifications,
   checkNotificationPermission,
-  requestNotificationPermission,
 } from '../utils/localNotifications';
 import {
   clearStorage,
@@ -27,13 +27,9 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
-import {
-  cancelNotificationsForHabit,
-  performNotificationMaintenance,
-  syncHabitNotification,
-} from '../utils/notificationService';
+import { cancelNotificationsForHabit, syncHabitNotification } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
-import { APP_NAME, NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
+import { APP_NAME } from '../utils/strings';
 import { supabase } from '../utils/supabase';
 import {
   deleteSupabaseAccount,
@@ -54,79 +50,24 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [osNotificationsGranted, setOsNotificationsGranted] = useState(false);
   const [loading, setLoading] = useState(true);
   // TODO: store displayDate as a Date directly instead of round-tripping through string.
   // Currently: new Date() → toDateString (string) → parseISO (Date) on every render.
   // Store a Date in state and only convert to string when writing to DB or comparing dates.
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
-  const [notifPermissionPrompt, setNotifPermissionPrompt] = useState<{
-    title?: string;
-    message: string;
-    habits: Habit[];
-    blocked?: boolean;
-  } | null>(null);
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
 
-  useEffect(() => {
-    if (!isNative) return;
-    const listener = App.addListener('backButton', ({ canGoBack }) => {
-      if (canGoBack) {
-        window.history.back();
-      } else {
-        void App.exitApp();
-      }
-    });
-    return () => {
-      void listener.then(l => void l.remove());
-    };
-  }, []);
-
-  async function recheckNotificationPermission() {
-    if (!isNative) return;
-    setOsNotificationsGranted((await checkNotificationPermission()) === 'granted');
-  }
-
-  // TODO: there are 3 separate visibilitychange listeners across this provider (here, below, and
-  // the Supabase sync one). Consolidate into a single handler that runs all concerns via
-  // Promise.allSettled so they're easier to reason about and extend.
-  useEffect(() => {
-    if (!isNative) return;
-    void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  useEffect(() => {
-    if (!isNative || habits.length === 0) return;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void performNotificationMaintenance(habits);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [habits]);
-
-  useEffect(() => {
-    const html = document.documentElement;
-    if (darkMode) {
-      html.setAttribute('data-theme', 'dark');
-      html.removeAttribute('data-accent');
-      void SystemBars.setStyle({ style: SystemBarsStyle.Dark });
-    } else {
-      html.removeAttribute('data-theme');
-      html.setAttribute('data-accent', 'green');
-      void SystemBars.setStyle({ style: SystemBarsStyle.Light });
-    }
-  }, [darkMode]);
+  useBackButton();
+  const { darkMode, toggleDarkMode } = useDarkMode();
+  const {
+    osNotificationsGranted,
+    notifPermissionPrompt,
+    setNotifPermissionPrompt,
+    recheckNotificationPermission,
+    dismissNotifPrompt,
+    confirmNotifPrompt,
+  } = useNotificationPermission(habits);
 
   async function updateCompletion(habitId: string, increment: number) {
     const today = dateString;
@@ -333,7 +274,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         completions: z.array(CompletionSchema).parse(completions),
       };
     } catch (e) {
-      // Shout if anything goes wrong
       const errorMsg = e instanceof Error ? e.message : String(e);
       console.error('❌ Database Hydration Failed:', errorMsg);
 
@@ -346,6 +286,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // TODO: there are 3 separate visibilitychange listeners across this provider (here, below in
+  // useNotificationPermission, and the Supabase sync one). Consolidate into a single handler
+  // that runs all concerns via Promise.allSettled so they're easier to reason about and extend.
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -367,10 +310,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void (async () => {
       const db = await getDB();
-      const [dbData, onboarded, dm] = await Promise.all([
+      const [dbData, onboarded] = await Promise.all([
         loadDataFromDB(),
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-        loadFromStorage('darkMode', null, z.boolean().nullable()),
       ]);
 
       // Pull from Supabase if signed in, then reload local state
@@ -385,14 +327,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         setCompletions(dbData.completions);
       }
 
-      // Trigger the maintenance loop once data is loaded
-      if (dbData.habits.length > 0) {
-        // We don't 'await' this so it doesn't block the UI render
-        void performNotificationMaintenance(dbData.habits);
-      }
-
       setHasOnboarded(onboarded || dbData.habits.length > 0);
-      setDarkMode(dm ?? window.matchMedia('(prefers-color-scheme: dark)').matches);
       setLoading(false);
     })();
   }, []);
@@ -433,12 +368,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await syncDB();
 
       // 4. Update React State
-      // We filter both habits and completions out of memory
-      const updatedHabits = habits.filter(h => h.id !== habit.id);
-      const updatedCompletions = completions.filter(c => c.habitId !== habit.id);
-
-      setHabits(updatedHabits);
-      setCompletions(updatedCompletions);
+      setHabits(habits.filter(h => h.id !== habit.id));
+      setCompletions(completions.filter(c => c.habitId !== habit.id));
 
       // 5. Feedback
       void hapticsMedium();
@@ -551,16 +482,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       void hapticsLight();
     } catch (e) {
       console.error('Failed to sync reorder to DB:', e);
-      // Optional: Re-fetch from DB to reset UI on failure
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
     }
-  }
-
-  function toggleDarkMode() {
-    const next = !darkMode;
-    setDarkMode(next);
-    void saveToStorage('darkMode', next);
   }
 
   async function applyImport(
@@ -623,14 +547,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         } else if (permStatus === 'blocked') {
           setNotifPermissionPrompt({
             title: 'Import successful',
-            message: `Some of your habits have reminders, but notifications are turned off. Enable them in your device settings to receive notifications`,
+            message: `Some of your habits have reminders, but notifications are turned off. Enable them in your device settings to receive notifications.`,
             habits: [],
             blocked: true,
           });
         } else {
           setNotifPermissionPrompt({
             title: 'Import successful',
-            message: `Some of your habits have reminders. ${APP_NAME} needs permissions to send notifications.`,
+            message: `Some of your habits have reminders. ${APP_NAME} needs permission to send notifications.`,
             habits: notifHabits,
           });
         }
@@ -684,25 +608,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         osNotificationsGranted,
         recheckNotificationPermission,
         notifPermissionPrompt,
-        dismissNotifPrompt: () => setNotifPermissionPrompt(null),
-        confirmNotifPrompt: () => {
-          const habits = notifPermissionPrompt!.habits;
-          void (async () => {
-            const result = await requestNotificationPermission();
-            if (result === 'blocked') {
-              setNotifPermissionPrompt({
-                message: NOTIF_BLOCKED_MESSAGE,
-                habits: [],
-                blocked: true,
-              });
-              return;
-            }
-            setNotifPermissionPrompt(null);
-            const granted = result === 'granted';
-            setOsNotificationsGranted(granted);
-            if (granted) void performNotificationMaintenance(habits);
-          })();
-        },
+        dismissNotifPrompt,
+        confirmNotifPrompt,
       }}
     >
       {children}
