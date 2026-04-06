@@ -33,6 +33,7 @@ import {
   syncHabitNotification,
 } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
+import { APP_NAME, NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { supabase } from '../utils/supabase';
 import {
   deleteSupabaseAccount,
@@ -61,8 +62,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   // Store a Date in state and only convert to string when writing to DB or comparing dates.
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const [notifPermissionPrompt, setNotifPermissionPrompt] = useState<{
+    title?: string;
     message: string;
     habits: Habit[];
+    blocked?: boolean;
   } | null>(null);
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
@@ -83,7 +86,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   async function recheckNotificationPermission() {
     if (!isNative) return;
-    setOsNotificationsGranted(await checkNotificationPermission());
+    setOsNotificationsGranted((await checkNotificationPermission()) === 'granted');
   }
 
   // TODO: there are 3 separate visibilitychange listeners across this provider (here, below, and
@@ -91,10 +94,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   // Promise.allSettled so they're easier to reason about and extend.
   useEffect(() => {
     if (!isNative) return;
-    void checkNotificationPermission().then(setOsNotificationsGranted);
+    void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void checkNotificationPermission().then(setOsNotificationsGranted);
+        void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -608,8 +611,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // Schedule notifications, request permission if needed
       const notifHabits = parsed.habits.filter(h => h.notification?.enabled);
       if (isNative && notifHabits.length > 0) {
-        const alreadyGranted = await checkNotificationPermission();
-        if (alreadyGranted) {
+        const permStatus = await checkNotificationPermission();
+        if (permStatus === 'granted') {
           for (const h of notifHabits) {
             try {
               await syncHabitNotification(h, h.notification!, new Date());
@@ -617,10 +620,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               console.warn(`[import] Failed to schedule notifications for ${h.name}`, e);
             }
           }
+        } else if (permStatus === 'blocked') {
+          setNotifPermissionPrompt({
+            title: 'Import successful',
+            message: `Some of your habits have reminders, but notifications are turned off. Enable them in your device settings to receive notifications`,
+            habits: [],
+            blocked: true,
+          });
         } else {
           setNotifPermissionPrompt({
-            message: `${notifHabits.length} of your imported habits ${notifHabits.length === 1 ? 'has a reminder' : 'have reminders'} set up. Grant notification permission to activate them.`,
-            habits: parsed.habits,
+            title: 'Import successful',
+            message: `Some of your habits have reminders. ${APP_NAME} needs permissions to send notifications.`,
+            habits: notifHabits,
           });
         }
       }
@@ -676,9 +687,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         dismissNotifPrompt: () => setNotifPermissionPrompt(null),
         confirmNotifPrompt: () => {
           const habits = notifPermissionPrompt!.habits;
-          setNotifPermissionPrompt(null);
           void (async () => {
-            const granted = await requestNotificationPermission();
+            const result = await requestNotificationPermission();
+            if (result === 'blocked') {
+              setNotifPermissionPrompt({
+                message: NOTIF_BLOCKED_MESSAGE,
+                habits: [],
+                blocked: true,
+              });
+              return;
+            }
+            setNotifPermissionPrompt(null);
+            const granted = result === 'granted';
             setOsNotificationsGranted(granted);
             if (granted) void performNotificationMaintenance(habits);
           })();

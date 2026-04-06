@@ -13,9 +13,9 @@ export default function Alert({
   title: string;
   description: string;
   confirm: string;
-  cancel: string;
+  cancel?: string;
   open: boolean;
-  onConfirm: () => void;
+  onConfirm?: () => void;
   onOpenChange: (open: boolean) => void;
   variant?: 'danger' | 'primary';
 }) {
@@ -28,8 +28,10 @@ export default function Alert({
           <AlertDialog.Description className='modal-description'>
             {description}
           </AlertDialog.Description>
-          <div className='modal-actions'>
-            <AlertDialog.Cancel className='btn-base btn-ghost'>{cancel}</AlertDialog.Cancel>
+          <div className={cancel ? 'modal-actions' : ''}>
+            {cancel && (
+              <AlertDialog.Cancel className='btn-base btn-ghost'>{cancel}</AlertDialog.Cancel>
+            )}
             <AlertDialog.Action className={`btn-base btn-${variant}`} onClick={onConfirm}>
               {confirm}
             </AlertDialog.Action>

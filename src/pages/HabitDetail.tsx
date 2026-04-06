@@ -17,6 +17,7 @@ import {
 } from '../utils/habits';
 import {
   checkNotificationPermission,
+  openAppSettings,
   requestNotificationPermission,
 } from '../utils/localNotifications';
 import {
@@ -27,6 +28,7 @@ import {
   notifModeForUnit,
   validateNotif,
 } from '../utils/notifications';
+import { NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
 
 export default function HabitDetail() {
@@ -53,6 +55,7 @@ export default function HabitDetail() {
   const [errors, setErrors] = useState<string[]>([]);
   const [notifValidated, setNotifValidated] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [notifBlockedOpen, setNotifBlockedOpen] = useState(false);
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
@@ -78,15 +81,14 @@ export default function HabitDetail() {
       return;
     }
     if (isNative && editNotif.enabled) {
-      const granted =
-        (await checkNotificationPermission()) || (await requestNotificationPermission());
-      if (!granted) {
-        setErrors([
-          'Notification permission was denied. You can enable it in your device settings.',
-        ]);
-        return;
+      const permStatus = await checkNotificationPermission();
+      if (permStatus === 'blocked') {
+        setNotifBlockedOpen(true);
+      } else if (permStatus === 'prompt') {
+        const result = await requestNotificationPermission();
+        if (result === 'blocked') setNotifBlockedOpen(true);
+        void recheckNotificationPermission();
       }
-      void recheckNotificationPermission();
     }
     setErrors([]);
     await editHabit(habit, {
@@ -275,6 +277,16 @@ export default function HabitDetail() {
             void navigate('/');
           })();
         }}
+      />
+      <Alert
+        open={notifBlockedOpen}
+        title='Notifications blocked'
+        description={NOTIF_BLOCKED_MESSAGE}
+        confirm='Open Settings'
+        cancel='Not now'
+        variant='primary'
+        onOpenChange={setNotifBlockedOpen}
+        onConfirm={() => void openAppSettings()}
       />
     </>
   );

@@ -445,6 +445,13 @@ h1,
   gap: var(--spacing-md);
 }
 
+/* Notification permission prompt — inline panel inside Dialog.Content */
+.notif-prompt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
 /* Alert dialog sits above an open settings/detail modal */
 .alert-overlay {
   position: fixed;

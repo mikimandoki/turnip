@@ -1,5 +1,6 @@
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import { addDays, endOfMonth, isAfter, setHours, setMinutes } from 'date-fns';
+import { AndroidSettings, IOSSettings, NativeSettings } from 'capacitor-native-settings';
 
 import { parseHabitEmoji } from './habits';
 import {
@@ -36,16 +37,28 @@ function getHabitNudge(): string {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
-export async function checkNotificationPermission(): Promise<boolean> {
-  if (!isNative) return false;
-  const { display } = await LocalNotifications.checkPermissions();
-  return display === 'granted';
+export async function openAppSettings(): Promise<void> {
+  if (!isNative) return;
+  await NativeSettings.open({
+    optionAndroid: AndroidSettings.ApplicationDetails,
+    optionIOS: IOSSettings.App,
+  });
 }
 
-export async function requestNotificationPermission(): Promise<boolean> {
-  if (!isNative) return false;
+export async function checkNotificationPermission(): Promise<'granted' | 'prompt' | 'blocked'> {
+  if (!isNative) return 'blocked';
+  const { display } = await LocalNotifications.checkPermissions();
+  if (display === 'granted') return 'granted';
+  if (display === 'denied') return 'blocked';
+  return 'prompt';
+}
+
+export async function requestNotificationPermission(): Promise<'blocked' | 'denied' | 'granted'> {
+  if (!isNative) return 'denied';
+  const { display: current } = await LocalNotifications.checkPermissions();
+  if (current === 'denied') return 'blocked';
   const { display } = await LocalNotifications.requestPermissions();
-  return display === 'granted';
+  return display === 'granted' ? 'granted' : 'denied';
 }
 
 // --- Perpetual builders (OS repeats forever, scheduledAt = null) ---

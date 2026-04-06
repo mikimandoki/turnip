@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { exportData } from '../utils/dataTransfer';
+import { openAppSettings } from '../utils/localNotifications';
 import { supabase } from '../utils/supabase';
 import Alert from './Alert';
 
@@ -140,150 +141,191 @@ export default function SettingsModal({
       <Dialog.Portal>
         <Dialog.Overlay className='modal-overlay' />
         <Dialog.Content className='modal-content'>
-          <Dialog.Title className='modal-title'>Settings</Dialog.Title>
+          {!notifPermissionPrompt && (
+            <Dialog.Title className='modal-title'>Settings</Dialog.Title>
+          )}
 
-          <div className='settings-section'>
-            <div className='settings-item'>
-              <div className='settings-item-text'>
-                <span className='settings-item-label'>Dark mode</span>
-              </div>
-              <Switch.Root
-                checked={darkMode}
-                onCheckedChange={toggleDarkMode}
-                className='switch-root'
-              >
-                <Switch.Thumb className='switch-thumb' />
-              </Switch.Root>
-            </div>
-          </div>
-
-          <div className='settings-section settings-section-divided'>
-            <div className='settings-item-stack'>
-              <span className='settings-item-label'>Export data</span>
-              <span className='settings-item-desc'>
-                {habitCount > 0
-                  ? 'Download a backup of your habits and history'
-                  : 'Nothing to export yet — add some habits first'}
+          {notifPermissionPrompt ? (
+            <div className='notif-prompt-panel'>
+              <span className='settings-item-label'>
+                {notifPermissionPrompt.title ?? (notifPermissionPrompt.blocked ? 'Notifications blocked' : 'Enable notifications')}
               </span>
-              <button
-                className='btn-base btn-ghost'
-                disabled={habitCount === 0}
-                onClick={() => {
-                  void exportData(habits, completions).then(result => {
-                    if (result.error) setStatus({ message: result.error, state: 'error' });
-                  });
-                }}
-              >
-                Download backup
-              </button>
+              <span className='settings-item-desc'>{notifPermissionPrompt.message}</span>
+              {notifPermissionPrompt.blocked ? (
+                <>
+                  <button
+                    className='btn-base btn-primary'
+                    onClick={() => {
+                      dismissNotifPrompt();
+                      void openAppSettings();
+                    }}
+                  >
+                    Open Settings
+                  </button>
+                  <button className='btn-base btn-ghost' onClick={dismissNotifPrompt}>
+                    Not now
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className='btn-base btn-primary' onClick={confirmNotifPrompt}>
+                    Enable
+                  </button>
+                  <button className='btn-base btn-ghost' onClick={dismissNotifPrompt}>
+                    Not now
+                  </button>
+                </>
+              )}
             </div>
-            <div className='settings-item-stack'>
-              <span className='settings-item-label'>Import data</span>
-              <span className='settings-item-desc'>{importDesc}</span>
-              <input
-                ref={fileRef}
-                type='file'
-                accept='.json'
-                style={{ display: 'none' }}
-                onChange={handleImportFile}
-              />
-              <button className='btn-base btn-ghost' onClick={() => fileRef.current?.click()}>
-                Import from file
-              </button>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className='settings-section'>
+                <div className='settings-item'>
+                  <div className='settings-item-text'>
+                    <span className='settings-item-label'>Dark mode</span>
+                  </div>
+                  <Switch.Root
+                    checked={darkMode}
+                    onCheckedChange={toggleDarkMode}
+                    className='switch-root'
+                  >
+                    <Switch.Thumb className='switch-thumb' />
+                  </Switch.Root>
+                </div>
+              </div>
 
-          <div className='settings-section settings-section-divided'>
-            {user ? (
-              <div className='settings-item-stack'>
-                <span className='settings-item-label'>Backup &amp; sync</span>
-                <span className='settings-item-desc'>Signed in as {user.email}</span>
-                <button className='btn-base btn-ghost' onClick={() => void handleSignOut()}>
-                  Sign out
-                </button>
-                <button className='btn-base btn-danger' onClick={() => setDeleteAccountOpen(true)}>
-                  Delete account
-                </button>
-                {deleteAccountError && (
-                  <p className='settings-status-error'>{deleteAccountError}</p>
+              <div className='settings-section settings-section-divided'>
+                <div className='settings-item-stack'>
+                  <span className='settings-item-label'>Export data</span>
+                  <span className='settings-item-desc'>
+                    {habitCount > 0
+                      ? 'Download a backup of your habits and history'
+                      : 'Nothing to export yet — add some habits first'}
+                  </span>
+                  <button
+                    className='btn-base btn-ghost'
+                    disabled={habitCount === 0}
+                    onClick={() => {
+                      void exportData(habits, completions).then(result => {
+                        if (result.error) setStatus({ message: result.error, state: 'error' });
+                      });
+                    }}
+                  >
+                    Download backup
+                  </button>
+                </div>
+                <div className='settings-item-stack'>
+                  <span className='settings-item-label'>Import data</span>
+                  <span className='settings-item-desc'>{importDesc}</span>
+                  <input
+                    ref={fileRef}
+                    type='file'
+                    accept='.json'
+                    style={{ display: 'none' }}
+                    onChange={handleImportFile}
+                  />
+                  <button className='btn-base btn-ghost' onClick={() => fileRef.current?.click()}>
+                    Import from file
+                  </button>
+                </div>
+              </div>
+
+              <div className='settings-section settings-section-divided'>
+                {user ? (
+                  <div className='settings-item-stack'>
+                    <span className='settings-item-label'>Backup &amp; sync</span>
+                    <span className='settings-item-desc'>Signed in as {user.email}</span>
+                    <button className='btn-base btn-ghost' onClick={() => void handleSignOut()}>
+                      Sign out
+                    </button>
+                    <button
+                      className='btn-base btn-danger'
+                      onClick={() => setDeleteAccountOpen(true)}
+                    >
+                      Delete account
+                    </button>
+                    {deleteAccountError && (
+                      <p className='settings-status-error'>{deleteAccountError}</p>
+                    )}
+                  </div>
+                ) : authStep === 'check-inbox' ? (
+                  <div className='settings-item-stack'>
+                    <span className='settings-item-label'>Check your inbox</span>
+                    <span className='settings-item-desc'>
+                      We sent a magic link to {email}. Check your inbox to create your account and
+                      start syncing.
+                    </span>
+                    <button
+                      className='btn-base btn-ghost'
+                      onClick={() => {
+                        setAuthStep('idle');
+                        setAuthError(null);
+                      }}
+                    >
+                      Back
+                    </button>
+                  </div>
+                ) : authStep === 'verifying' ? (
+                  <div className='settings-item-stack'>
+                    <span className='settings-item-label'>Check your email</span>
+                    <span className='settings-item-desc'>
+                      Welcome back! Enter the 8-digit code sent to {email}
+                    </span>
+                    <input
+                      className='text-input'
+                      type='text'
+                      inputMode='numeric'
+                      placeholder='12345678'
+                      maxLength={8}
+                      value={otp}
+                      onChange={e => setOtp(e.target.value)}
+                    />
+                    <button
+                      className='btn-base btn-ghost'
+                      disabled={otp.length < 8 || authLoading}
+                      onClick={() => void handleVerifyOtp()}
+                    >
+                      {authLoading ? 'Verifying…' : 'Verify'}
+                    </button>
+                    <button
+                      className='btn-base btn-ghost'
+                      onClick={() => {
+                        setAuthStep('idle');
+                        setAuthError(null);
+                      }}
+                    >
+                      Back
+                    </button>
+                    {authError && <p className='settings-status-error'>{authError}</p>}
+                  </div>
+                ) : (
+                  <div className='settings-item-stack'>
+                    <span className='settings-item-label'>Backup &amp; sync</span>
+                    <span className='settings-item-desc'>
+                      Sign in to back up your habits and sync across devices.
+                    </span>
+                    <input
+                      className='text-input'
+                      type='email'
+                      placeholder='you@example.com'
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                    <button
+                      className='btn-base btn-ghost'
+                      disabled={!email.includes('@') || authLoading}
+                      onClick={() => void handleSendOtp()}
+                    >
+                      {authLoading ? 'Sending…' : 'Continue'}
+                    </button>
+                    {authError && <p className='settings-status-error'>{authError}</p>}
+                  </div>
                 )}
               </div>
-            ) : authStep === 'check-inbox' ? (
-              <div className='settings-item-stack'>
-                <span className='settings-item-label'>Check your inbox</span>
-                <span className='settings-item-desc'>
-                  We sent a magic link to {email}. Check your inbox to create your account and start
-                  syncing.
-                </span>
-                <button
-                  className='btn-base btn-ghost'
-                  onClick={() => {
-                    setAuthStep('idle');
-                    setAuthError(null);
-                  }}
-                >
-                  Back
-                </button>
-              </div>
-            ) : authStep === 'verifying' ? (
-              <div className='settings-item-stack'>
-                <span className='settings-item-label'>Check your email</span>
-                <span className='settings-item-desc'>
-                  Welcome back! Enter the 8-digit code sent to {email}
-                </span>
-                <input
-                  className='text-input'
-                  type='text'
-                  inputMode='numeric'
-                  placeholder='12345678'
-                  maxLength={8}
-                  value={otp}
-                  onChange={e => setOtp(e.target.value)}
-                />
-                <button
-                  className='btn-base btn-ghost'
-                  disabled={otp.length < 8 || authLoading}
-                  onClick={() => void handleVerifyOtp()}
-                >
-                  {authLoading ? 'Verifying…' : 'Verify'}
-                </button>
-                <button
-                  className='btn-base btn-ghost'
-                  onClick={() => {
-                    setAuthStep('idle');
-                    setAuthError(null);
-                  }}
-                >
-                  Back
-                </button>
-                {authError && <p className='settings-status-error'>{authError}</p>}
-              </div>
-            ) : (
-              <div className='settings-item-stack'>
-                <span className='settings-item-label'>Backup &amp; sync</span>
-                <span className='settings-item-desc'>
-                  Sign in to back up your habits and sync across devices.
-                </span>
-                <input
-                  className='text-input'
-                  type='email'
-                  placeholder='you@example.com'
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                />
-                <button
-                  className='btn-base btn-ghost'
-                  disabled={!email.includes('@') || authLoading}
-                  onClick={() => void handleSendOtp()}
-                >
-                  {authLoading ? 'Sending…' : 'Continue'}
-                </button>
-                {authError && <p className='settings-status-error'>{authError}</p>}
-              </div>
-            )}
-          </div>
 
-          {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
+              {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
+            </>
+          )}
         </Dialog.Content>
 
         <Alert
@@ -306,18 +348,6 @@ export default function SettingsModal({
           }}
         />
 
-        <Alert
-          open={!!notifPermissionPrompt}
-          title='Enable notifications'
-          description={notifPermissionPrompt?.message ?? ''}
-          confirm='Enable'
-          cancel='Not now'
-          variant='primary'
-          onOpenChange={isOpen => {
-            if (!isOpen) dismissNotifPrompt();
-          }}
-          onConfirm={confirmNotifPrompt}
-        />
       </Dialog.Portal>
     </Dialog.Root>
   );

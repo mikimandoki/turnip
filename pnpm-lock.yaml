@@ -56,6 +56,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.101.1
         version: 2.101.1
+      capacitor-native-settings:
+        specifier: ^8.1.0
+        version: 8.1.0(@capacitor/core@8.3.0)
       jeep-sqlite:
         specifier: ^2.8.0
         version: 2.8.0
@@ -2014,6 +2017,11 @@ packages:
 
   caniuse-lite@1.0.30001780:
     resolution: {integrity: sha512-llngX0E7nQci5BPJDqoZSbuZ5Bcs9F5db7EtgfwBerX9XGtkkiO4NwfDDIRzHTTwcYC8vC7bmeUEPGrKlR/TkQ==}
+
+  capacitor-native-settings@8.1.0:
+    resolution: {integrity: sha512-bcIsKO0EBChdiG2l7RAt70cKxz0Vygfx7quN6tSoNlwziCct8f5EgT8xmwNit+7F712ojl54xNaEddu87EpkjQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.2'
 
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
@@ -6088,6 +6096,10 @@ snapshots:
   camelcase@5.3.1: {}
 
   caniuse-lite@1.0.30001780: {}
+
+  capacitor-native-settings@8.1.0(@capacitor/core@8.3.0):
+    dependencies:
+      '@capacitor/core': 8.3.0
 
   chai@6.2.2: {}
 

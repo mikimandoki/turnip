@@ -3,7 +3,11 @@ import { addDays, isBefore } from 'date-fns';
 import type { Habit } from '../types';
 import type { NotificationValue } from './notifications';
 
-import { cancelHabitNotifications, scheduleHabitNotifications } from './localNotifications';
+import {
+  cancelHabitNotifications,
+  checkNotificationPermission,
+  scheduleHabitNotifications,
+} from './localNotifications';
 import { habitNotificationId } from './notifications';
 import { getDB, syncDB } from './sqlite';
 
@@ -52,6 +56,7 @@ export async function syncHabitNotification(
   settings: NotificationValue,
   from: Date
 ): Promise<void> {
+  if ((await checkNotificationPermission()) !== 'granted') return;
   const db = await getDB();
 
   // 1. Cancel all existing OS notifications for this habit

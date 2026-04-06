@@ -23,7 +23,7 @@ export interface HabitContextType {
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;
-  notifPermissionPrompt: { message: string; habits: Habit[] } | null;
+  notifPermissionPrompt: { title?: string; message: string; habits: Habit[]; blocked?: boolean } | null;
   dismissNotifPrompt: () => void;
   confirmNotifPrompt: () => void;
 }

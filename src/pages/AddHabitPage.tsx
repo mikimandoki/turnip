@@ -5,11 +5,13 @@ import { useNavigate } from 'react-router';
 
 import type { Frequency } from '../types';
 
+import Alert from '../components/Alert';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { toDateString } from '../utils/date';
 import {
   checkNotificationPermission,
+  openAppSettings,
   requestNotificationPermission,
 } from '../utils/localNotifications';
 import {
@@ -19,6 +21,7 @@ import {
   notifModeForUnit,
   validateNotif,
 } from '../utils/notifications';
+import { NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { isNative, validateInputs } from '../utils/utils';
 
 const placeholderExamples = [
@@ -49,6 +52,7 @@ export default function AddHabitPage() {
   );
   const [notif, setNotif] = useState<NotificationValue>(defaultNotificationValue);
   const [notifValidated, setNotifValidated] = useState(false);
+  const [notifBlockedOpen, setNotifBlockedOpen] = useState(false);
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -63,17 +67,6 @@ export default function AddHabitPage() {
       setNotifValidated(true);
       return;
     }
-    if (isNative && notif.enabled) {
-      const granted =
-        (await checkNotificationPermission()) || (await requestNotificationPermission());
-      if (!granted) {
-        setErrors([
-          'Notification permission was denied. You can enable it in your device settings.',
-        ]);
-        return;
-      }
-      void recheckNotificationPermission();
-    }
     setErrors([]);
     await addHabit({
       id: nanoid(),
@@ -82,6 +75,21 @@ export default function AddHabitPage() {
       createdAt: toDateString(displayDate),
       notification: notif.enabled ? notif : undefined,
     });
+    if (isNative && notif.enabled) {
+      const permStatus = await checkNotificationPermission();
+      if (permStatus === 'blocked') {
+        setNotifBlockedOpen(true);
+        return; // navigate on alert dismiss
+      }
+      if (permStatus === 'prompt') {
+        const result = await requestNotificationPermission();
+        void recheckNotificationPermission();
+        if (result === 'blocked') {
+          setNotifBlockedOpen(true);
+          return; // navigate on alert dismiss
+        }
+      }
+    }
     void navigate('/');
   }
 
@@ -252,6 +260,19 @@ export default function AddHabitPage() {
           ))}
         </form>
       </div>
+      <Alert
+        open={notifBlockedOpen}
+        title='Notifications blocked'
+        description={NOTIF_BLOCKED_MESSAGE}
+        confirm='Open Settings'
+        cancel='Not now'
+        variant='primary'
+        onOpenChange={isOpen => {
+          setNotifBlockedOpen(isOpen);
+          if (!isOpen) void navigate('/');
+        }}
+        onConfirm={() => void openAppSettings()}
+      />
     </div>
   );
 }
