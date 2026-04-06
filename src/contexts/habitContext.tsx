@@ -407,18 +407,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           const synced = await loadDataFromDB();
           setHabits(synced.habits);
           setCompletions(synced.completions);
-          if (isNative && synced.habits.some(h => h.notification?.enabled)) {
-            const alreadyGranted = await checkNotificationPermission();
-            if (alreadyGranted) {
-              void performNotificationMaintenance(synced.habits);
-            } else {
-              setNotifPermissionPrompt({
-                message:
-                  'Some of your synced habits have reminders set up. Grant notification permission to receive them on this device.',
-                habits: synced.habits,
-              });
-            }
-          }
         })();
       }
     });

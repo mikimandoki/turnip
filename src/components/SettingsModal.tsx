@@ -228,7 +228,9 @@ export default function SettingsModal({
             ) : authStep === 'verifying' ? (
               <div className='settings-item-stack'>
                 <span className='settings-item-label'>Check your email</span>
-                <span className='settings-item-desc'>Welcome back! Enter the 8-digit code sent to {email}</span>
+                <span className='settings-item-desc'>
+                  Welcome back! Enter the 8-digit code sent to {email}
+                </span>
                 <input
                   className='text-input'
                   type='text'

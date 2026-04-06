@@ -19,16 +19,6 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
     period_length: habit.frequency.periodLength,
     period_unit: habit.frequency.periodUnit,
     sort_order: sortOrder,
-    notif_enabled: habit.notification?.enabled ?? false,
-    notif_mode: habit.notification?.mode ?? null,
-    notif_time: habit.notification?.time ?? null,
-    notif_days: habit.notification?.days ? JSON.stringify(habit.notification.days) : null,
-    notif_month_days: habit.notification?.monthDays
-      ? JSON.stringify(habit.notification.monthDays)
-      : null,
-    notif_custom_message: habit.notification?.customMessage ?? null,
-    notif_interval_n: habit.notification?.intervalN ?? null,
-    notif_interval_unit: habit.notification?.intervalUnit ?? null,
     updated_at: now,
     deleted_at: null,
   };
@@ -141,14 +131,6 @@ type RemoteHabitRow = {
   period_length: number;
   period_unit: string;
   sort_order: number;
-  notif_enabled: boolean;
-  notif_mode: string | null;
-  notif_time: string | null;
-  notif_days: string | null;
-  notif_month_days: string | null;
-  notif_custom_message: string | null;
-  notif_interval_n: number | null;
-  notif_interval_unit: string | null;
   updated_at: string;
   deleted_at: string | null;
 };
@@ -173,9 +155,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
-    `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder,
-            notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
-            notif_customMessage, notif_intervalN, notif_intervalUnit, updated_at
+    `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at
      FROM habits WHERE deleted_at IS NULL`
   );
   // TODO: these `as string` / `as number` casts on Record<string, unknown> are unsafe. If the
@@ -190,14 +170,6 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     period_length: row.periodLength as number,
     period_unit: row.periodUnit as string,
     sort_order: row.sortOrder as number,
-    notif_enabled: Boolean(row.notif_enabled),
-    notif_mode: (row.notif_mode as string) ?? null,
-    notif_time: (row.notif_time as string) ?? null,
-    notif_days: (row.notif_days as string) ?? null,
-    notif_month_days: (row.notif_monthDays as string) ?? null,
-    notif_custom_message: (row.notif_customMessage as string) ?? null,
-    notif_interval_n: (row.notif_intervalN as number) ?? null,
-    notif_interval_unit: (row.notif_intervalUnit as string) ?? null,
     updated_at: (row.updated_at as string) ?? new Date().toISOString(),
     deleted_at: null,
   }));
@@ -233,6 +205,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 /**
  * Pull all remote habits and completions, merge into local SQLite.
  * Remote wins if its updated_at is >= local. Soft-deleted remote rows are hard-deleted locally.
+ * Notification settings are device-local and never overwritten by a pull.
  * Caller should reload from DB and update React state after this resolves.
  */
 export async function pullAll(db: SQLiteDBConnection): Promise<void> {
@@ -259,19 +232,11 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
       ?.updated_at;
     if (!localUpdatedAt || new Date(row.updated_at) >= new Date(localUpdatedAt)) {
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder,
-           notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
-           notif_customMessage, notif_intervalN, notif_intervalUnit, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            name = excluded.name, times = excluded.times, periodLength = excluded.periodLength,
            periodUnit = excluded.periodUnit, sortOrder = excluded.sortOrder,
-           notif_enabled = excluded.notif_enabled, notif_mode = excluded.notif_mode,
-           notif_time = excluded.notif_time, notif_days = excluded.notif_days,
-           notif_monthDays = excluded.notif_monthDays,
-           notif_customMessage = excluded.notif_customMessage,
-           notif_intervalN = excluded.notif_intervalN,
-           notif_intervalUnit = excluded.notif_intervalUnit,
            updated_at = excluded.updated_at`,
         [
           row.id,
@@ -281,14 +246,6 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
           row.period_length,
           row.period_unit,
           row.sort_order,
-          row.notif_enabled ? 1 : 0,
-          row.notif_mode,
-          row.notif_time,
-          row.notif_days,
-          row.notif_month_days,
-          row.notif_custom_message,
-          row.notif_interval_n,
-          row.notif_interval_unit,
           row.updated_at,
         ]
       );
