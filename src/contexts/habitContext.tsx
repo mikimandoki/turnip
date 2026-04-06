@@ -67,7 +67,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     recheckNotificationPermission,
     dismissNotifPrompt,
     confirmNotifPrompt,
-  } = useNotificationPermission(habits);
+    onVisible: onNotifVisible,
+  } = useNotificationPermission();
 
   async function updateCompletion(habitId: string, increment: number) {
     const today = dateString;
@@ -286,13 +287,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // TODO: there are 3 separate visibilitychange listeners across this provider (here, below in
-  // useNotificationPermission, and the Supabase sync one). Consolidate into a single handler
-  // that runs all concerns via Promise.allSettled so they're easier to reason about and extend.
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void (async () => {
+      if (document.visibilityState !== 'visible') return;
+      void Promise.allSettled([
+        onNotifVisible(habits),
+        (async () => {
           const { data } = await supabase.auth.getSession();
           if (!data.session) return;
           const db = await getDB();
@@ -300,12 +300,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           const synced = await loadDataFromDB();
           setHabits(synced.habits);
           setCompletions(synced.completions);
-        })();
-      }
+        })(),
+      ]);
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  }, [habits, onNotifVisible]);
 
   useEffect(() => {
     void (async () => {

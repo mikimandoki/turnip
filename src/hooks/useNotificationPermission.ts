@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { Habit } from '../types';
 
@@ -17,7 +17,7 @@ export type NotifPermissionPrompt = {
   blocked?: boolean;
 };
 
-export function useNotificationPermission(habits: Habit[]) {
+export function useNotificationPermission() {
   const [osNotificationsGranted, setOsNotificationsGranted] = useState(false);
   const [notifPermissionPrompt, setNotifPermissionPrompt] = useState<NotifPermissionPrompt | null>(
     null
@@ -26,25 +26,15 @@ export function useNotificationPermission(habits: Habit[]) {
   useEffect(() => {
     if (!isNative) return;
     void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted'));
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  useEffect(() => {
-    if (!isNative || habits.length === 0) return;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        void performNotificationMaintenance(habits);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [habits]);
+  const onVisible = useCallback(async (habits: Habit[]) => {
+    if (!isNative) return;
+    await Promise.allSettled([
+      checkNotificationPermission().then(r => setOsNotificationsGranted(r === 'granted')),
+      habits.length > 0 ? performNotificationMaintenance(habits) : Promise.resolve(),
+    ]);
+  }, []);
 
   async function recheckNotificationPermission() {
     if (!isNative) return;
@@ -77,5 +67,6 @@ export function useNotificationPermission(habits: Habit[]) {
     recheckNotificationPermission,
     dismissNotifPrompt,
     confirmNotifPrompt,
+    onVisible,
   };
 }
