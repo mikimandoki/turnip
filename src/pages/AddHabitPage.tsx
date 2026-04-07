@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router';
 import type { Frequency } from '../types';
 
 import Alert from '../components/Alert';
-import styles from './AddHabitPage.module.css';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { toDateString } from '../utils/date';
@@ -24,6 +23,7 @@ import {
 } from '../utils/notifications';
 import { NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { isNative, validateInputs } from '../utils/utils';
+import styles from './AddHabitPage.module.css';
 
 const placeholderExamples = [
   '💪 Go to the gym',

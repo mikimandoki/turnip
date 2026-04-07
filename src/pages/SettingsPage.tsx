@@ -269,9 +269,7 @@ export default function SettingsPage() {
                   >
                     Delete account
                   </button>
-                  {deleteAccountError && (
-                    <p className={styles.statusError}>{deleteAccountError}</p>
-                  )}
+                  {deleteAccountError && <p className={styles.statusError}>{deleteAccountError}</p>}
                 </div>
               ) : authStep === 'check-inbox' ? (
                 <div className={styles.settingsItemStack}>
@@ -365,7 +363,9 @@ export default function SettingsPage() {
               <div className={styles.settingsItemStack}>
                 <span className='settings-item-label'>About</span>
                 <span className='settings-item-desc'>Turnip v{__APP_VERSION__}</span>
-                <span className='settings-item-desc'>Made with {darkMode ?'💜' : '💚'} by Miklós Mándoki</span>
+                <span className='settings-item-desc'>
+                  Made with {darkMode ? '💜' : '💚'} by Miklós Mándoki
+                </span>
                 <div className={styles.settingsAboutLinks}>
                   <LegalLink href='/terms' nativeUrl='https://getturnip.com/terms'>
                     Terms of Service
@@ -375,14 +375,20 @@ export default function SettingsPage() {
                   </LegalLink>
                   <LegalLink href='/licences' nativeUrl='https://getturnip.com/licences'>
                     Third-Party Licences
-                  </LegalLink>        
+                  </LegalLink>
                 </div>
               </div>
             </div>
           </div>
 
           {status && (
-            <p className={{ ok: styles.statusOk, error: styles.statusError, warning: styles.statusWarning }[status.state]}>
+            <p
+              className={
+                { ok: styles.statusOk, error: styles.statusError, warning: styles.statusWarning }[
+                  status.state
+                ]
+              }
+            >
               {status.message}
             </p>
           )}

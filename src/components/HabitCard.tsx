@@ -61,12 +61,17 @@ export default function HabitCard({
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
-  const statusClass = { done: styles.done, 'in-progress': styles.inProgress, behind: styles.behind };
+  const statusClass = {
+    done: styles.done,
+    'in-progress': styles.inProgress,
+    behind: styles.behind,
+  };
   return (
     <div
       ref={ref}
       onClick={onClick}
       className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
+      aria-label='Habit card'
     >
       <div className={styles.habitCardContent}>
         <HabitEmoji emoji={emoji} />
@@ -84,7 +89,10 @@ export default function HabitCard({
             ) : (
               <BellOff size={12} className={styles.habitCardNotifIcon} />
             ))}
-          <span className={clsx(styles.completionCount, statusClass[status])} data-testid='completion-count'>
+          <span
+            className={clsx(styles.completionCount, statusClass[status])}
+            data-testid='completion-count'
+          >
             {completedCount}/{targetCount}
           </span>
           <div className={styles.habitCardActions}>
@@ -123,15 +131,22 @@ export default function HabitCard({
         </div>
       </div>
       <div className={styles.progressBar} data-testid='progress-bar'>
-        <div className={clsx(styles.progressFill, statusClass[status])} style={{ width: `${progressPercent}%` }} data-status={status} />
+        <div
+          className={clsx(styles.progressFill, statusClass[status])}
+          style={{ width: `${progressPercent}%` }}
+          data-status={status}
+        />
       </div>
       {habitStats && habitStats.currentStreak >= 2 && (
-        <div className={styles.streak}>
+        <div className={styles.streak} data-testid='streak-indicator-ongoing'>
           🔥 {habitStats.currentStreak} {habit.frequency.periodUnit} streak
         </div>
       )}
       {habitStats && habitStats.streakContinuable && habitStats.previousStreak >= 2 && (
-        <div className={clsx(styles.streak, styles.streakMuted)}>
+        <div
+          className={clsx(styles.streak, styles.streakMuted)}
+          data-testid='streak-indicator-continuable'
+        >
           🔥 {habitStats.previousStreak} — {message}
         </div>
       )}

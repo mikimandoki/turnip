@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:prod": "tsc -b && pnpm test && pnpm generate-licences && vite build",
+    "build:prod": "pnpm lint && tsc -b && pnpm test && pnpm generate-licences && vite build",
     "lint": "prettier . --write && eslint .",
     "preview": "vite preview",
     "test": "vitest run",

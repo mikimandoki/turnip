@@ -47,7 +47,7 @@ export default function DailyView() {
   return (
     <div className='app'>
       <div className='header'>
-        <button className='btn-action' onClick={() => shiftDate(-1)}>
+        <button className='btn-action' onClick={() => shiftDate(-1)} aria-label='Previous day'>
           <ChevronLeft size={16} />
         </button>
         <div
@@ -69,7 +69,7 @@ export default function DailyView() {
             onChange={e => setDate(e.target.value || null)}
           />
         </div>
-        <button className='btn-action' onClick={() => shiftDate(1)}>
+        <button className='btn-action' onClick={() => shiftDate(1)} aria-label='Next day'>
           <ChevronRight size={16} />
         </button>
       </div>
@@ -145,13 +145,25 @@ export default function DailyView() {
       )}
 
       <div className='btn-row'>
-        <button className={styles.btnAddHabit} onClick={() => void navigate('/add')}>
+        <button
+          className={styles.btnAddHabit}
+          onClick={() => void navigate('/add')}
+          aria-label='Add new habit'
+        >
           Add new habit
         </button>
-        <button className='btn-action' onClick={toggleDarkMode}>
+        <button
+          className='btn-action'
+          onClick={toggleDarkMode}
+          aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
           {darkMode ? <Sun size={16} /> : <Moon size={16} />}
         </button>
-        <button className='btn-action' onClick={() => void navigate('/settings')}>
+        <button
+          className='btn-action'
+          onClick={() => void navigate('/settings')}
+          aria-label='Open settings'
+        >
           <Settings size={16} />
         </button>
       </div>

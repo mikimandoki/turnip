@@ -108,21 +108,15 @@ describe('Heatmap', () => {
             { habitId: 'h4', date: '2026-03-13', count: 4 }, // 100%
           ]}
         />
-      );        
+      );
       expect
-        .soft(
-          screen.getByText('10').closest('.heatmapCell')?.classList.contains('heatmapFill25')
-        )
+        .soft(screen.getByText('10').closest('.heatmapCell')?.classList.contains('heatmapFill25'))
         .toBe(true);
       expect
-        .soft(
-          screen.getByText('11').closest('.heatmapCell')?.classList.contains('heatmapFill50')
-        )
+        .soft(screen.getByText('11').closest('.heatmapCell')?.classList.contains('heatmapFill50'))
         .toBe(true);
       expect
-        .soft(
-          screen.getByText('12').closest('.heatmapCell')?.classList.contains('heatmapFill75')
-        )
+        .soft(screen.getByText('12').closest('.heatmapCell')?.classList.contains('heatmapFill75'))
         .toBe(true);
       expect
         .soft(screen.getByText('13').closest('.heatmapCell')?.classList.contains('heatmapFilled'))
@@ -151,10 +145,7 @@ describe('Heatmap', () => {
       ['4', '5', '6', '7'].forEach(d => {
         expect
           .soft(
-            screen
-              .getByText(d)
-              .closest('.heatmapCell')
-              ?.classList.contains('heatmapPeriodComplete')
+            screen.getByText(d).closest('.heatmapCell')?.classList.contains('heatmapPeriodComplete')
           )
           .toBe(true);
       });
@@ -195,10 +186,7 @@ describe('Heatmap', () => {
       ['1', '5', '15', '20', '31'].forEach(d => {
         expect
           .soft(
-            screen
-              .getByText(d)
-              .closest('.heatmapCell')
-              ?.classList.contains('heatmapPeriodComplete')
+            screen.getByText(d).closest('.heatmapCell')?.classList.contains('heatmapPeriodComplete')
           )
           .toBe(true);
       });

@@ -1,5 +1,5 @@
 import styles from './HabitEmoji.module.css';
 
 export function HabitEmoji({ emoji }: { emoji: string }) {
-  return <div className={styles.habitEmoji}>{emoji}</div>;
+  return <div className={styles.habitEmoji} aria-label='Habit icon'>{emoji}</div>;
 }

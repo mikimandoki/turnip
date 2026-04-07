@@ -2,7 +2,6 @@ import clsx from 'clsx';
 import { Switch } from 'radix-ui';
 
 import { isTimeInPast } from '../utils/date';
-import styles from './NotificationPicker.module.css';
 import {
   DAYS,
   type NotificationMode,
@@ -10,6 +9,7 @@ import {
   validateNotif,
 } from '../utils/notifications';
 import { isNative } from '../utils/utils';
+import styles from './NotificationPicker.module.css';
 
 const MODES: { id: NotificationMode; label: string }[] = [
   { id: 'daily', label: 'Daily' },
@@ -61,7 +61,10 @@ export default function NotificationPicker({
                 <button
                   key={weekday}
                   type='button'
-                  className={clsx(styles.notifDayBtn, value.days.includes(weekday) && styles.active)}
+                  className={clsx(
+                    styles.notifDayBtn,
+                    value.days.includes(weekday) && styles.active
+                  )}
                   onClick={() => {
                     const days = value.days.includes(weekday)
                       ? value.days.filter(d => d !== weekday)

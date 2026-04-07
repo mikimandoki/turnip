@@ -190,7 +190,11 @@ export default function HabitDetail() {
                   <button className='btn-action' onClick={() => setIsEditing(true)}>
                     <Pencil size={16} />
                   </button>
-                  <button className='btn-action delete' onClick={() => setDeleteOpen(true)}>
+                  <button
+                    className='btn-action delete'
+                    onClick={() => setDeleteOpen(true)}
+                    aria-label='Delete habit'
+                  >
                     <Trash2 size={16} />
                   </button>
                 </>

@@ -131,9 +131,7 @@ describe('HabitCard', () => {
           onLog={vi.fn()}
         />
       );
-      expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(
-        true
-      );
+      expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets target', () => {
