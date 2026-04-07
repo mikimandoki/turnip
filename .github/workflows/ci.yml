@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    permissions:
+      statuses: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm tsc --noEmit
+
+      - name: Test
+        run: pnpm test
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co # Just need vars to mock supabase existing
+          VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY: placeholder_key
+
+      - name: Generate licences
+        run: |
+          pnpm generate-licences
+          if ! git diff --exit-code ATTRIBUTIONS.md; then
+            echo "ATTRIBUTIONS.md is out of date. Run 'pnpm generate-licences' locally and commit the result."
+            exit 1
+          fi
+
+      - name: Notify Vercel
+        uses: vercel/repository-dispatch/actions/status@v1
+        with:
+          name: 'Vercel - turnip: lint'
