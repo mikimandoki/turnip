@@ -1,11 +1,10 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Moon, Settings, Sun } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 
 import HabitCard from '../components/HabitCard';
-import SettingsModal from '../components/SettingsModal';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
@@ -34,9 +33,9 @@ export default function DailyView() {
     setDate,
     clearAll,
     loadDemoData,
+    darkMode,
+    toggleDarkMode,
   } = useHabitContext();
-
-  const [showSettings, setShowSettings] = useState(false);
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,7 +147,10 @@ export default function DailyView() {
         <button className='btn-add-habit' onClick={() => void navigate('/add')}>
           Add new habit
         </button>
-        <button className='btn-action' onClick={() => setShowSettings(true)}>
+        <button className='btn-action' onClick={toggleDarkMode}>
+          {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+        <button className='btn-action' onClick={() => void navigate('/settings')}>
           <Settings size={16} />
         </button>
       </div>
@@ -159,7 +161,6 @@ export default function DailyView() {
         </button>
       )}
 
-      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
       {/* TODO: these dev buttons (and the debugNotifs function above) are present in the
           production bundle — only the render is gated. Move them to a dev-only module so
           tree-shaking removes them entirely in production builds. */}

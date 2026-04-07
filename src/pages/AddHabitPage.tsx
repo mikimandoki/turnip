@@ -95,20 +95,11 @@ export default function AddHabitPage() {
 
   return (
     <div className='app'>
-      <div className='header' style={{ position: 'relative' }}>
+      <div className='header'>
         <button className='btn-action' onClick={() => void navigate('/')}>
           <ChevronLeft size={16} />
         </button>
-        <div
-          className='header-title'
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            textAlign: 'center',
-            pointerEvents: 'none',
-          }}
-        >
+        <div className='header-title header-title-centered'>
           <h1>New habit</h1>
         </div>
       </div>
