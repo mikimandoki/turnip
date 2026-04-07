@@ -1,0 +1,113 @@
+.habitCardContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.habitCardInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.habitCardTitle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.habitCardSubtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.habitCardActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.editNameInput {
+  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+  margin-right: var(--spacing-md);
+  font-size: 16px;
+}
+
+.editNameInput:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.habitDetailNotif {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 0.5px solid var(--color-border-secondary);
+}
+
+.habitDetailNotif input[type='text'],
+.habitDetailNotif input[type='number'],
+.habitDetailNotif input[type='time'] {
+  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.habitDetailNotif input[type='text']:focus,
+.habitDetailNotif input[type='number']:focus,
+.habitDetailNotif input[type='time']:focus,
+.habitDetailNotif select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.habitDetailNotif input[type='number'] {
+  width: 48px;
+}
+
+.habitDetailNotif select {
+  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+/* Stats grid */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.statBox {
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-sm);
+}

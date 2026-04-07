@@ -1,0 +1,53 @@
+.notifModeTabs {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-secondary);
+  margin-top: var(--spacing-sm);
+}
+
+.notifModeTab {
+  flex: 1;
+  padding: 6px 2px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-background-tertiary);
+  border: none;
+  border-right: 0.5px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.notifModeTab:last-child {
+  border-right: none;
+}
+
+.notifModeTab.active {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.notifDayPicker {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--spacing-sm);
+}
+
+.notifDayBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--color-background-tertiary);
+  border: 0.5px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.notifDayBtn.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}

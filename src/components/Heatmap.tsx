@@ -14,6 +14,7 @@ import { useState } from 'react';
 import type { Completion, Habit } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from '../utils/date';
+import styles from './Heatmap.module.css';
 
 function getDayClass(
   count: number,
@@ -22,16 +23,16 @@ function getDayClass(
   periodComplete: boolean
 ): string {
   if (isDailyPeriod) {
-    if (count === 0) return 'heatmap-empty';
+    if (count === 0) return styles.heatmapEmpty;
     const ratio = count / times;
-    if (ratio >= 1) return 'heatmap-filled';
-    if (ratio >= 0.75) return 'heatmap-fill-75';
-    if (ratio >= 0.5) return 'heatmap-fill-50';
-    return 'heatmap-fill-25';
+    if (ratio >= 1) return styles.heatmapFilled;
+    if (ratio >= 0.75) return styles.heatmapFill75;
+    if (ratio >= 0.5) return styles.heatmapFill50;
+    return styles.heatmapFill25;
   }
-  if (count > 0) return 'heatmap-filled';
-  if (periodComplete) return 'heatmap-period-complete';
-  return 'heatmap-empty';
+  if (count > 0) return styles.heatmapFilled;
+  if (periodComplete) return styles.heatmapPeriodComplete;
+  return styles.heatmapEmpty;
 }
 
 export default function Heatmap({
@@ -84,7 +85,7 @@ export default function Heatmap({
 
   return (
     <>
-      <div className='heatmap-header'>
+      <div className={styles.heatmapHeader}>
         <button
           className='btn-action'
           onClick={() => setHeatmapMonth(subMonths(heatmapMonth, 1))}
@@ -103,14 +104,14 @@ export default function Heatmap({
           <ChevronRight size={16} />
         </button>
       </div>
-      <div className='heatmap'>
+      <div className={styles.heatmap}>
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
-          <div key={i} className='heatmap-dow'>
+          <div key={i} className={styles.heatmapDow}>
             {d}
           </div>
         ))}
         {padding.map((_, i) => (
-          <div key={`pad-${i}`} className='heatmap-cell heatmap-pad' />
+          <div key={`pad-${i}`} className={`${styles.heatmapCell} ${styles.heatmapPad}`} />
         ))}
         {days.map(day => {
           const dateStr = toDateString(day);
@@ -119,9 +120,9 @@ export default function Heatmap({
           return (
             <div
               key={dateStr}
-              className={`heatmap-cell ${getDayClass(count, habit.frequency.times, isDailyPeriod, periodComplete)}`}
+              className={`${styles.heatmapCell} ${getDayClass(count, habit.frequency.times, isDailyPeriod, periodComplete)}`}
             >
-              <span className='heatmap-day-number'>{day.getDate()}</span>
+              <span className={styles.heatmapDayNumber}>{day.getDate()}</span>
             </div>
           );
         })}

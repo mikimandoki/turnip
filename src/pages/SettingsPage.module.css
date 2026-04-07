@@ -1,0 +1,47 @@
+.notifPromptPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.settingsItemStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.statusOk {
+  font-size: 12px;
+  color: var(--color-text-success);
+  margin: 0;
+}
+
+.statusError {
+  font-size: 12px;
+  color: var(--color-text-danger);
+  margin: 0;
+}
+
+.statusWarning {
+  font-size: 12px;
+  color: var(--color-text-warning);
+  margin: 0;
+}
+
+.settingsAboutLinks {
+  display: flex;
+  gap: var(--spacing-xl);
+
+  a,
+  :global(.btn-link) {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+}

@@ -1,0 +1,62 @@
+.onboarding {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+}
+
+.onboarding h2 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: var(--spacing-md) 0;
+}
+
+.onboarding p {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.habitEmojiLarge {
+  font-size: 40px;
+}
+
+.habitList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.headerDateBtn {
+  position: relative;
+  cursor: pointer;
+}
+
+.headerDateInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.btnAddHabit {
+  all: unset;
+  box-sizing: border-box;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--spacing-lg);
+}
+
+.btnAddHabit:hover {
+  background: var(--color-background-tertiary);
+}
+
+:global(.btn-row) .btnAddHabit {
+  flex: 1;
+}

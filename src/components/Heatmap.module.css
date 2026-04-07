@@ -1,0 +1,78 @@
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.heatmapHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.heatmapDow {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding-bottom: 2px;
+}
+
+.heatmapCell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--color-background-tertiary);
+  position: relative;
+  min-height: 28px;
+}
+
+.heatmapDayNumber {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.heatmapFilled .heatmapDayNumber {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.heatmapFill25 {
+  background: color-mix(in srgb, var(--color-accent) 25%, var(--color-background-tertiary));
+}
+
+.heatmapFill50 {
+  background: color-mix(in srgb, var(--color-accent) 50%, var(--color-background-tertiary));
+}
+
+.heatmapFill75 {
+  background: color-mix(in srgb, var(--color-accent) 75%, var(--color-background-tertiary));
+}
+
+.heatmapFilled {
+  background: var(--color-accent);
+}
+
+.heatmapPeriodComplete {
+  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-background-tertiary));
+}
+
+.heatmapFill50 .heatmapDayNumber,
+.heatmapFill75 .heatmapDayNumber {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.heatmapEmpty {
+  background: var(--color-background-tertiary);
+}
+
+.heatmapPad {
+  background: transparent;
+}

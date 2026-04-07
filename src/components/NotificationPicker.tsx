@@ -1,6 +1,8 @@
+import clsx from 'clsx';
 import { Switch } from 'radix-ui';
 
 import { isTimeInPast } from '../utils/date';
+import styles from './NotificationPicker.module.css';
 import {
   DAYS,
   type NotificationMode,
@@ -41,12 +43,12 @@ export default function NotificationPicker({
       </div>
       {value.enabled && (
         <>
-          <div className='notif-mode-tabs'>
+          <div className={styles.notifModeTabs}>
             {MODES.map(({ id, label }) => (
               <button
                 key={id}
                 type='button'
-                className={`notif-mode-tab${value.mode === id ? ' active' : ''}`}
+                className={clsx(styles.notifModeTab, value.mode === id && styles.active)}
                 onClick={() => onChange({ ...value, mode: id })}
               >
                 {label}
@@ -54,12 +56,12 @@ export default function NotificationPicker({
             ))}
           </div>
           {value.mode === 'days-of-week' && (
-            <div className='notif-day-picker'>
+            <div className={styles.notifDayPicker}>
               {DAYS.map(({ label, weekday }) => (
                 <button
                   key={weekday}
                   type='button'
-                  className={`notif-day-btn${value.days.includes(weekday) ? ' active' : ''}`}
+                  className={clsx(styles.notifDayBtn, value.days.includes(weekday) && styles.active)}
                   onClick={() => {
                     const days = value.days.includes(weekday)
                       ? value.days.filter(d => d !== weekday)
@@ -98,14 +100,14 @@ export default function NotificationPicker({
               </div>
               {value.monthDays.length > 0 && (
                 <div
-                  className='notif-day-picker'
+                  className={styles.notifDayPicker}
                   style={{ flexWrap: 'wrap', gap: 6, justifyContent: 'flex-start' }}
                 >
                   {value.monthDays.map(day => (
                     <button
                       key={day}
                       type='button'
-                      className='notif-day-btn active'
+                      className={clsx(styles.notifDayBtn, styles.active)}
                       onClick={() =>
                         onChange({ ...value, monthDays: value.monthDays.filter(d => d !== day) })
                       }
@@ -187,6 +189,7 @@ export default function NotificationPicker({
           <div className='form-row'>
             <input
               type='text'
+              className='text-input'
               placeholder='Custom message (optional)'
               value={value.customMessage}
               onChange={e => onChange({ ...value, customMessage: e.target.value })}

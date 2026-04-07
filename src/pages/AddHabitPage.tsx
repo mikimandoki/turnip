@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router';
 import type { Frequency } from '../types';
 
 import Alert from '../components/Alert';
+import styles from './AddHabitPage.module.css';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { toDateString } from '../utils/date';
@@ -104,7 +105,7 @@ export default function AddHabitPage() {
         </div>
       </div>
       <div className='card'>
-        <form className='add-habit-form' onSubmit={e => void handleSubmit(e)}>
+        <form className={styles.addHabitForm} onSubmit={e => void handleSubmit(e)}>
           <div className='form-row'>
             <input
               type='text'
@@ -112,6 +113,7 @@ export default function AddHabitPage() {
               placeholder={placeholder}
               value={name}
               aria-label='Habit name'
+              className='text-input'
               onChange={e => setName(e.target.value)}
               style={{ flex: 1 }}
             />

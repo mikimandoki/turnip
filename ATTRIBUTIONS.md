@@ -13,6 +13,7 @@
 - [@dnd-kit/react@0.3.2](https://github.com/clauderic/dnd-kit) - MIT
 - [@supabase/supabase-js@2.101.1](https://github.com/supabase/supabase-js) - MIT
 - [capacitor-native-settings@8.1.0](https://github.com/RaphaelWoude/capacitor-native-settings) - MIT
+- [clsx@2.1.1](https://github.com/lukeed/clsx) - MIT
 - [date-fns@4.1.0](https://github.com/date-fns/date-fns) - MIT
 - [emoji-regex-xs@2.0.1](https://github.com/slevithan/emoji-regex-xs) - MIT
 - [jeep-sqlite@2.8.0](https://github.com/jepiqueau/jeep-sqlite) - MIT

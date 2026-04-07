@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "author": {
-    "name": "Miklós Mándoki", 
+    "name": "Miklós Mándoki",
     "email": "getturnip@protonmail.com"
   },
   "scripts": {
@@ -45,6 +45,7 @@
     "@dnd-kit/react": "^0.3.2",
     "@supabase/supabase-js": "^2.101.1",
     "capacitor-native-settings": "^8.1.0",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "emoji-regex-xs": "^2.0.1",
     "jeep-sqlite": "^2.8.0",

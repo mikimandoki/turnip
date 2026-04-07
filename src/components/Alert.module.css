@@ -1,0 +1,41 @@
+.alertOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+}
+
+.alertContent {
+  position: fixed;
+  top: calc(var(--screen-height) * 0.25);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 201;
+  width: min(360px, 90vw);
+  background: var(--color-background-primary);
+  border-radius: var(--radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modalDescription {
+  white-space: pre-line;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.modalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}

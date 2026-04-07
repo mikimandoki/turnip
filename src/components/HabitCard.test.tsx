@@ -118,7 +118,7 @@ describe('HabitCard', () => {
       const { container } = render(
         <HabitCard habit={habit} index={0} completedCount={0} onClick={vi.fn()} onLog={vi.fn()} />
       );
-      expect(container.querySelector('.progress-fill')?.classList.contains('behind')).toBe(true);
+      expect(container.querySelector('.progressFill')?.classList.contains('behind')).toBe(true);
     });
 
     it('applies "in-progress" class when partially complete', () => {
@@ -131,7 +131,7 @@ describe('HabitCard', () => {
           onLog={vi.fn()}
         />
       );
-      expect(container.querySelector('.progress-fill')?.classList.contains('in-progress')).toBe(
+      expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(
         true
       );
     });
@@ -140,7 +140,7 @@ describe('HabitCard', () => {
       const { container } = render(
         <HabitCard habit={habit} index={0} completedCount={1} onClick={vi.fn()} onLog={vi.fn()} />
       );
-      expect(container.querySelector('.progress-fill')?.classList.contains('done')).toBe(true);
+      expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets multi-target', () => {
@@ -153,7 +153,7 @@ describe('HabitCard', () => {
           onLog={vi.fn()}
         />
       );
-      expect(container.querySelector('.progress-fill')?.classList.contains('done')).toBe(true);
+      expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
   });
 
@@ -165,14 +165,14 @@ describe('HabitCard', () => {
       const { container } = render(
         <HabitCard habit={habit} index={0} completedCount={1} onClick={vi.fn()} onLog={vi.fn()} />
       );
-      expect(container.querySelector('.card')?.classList.contains('logged-today')).toBe(true);
+      expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(true);
     });
 
     it('does not add logged-today class when no completion for today', () => {
       const { container } = render(
         <HabitCard habit={habit} index={0} completedCount={0} onClick={vi.fn()} onLog={vi.fn()} />
       );
-      expect(container.querySelector('.card')?.classList.contains('logged-today')).toBe(false);
+      expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(false);
     });
   });
 

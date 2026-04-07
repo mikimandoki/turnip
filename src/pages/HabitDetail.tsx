@@ -1,6 +1,8 @@
 import { parseISO } from 'date-fns';
 import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
+
+import styles from './HabitDetail.module.css';
 import { useNavigate, useParams } from 'react-router';
 
 import Alert from '../components/Alert';
@@ -126,30 +128,30 @@ export default function HabitDetail() {
           </button>
         </div>
         <div className='card'>
-          <div className='habit-card-content'>
+          <div className={styles.habitCardContent}>
             <HabitEmoji emoji={emoji} />
-            <div className='habit-card-info'>
+            <div className={styles.habitCardInfo}>
               {isEditing ? (
                 <input
-                  className='edit-name-input'
+                  className={styles.editNameInput}
                   type='text'
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
                 />
               ) : (
-                <div className='habit-card-title'>{cleanName}</div>
+                <div className={styles.habitCardTitle}>{cleanName}</div>
               )}
               {errors.map(err => (
                 <p className='error-message' key={err}>
                   {err}
                 </p>
               ))}
-              <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
-              <div className='habit-card-subtitle'>
+              <div className={styles.habitCardSubtitle}>{describeFrequency(habit.frequency)}</div>
+              <div className={styles.habitCardSubtitle}>
                 Created {namedDayOrDate(parseISO(habit.createdAt))}
               </div>
               {isNative && !isEditing && habit.notification?.enabled && (
-                <div className='habit-card-subtitle'>
+                <div className={styles.habitCardSubtitle}>
                   Reminds at{' '}
                   {new Date(`1970-01-01T${habit.notification.time}`).toLocaleTimeString([], {
                     hour: 'numeric',
@@ -159,7 +161,7 @@ export default function HabitDetail() {
                 </div>
               )}
             </div>
-            <div className='habit-card-actions'>
+            <div className={styles.habitCardActions}>
               {isEditing ? (
                 <>
                   <button className='btn-action' onClick={() => void handleSave()}>
@@ -197,7 +199,7 @@ export default function HabitDetail() {
             </div>
           </div>
           {isNative && isEditing && (
-            <div className='habit-detail-notif'>
+            <div className={styles.habitDetailNotif}>
               <NotificationPicker
                 value={editNotif}
                 validated={notifValidated}
@@ -217,38 +219,38 @@ export default function HabitDetail() {
           )}
         </div>
         <div className='card'>
-          <div className='stats-grid'>
-            <div className='stat-box'>
-              <div className='stat-value'>
+          <div className={styles.statsGrid}>
+            <div className={styles.statBox}>
+              <div className={styles.statValue}>
                 {habitStats?.streakContinuable
                   ? habitStats.previousStreak
                   : habitStats?.currentStreak}
               </div>
-              <div className='stat-label'>current streak</div>
+              <div className={styles.statLabel}>current streak</div>
             </div>
-            <div className='stat-box'>
-              <div className='stat-value'>{habitStats?.maxStreak}</div>
-              <div className='stat-label'>best streak</div>
+            <div className={styles.statBox}>
+              <div className={styles.statValue}>{habitStats?.maxStreak}</div>
+              <div className={styles.statLabel}>best streak</div>
             </div>
-            <div className='stat-box'>
-              <div className='stat-value'>{habitStats?.completedPeriods}</div>
-              <div className='stat-label'>completions</div>
+            <div className={styles.statBox}>
+              <div className={styles.statValue}>{habitStats?.completedPeriods}</div>
+              <div className={styles.statLabel}>completions</div>
             </div>
-            <div className='stat-box'>
-              <div className='stat-value'>
+            <div className={styles.statBox}>
+              <div className={styles.statValue}>
                 {Math.round((habitStats?.completionRate ?? 0) * 100)}%
               </div>
-              <div className='stat-label'>completion rate</div>
+              <div className={styles.statLabel}>completion rate</div>
             </div>
             {isNonSimpleDaily && (
               <>
-                <div className='stat-box'>
-                  <div className='stat-value'>{formatCount(timesLogged!)}</div>
-                  <div className='stat-label'>times logged</div>
+                <div className={styles.statBox}>
+                  <div className={styles.statValue}>{formatCount(timesLogged!)}</div>
+                  <div className={styles.statLabel}>times logged</div>
                 </div>
-                <div className='stat-box'>
-                  <div className='stat-value'>{avgPerPeriod}</div>
-                  <div className='stat-label'>
+                <div className={styles.statBox}>
+                  <div className={styles.statValue}>{avgPerPeriod}</div>
+                  <div className={styles.statLabel}>
                     average per{' '}
                     {habit.frequency.periodLength === 1 ? habit.frequency.periodUnit : 'period'}
                   </div>

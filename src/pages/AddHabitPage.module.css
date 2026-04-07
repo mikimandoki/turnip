@@ -1,0 +1,24 @@
+.addHabitForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.addHabitForm select {
+  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+.addHabitForm select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.addHabitForm input[type='text']::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}

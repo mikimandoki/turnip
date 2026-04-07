@@ -1,4 +1,5 @@
 import { useSortable } from '@dnd-kit/react/sortable';
+import clsx from 'clsx';
 import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -8,6 +9,7 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod, toDateString } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { isNative, simpleHash } from '../utils/utils';
+import styles from './HabitCard.module.css';
 import { HabitEmoji } from './HabitEmoji';
 
 const motivationalMessages = [
@@ -59,32 +61,33 @@ export default function HabitCard({
   const progressPercent = Math.min(100, (completedCount / targetCount) * 100);
   const status =
     completedCount >= targetCount ? 'done' : completedCount > 0 ? 'in-progress' : 'behind';
+  const statusClass = { done: styles.done, 'in-progress': styles.inProgress, behind: styles.behind };
   return (
     <div
       ref={ref}
       onClick={onClick}
-      className={['card', isDragging ? 'dragging' : '', loggedToday ? 'logged-today' : '']
-        .filter(Boolean)
-        .join(' ')}
+      className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
     >
-      <div className='habit-card-content'>
+      <div className={styles.habitCardContent}>
         <HabitEmoji emoji={emoji} />
-        <div className='habit-card-info'>
-          <div className='habit-card-title'>{cleanName}</div>
-          <div className='habit-card-subtitle'>{describeFrequency(habit.frequency)}</div>
+        <div className={styles.habitCardInfo}>
+          <div className={styles.habitCardTitle} data-testid='habit-title'>
+            {cleanName}
+          </div>
+          <div className={styles.habitCardSubtitle}>{describeFrequency(habit.frequency)}</div>
         </div>
-        <div className='habit-card-right'>
+        <div className={styles.habitCardRight}>
           {isNative &&
             habit.notification?.enabled &&
             (osNotificationsGranted ? (
-              <BellRing size={12} className='habit-card-notif-icon' />
+              <BellRing size={12} className={styles.habitCardNotifIcon} />
             ) : (
-              <BellOff size={12} className='habit-card-notif-icon' />
+              <BellOff size={12} className={styles.habitCardNotifIcon} />
             ))}
-          <span className={`completion-count ${status}`}>
+          <span className={clsx(styles.completionCount, statusClass[status])} data-testid='completion-count'>
             {completedCount}/{targetCount}
           </span>
-          <div className='habit-card-actions'>
+          <div className={styles.habitCardActions}>
             <button
               aria-label='Decrease count'
               className='btn-action'
@@ -119,16 +122,16 @@ export default function HabitCard({
           </div>
         </div>
       </div>
-      <div className='progress-bar'>
-        <div className={`progress-fill ${status}`} style={{ width: `${progressPercent}%` }} />
+      <div className={styles.progressBar} data-testid='progress-bar'>
+        <div className={clsx(styles.progressFill, statusClass[status])} style={{ width: `${progressPercent}%` }} data-status={status} />
       </div>
       {habitStats && habitStats.currentStreak >= 2 && (
-        <div className='streak'>
+        <div className={styles.streak}>
           🔥 {habitStats.currentStreak} {habit.frequency.periodUnit} streak
         </div>
       )}
       {habitStats && habitStats.streakContinuable && habitStats.previousStreak >= 2 && (
-        <div className='streak streak-muted'>
+        <div className={clsx(styles.streak, styles.streakMuted)}>
           🔥 {habitStats.previousStreak} — {message}
         </div>
       )}

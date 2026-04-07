@@ -1,0 +1,111 @@
+.habitCardContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.habitCardInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.habitCardTitle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.habitCardSubtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.habitCardRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-shrink: 0;
+}
+
+.habitCardNotifIcon {
+  opacity: 0.4;
+  flex-shrink: 0;
+  margin-left: var(--spacing-md);
+}
+
+.habitCardActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* Completion count */
+
+.completionCount {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.completionCount.done {
+  color: var(--color-accent);
+}
+
+.completionCount.inProgress {
+  color: var(--color-text-info);
+}
+
+.completionCount.behind {
+  color: var(--color-text-danger);
+}
+
+/* Progress bar */
+
+.progressBar {
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--color-background-tertiary);
+}
+
+.progressFill {
+  height: 4px;
+  border-radius: var(--radius-sm);
+  transition: width 0.2s ease;
+}
+
+.progressFill.done {
+  background: var(--color-accent);
+}
+
+.progressFill.inProgress {
+  background: var(--color-text-info);
+}
+
+.progressFill.behind {
+  background: var(--color-text-danger);
+}
+
+/* Streak */
+
+.streak {
+  font-size: 11px;
+  color: var(--color-text-warning);
+}
+
+.streakMuted {
+  color: var(--color-text-secondary);
+}
+
+/* Card state modifiers */
+
+.loggedToday {
+  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+
+.dragging {
+  opacity: 0.5;
+}

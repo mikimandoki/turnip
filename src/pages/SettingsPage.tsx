@@ -13,6 +13,7 @@ import { exportData } from '../utils/dataTransfer';
 import { openAppSettings } from '../utils/localNotifications';
 import { supabase } from '../utils/supabase';
 import { isNative } from '../utils/utils';
+import styles from './SettingsPage.module.css';
 
 function LegalLink({
   href,
@@ -165,7 +166,7 @@ export default function SettingsPage() {
 
       {notifPermissionPrompt ? (
         <div className='card'>
-          <div className='notif-prompt-panel'>
+          <div className={styles.notifPromptPanel}>
             <span className='settings-item-label'>
               {notifPermissionPrompt.title ??
                 (notifPermissionPrompt.blocked ? 'Notifications blocked' : 'Enable notifications')}
@@ -203,9 +204,7 @@ export default function SettingsPage() {
           <div className='card'>
             <div className='settings-section'>
               <div className='settings-item'>
-                <div className='settings-item-text'>
-                  <span className='settings-item-label'>Dark mode</span>
-                </div>
+                <span className='settings-item-label'>Dark mode</span>
                 <Switch.Root
                   checked={darkMode}
                   onCheckedChange={toggleDarkMode}
@@ -219,7 +218,7 @@ export default function SettingsPage() {
 
           <div className='card'>
             <div className='settings-section'>
-              <div className='settings-item-stack'>
+              <div className={styles.settingsItemStack}>
                 <span className='settings-item-label'>Export data</span>
                 <span className='settings-item-desc'>
                   {habitCount > 0
@@ -238,7 +237,7 @@ export default function SettingsPage() {
                   Download backup
                 </button>
               </div>
-              <div className='settings-item-stack'>
+              <div className={styles.settingsItemStack}>
                 <span className='settings-item-label'>Import data</span>
                 <span className='settings-item-desc'>{importDesc}</span>
                 <input
@@ -258,7 +257,7 @@ export default function SettingsPage() {
           <div className='card'>
             <div className='settings-section'>
               {user ? (
-                <div className='settings-item-stack'>
+                <div className={styles.settingsItemStack}>
                   <span className='settings-item-label'>Backup &amp; sync</span>
                   <span className='settings-item-desc'>Signed in as {user.email}</span>
                   <button className='btn-base btn-ghost' onClick={() => void handleSignOut()}>
@@ -271,11 +270,11 @@ export default function SettingsPage() {
                     Delete account
                   </button>
                   {deleteAccountError && (
-                    <p className='settings-status-error'>{deleteAccountError}</p>
+                    <p className={styles.statusError}>{deleteAccountError}</p>
                   )}
                 </div>
               ) : authStep === 'check-inbox' ? (
-                <div className='settings-item-stack'>
+                <div className={styles.settingsItemStack}>
                   <span className='settings-item-label'>Check your inbox</span>
                   <span className='settings-item-desc'>
                     We sent a magic link to {email}. Check your inbox to create your account and
@@ -292,7 +291,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : authStep === 'verifying' ? (
-                <div className='settings-item-stack'>
+                <div className={styles.settingsItemStack}>
                   <span className='settings-item-label'>Check your email</span>
                   <span className='settings-item-desc'>
                     Welcome back! Enter the 8-digit code sent to {email}
@@ -322,10 +321,10 @@ export default function SettingsPage() {
                   >
                     Back
                   </button>
-                  {authError && <p className='settings-status-error'>{authError}</p>}
+                  {authError && <p className={styles.statusError}>{authError}</p>}
                 </div>
               ) : (
-                <div className='settings-item-stack'>
+                <div className={styles.settingsItemStack}>
                   <span className='settings-item-label'>Backup &amp; sync</span>
                   <span className='settings-item-desc'>
                     Sign in to back up your habits and sync across devices.
@@ -355,7 +354,7 @@ export default function SettingsPage() {
                     </LegalLink>
                     .
                   </p>
-                  {authError && <p className='settings-status-error'>{authError}</p>}
+                  {authError && <p className={styles.statusError}>{authError}</p>}
                 </div>
               )}
             </div>
@@ -363,11 +362,11 @@ export default function SettingsPage() {
 
           <div className='card'>
             <div className='settings-section'>
-              <div className='settings-item-stack'>
+              <div className={styles.settingsItemStack}>
                 <span className='settings-item-label'>About</span>
                 <span className='settings-item-desc'>Turnip v{__APP_VERSION__}</span>
                 <span className='settings-item-desc'>Made with {darkMode ?'💜' : '💚'} by Miklós Mándoki</span>
-                <div className='settings-about-links'>
+                <div className={styles.settingsAboutLinks}>
                   <LegalLink href='/terms' nativeUrl='https://getturnip.com/terms'>
                     Terms of Service
                   </LegalLink>
@@ -382,7 +381,11 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {status && <p className={`settings-status-${status.state}`}>{status.message}</p>}
+          {status && (
+            <p className={{ ok: styles.statusOk, error: styles.statusError, warning: styles.statusWarning }[status.state]}>
+              {status.message}
+            </p>
+          )}
         </>
       )}
 

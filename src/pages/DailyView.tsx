@@ -10,6 +10,7 @@ import { namedDayOrDate, toDateString } from '../utils/date';
 import { getCompletionsInPeriod } from '../utils/habits';
 import { getPendingNotifications } from '../utils/localNotifications';
 import { getDB } from '../utils/sqlite';
+import styles from './DailyView.module.css';
 
 async function debugNotifs() {
   const { notifications } = await getPendingNotifications();
@@ -50,7 +51,7 @@ export default function DailyView() {
           <ChevronLeft size={16} />
         </button>
         <div
-          className='header-title header-date-btn'
+          className={`header-title ${styles.headerDateBtn}`}
           onClick={() => {
             try {
               dateInputRef.current?.showPicker();
@@ -62,7 +63,7 @@ export default function DailyView() {
           {namedDayOrDate(displayDate)}
           <input
             ref={dateInputRef}
-            className='header-date-input'
+            className={styles.headerDateInput}
             type='date'
             value={toDateString(displayDate)}
             onChange={e => setDate(e.target.value || null)}
@@ -75,8 +76,8 @@ export default function DailyView() {
 
       {habits.length === 0 && !hasOnboarded && (
         <div className='card'>
-          <div className='onboarding'>
-            <div className='habit-emoji-large'>🌱</div>
+          <div className={styles.onboarding}>
+            <div className={styles.habitEmojiLarge}>🌱</div>
             <h2>Welcome to Turnip</h2>
             <p>Habits take time to grow. Plant your first one or explore the demo.</p>
           </div>
@@ -85,7 +86,7 @@ export default function DailyView() {
 
       {habits.length === 0 && hasOnboarded && (
         <div className='card'>
-          <div className='onboarding'>
+          <div className={styles.onboarding}>
             <p>No habits yet. Ready to plant something new?</p>
           </div>
         </div>
@@ -126,7 +127,7 @@ export default function DailyView() {
             void reorderHabits(finalMasterList);
           }}
         >
-          <div className='habit-list'>
+          <div className={styles.habitList}>
             {visibleHabits.map((habit, index) => (
               // TODO: onClick and onLog are recreated every render. Wrap with useCallback (keyed
               // by habit.id) so a memoized HabitCard can skip re-renders.
@@ -144,7 +145,7 @@ export default function DailyView() {
       )}
 
       <div className='btn-row'>
-        <button className='btn-add-habit' onClick={() => void navigate('/add')}>
+        <button className={styles.btnAddHabit} onClick={() => void navigate('/add')}>
           Add new habit
         </button>
         <button className='btn-action' onClick={toggleDarkMode}>
@@ -156,7 +157,7 @@ export default function DailyView() {
       </div>
 
       {!hasOnboarded && habits.length === 0 && (
-        <button className='btn-add-habit' onClick={() => void loadDemoData()}>
+        <button className={styles.btnAddHabit} onClick={() => void loadDemoData()}>
           Explore demo data
         </button>
       )}
@@ -166,10 +167,10 @@ export default function DailyView() {
           tree-shaking removes them entirely in production builds. */}
       {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
-          <button className='btn-add-habit' onClick={() => void clearAll()}>
+          <button className={styles.btnAddHabit} onClick={() => void clearAll()}>
             Delete All
           </button>
-          <button className='btn-add-habit' onClick={() => void debugNotifs()}>
+          <button className={styles.btnAddHabit} onClick={() => void debugNotifs()}>
             Debug Notifs
           </button>
         </div>

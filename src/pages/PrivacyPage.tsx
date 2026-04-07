@@ -1,8 +1,10 @@
 import ReactMarkdown from 'react-markdown';
 
 import content from '../content/privacy.md?raw';
+import { useForceLightMode } from '../hooks/useForceLightMode';
 
 export default function PrivacyPage() {
+  useForceLightMode();
   return (
     <div className='app app-legal'>
       <div className='header'>

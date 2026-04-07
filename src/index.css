@@ -34,6 +34,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
+  --spacing-xs: 2px;
   --spacing-sm: 4px;
   --spacing-md: 8px;
   --spacing-lg: 12px;
@@ -135,60 +136,6 @@ h1,
   font-weight: 500;
 }
 
-.header-date-btn {
-  position: relative;
-  cursor: pointer;
-}
-
-.header-date-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.header-subtitle {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.header-summary {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-/* ---- Habit list ---- */
-
-.habit-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-/* ---- Onboarding ---- */
-
-.onboarding {
-  text-align: center;
-  padding: var(--spacing-xl) var(--spacing-lg);
-}
-
-.onboarding h2 {
-  font-size: 18px;
-  font-weight: 500;
-  margin: var(--spacing-md) 0;
-}
-
-.onboarding p {
-  font-size: 14px;
-  color: var(--color-text-secondary);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.habit-emoji-large {
-  font-size: 40px;
-}
-
 /* ---- Card ---- */
 
 .card {
@@ -200,10 +147,6 @@ h1,
   border-radius: var(--radius-lg);
   padding: 14px var(--spacing-xl);
   transition: background 0.3s ease;
-}
-
-.card.logged-today {
-  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 @keyframes tick-flash {
@@ -230,83 +173,6 @@ h1,
   animation: tick-flash 0.9s ease forwards;
 }
 
-/* ---- Habit card content ---- */
-
-.habit-card-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.habit-emoji {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--color-background-tertiary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
-.habit-card-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  padding-left: var(--spacing-lg);
-}
-
-.habit-card-title {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-.habit-card-notif-icon {
-  opacity: 0.4;
-  flex-shrink: 0;
-  margin-left: var(--spacing-md);
-}
-
-.habit-card-name {
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.habit-card-subtitle {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.habit-card-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-  flex-shrink: 0;
-}
-
-/* ---- Completion count ---- */
-
-.completion-count {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.completion-count.done {
-  color: var(--color-accent);
-}
-
-.completion-count.in-progress {
-  color: var(--color-text-info);
-}
-
-.completion-count.behind {
-  color: var(--color-text-danger);
-}
 /* ---- Buttons ---- */
 
 .btn-base {
@@ -403,102 +269,118 @@ h1,
   color: var(--color-text-danger);
 }
 
-.habit-card-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-
 .btn-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 
-.btn-add-habit {
-  all: unset;
-  box-sizing: border-box;
-  height: 32px;
-  border-radius: var(--radius-md);
+/* ---- Form ---- */
+
+.text-input,
+input[type='time'] {
+  padding: var(--spacing-md);
   border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.text-input:focus,
+input[type='time']:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.text-input::placeholder {
   color: var(--color-text-secondary);
-  font-size: 14px;
-  cursor: pointer;
+  opacity: 1;
+}
+
+.form-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
-.btn-row .btn-add-habit {
-  flex: 1;
+.form-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
 }
 
-.btn-add-habit:hover {
+/* ---- Validation errors ---- */
+
+.error-message {
+  font-size: 12px;
+  color: var(--color-text-danger);
+  margin-top: var(--spacing-sm);
+}
+
+/* ---- Settings ---- */
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+}
+
+.settings-item-label {
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.settings-item-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.switch-root {
+  all: unset;
+  width: 36px;
+  height: 20px;
   background: var(--color-background-tertiary);
-}
-/* ---- Modal ---- */
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 100;
-}
-
-.modal-content {
-  position: fixed;
-  top: calc(var(--screen-height) * 0.15);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 101;
-  width: min(360px, 90vw);
-  background: var(--color-background-primary);
-  border-radius: var(--radius-lg);
-  border: 0.5px solid var(--color-border-tertiary);
-  padding: var(--spacing-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
-/* Notification permission prompt — inline panel inside Dialog.Content */
-.notif-prompt-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+.switch-root[data-state='checked'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
-/* Alert dialog sits above an open settings/detail modal */
-.alert-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 200;
+.switch-thumb {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 2px;
+  transition: transform 0.2s;
 }
 
-.alert-content {
-  position: fixed;
-  top: calc(var(--screen-height) * 0.25);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 201;
-  width: min(360px, 90vw);
-  background: var(--color-background-primary);
-  border-radius: var(--radius-lg);
-  border: 0.5px solid var(--color-border-tertiary);
-  padding: var(--spacing-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+.switch-root[data-state='checked'] .switch-thumb {
+  transform: translateX(16px);
 }
 
-.modal-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
-}
+/* ---- Legal ---- */
 
 .legal-content {
   font-size: 14px;
@@ -558,434 +440,6 @@ h1,
   color: var(--color-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.modal-description {
-  white-space: pre-line;
-  font-size: 14px;
-  color: var(--color-text-secondary);
-}
-
-.modal-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-sm);
-}
-
-/* ---- Progress bar ---- */
-
-.progress-bar {
-  height: 4px;
-  border-radius: var(--radius-sm);
-  background: var(--color-background-tertiary);
-}
-
-.progress-fill {
-  height: 4px;
-  border-radius: var(--radius-sm);
-  transition: width 0.2s ease;
-}
-
-.progress-fill.done {
-  background: var(--color-accent);
-}
-
-.progress-fill.in-progress {
-  background: var(--color-text-info);
-}
-
-.progress-fill.behind {
-  background: var(--color-text-danger);
-}
-
-/* ---- Streak ---- */
-
-.streak {
-  font-size: 11px;
-  color: var(--color-text-warning);
-}
-
-.streak-muted {
-  color: var(--color-text-secondary);
-}
-
-/* ---- Stats grid ---- */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
-}
-
-.stat-box {
-  background: var(--color-background-secondary);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 500;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin-top: var(--spacing-sm);
-}
-
-/* ---- Form ---- */
-
-.add-habit-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.text-input,
-.add-habit-form input[type='text'],
-.add-habit-form input[type='number'],
-.add-habit-form input[type='time'],
-.habit-detail-notif input[type='text'],
-.habit-detail-notif input[type='number'],
-.habit-detail-notif input[type='time'],
-.edit-name-input,
-input[type='time'] {
-  padding: var(--spacing-md);
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: var(--radius-md);
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
-  outline: none;
-}
-
-.edit-name-input {
-  margin-right: var(--spacing-md);
-}
-
-.text-input:focus,
-.add-habit-form input[type='text']:focus,
-.add-habit-form input[type='number']:focus,
-.add-habit-form input[type='time']:focus,
-.add-habit-form select:focus,
-.habit-detail-notif input[type='text']:focus,
-.habit-detail-notif input[type='number']:focus,
-.habit-detail-notif input[type='time']:focus,
-.habit-detail-notif select:focus,
-.edit-name-input:focus,
-input[type='time']:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
-}
-
-.habit-detail-notif {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-top: 0.5px solid var(--color-border-secondary);
-}
-
-.text-input::placeholder,
-.add-habit-form input::placeholder {
-  color: var(--color-text-secondary);
-  opacity: 1;
-}
-
-.add-habit-form select,
-.habit-detail-notif select {
-  padding: var(--spacing-md);
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: var(--radius-md);
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
-}
-
-.add-habit-form input[type='number'],
-.habit-detail-notif input[type='number'] {
-  width: 48px;
-}
-
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.form-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-/* ---- Validation errors ---- */
-
-.error-message {
-  font-size: 12px;
-  color: var(--color-text-danger);
-  margin-top: var(--spacing-sm);
-}
-
-/* ---- Heatmap ---- */
-
-.heatmap {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-}
-
-.heatmap-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.heatmap-dow {
-  text-align: center;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  padding-bottom: 2px;
-}
-
-.heatmap-cell {
-  aspect-ratio: 1;
-  border-radius: var(--radius-sm);
-  background: var(--color-background-tertiary);
-  position: relative;
-  min-height: 28px;
-}
-
-.heatmap-day-number {
-  position: absolute;
-  top: 3px;
-  left: 4px;
-  font-size: 9px;
-  line-height: 1;
-  color: var(--color-text-secondary);
-  pointer-events: none;
-  user-select: none;
-}
-
-.heatmap-filled .heatmap-day-number {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/*
-  Heatmap fills use CSS custom properties with a fallback chain.
-  The opacity trick doesn't work with CSS variables so we use
-  color-mix() to derive tints from the accent colour.
-  Fallback for browsers without color-mix: accent at full opacity.
-*/
-.heatmap-fill-25 {
-  background: color-mix(in srgb, var(--color-accent) 25%, var(--color-background-tertiary));
-}
-
-.heatmap-fill-50 {
-  background: color-mix(in srgb, var(--color-accent) 50%, var(--color-background-tertiary));
-}
-
-.heatmap-fill-75 {
-  background: color-mix(in srgb, var(--color-accent) 75%, var(--color-background-tertiary));
-}
-
-.heatmap-filled {
-  background: var(--color-accent);
-}
-
-.heatmap-period-complete {
-  background: color-mix(in srgb, var(--color-accent) 15%, var(--color-background-tertiary));
-}
-
-.heatmap-fill-50 .heatmap-day-number,
-.heatmap-fill-75 .heatmap-day-number {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.heatmap-empty {
-  background: var(--color-background-tertiary);
-}
-
-.heatmap-pad {
-  background: transparent;
-}
-
-/* ---- Settings modal ---- */
-
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.settings-section-divided {
-  border-top: 0.5px solid var(--color-border-tertiary);
-  padding-top: var(--spacing-lg);
-}
-
-.settings-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-xl);
-}
-
-.settings-item-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.settings-item-stack-divided {
-  border-top: 0.5px solid var(--color-border-tertiary);
-  padding-top: var(--spacing-lg);
-}
-
-.settings-item-label {
-  font-size: 14px;
-  color: var(--color-text-primary);
-}
-
-.settings-item-desc {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  line-height: 1.4;
-}
-
-.switch-root {
-  all: unset;
-  width: 36px;
-  height: 20px;
-  background: var(--color-background-tertiary);
-  border: 0.5px solid var(--color-border-secondary);
-  border-radius: 20px;
-  position: relative;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
-}
-
-.switch-root[data-state='checked'] {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.switch-thumb {
-  display: block;
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: 50%;
-  position: absolute;
-  top: 3px;
-  left: 2px;
-  transition: transform 0.2s;
-}
-
-.switch-root[data-state='checked'] .switch-thumb {
-  transform: translateX(16px);
-}
-
-.notif-day-picker {
-  display: flex;
-  justify-content: space-between;
-  padding-top: var(--spacing-sm);
-}
-
-.notif-day-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--color-background-tertiary);
-  border: 0.5px solid var(--color-border-secondary);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.notif-day-btn.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-accent-text);
-}
-
-.notif-mode-tabs {
-  display: flex;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 0.5px solid var(--color-border-secondary);
-  margin-top: var(--spacing-sm);
-}
-
-.notif-mode-tab {
-  flex: 1;
-  padding: 6px 2px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--color-background-tertiary);
-  border: none;
-  border-right: 0.5px solid var(--color-border-secondary);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.notif-mode-tab:last-child {
-  border-right: none;
-}
-
-.notif-mode-tab.active {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-}
-
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.settings-status-ok {
-  font-size: 12px;
-  color: var(--color-text-success);
-  margin: 0;
-}
-
-.settings-status-error {
-  font-size: 12px;
-  color: var(--color-text-danger);
-  margin: 0;
-}
-
-.settings-status-warning {
-  font-size: 12px;
-  color: var(--color-text-warning);
-  margin: 0;
-}
-
-.settings-about-links {
-  display: flex;
-  gap: var(--spacing-xl);
-
-  a,
-  .btn-link {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    font-family: inherit;
-  }
 }
 
 .auth-clickwrap {

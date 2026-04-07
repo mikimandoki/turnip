@@ -46,7 +46,7 @@ describe('Heatmap', () => {
   describe('rendering', () => {
     it('renders a cell for each day of the month', () => {
       const { container } = render(<Heatmap habit={dailyHabit} completions={[]} />);
-      const cells = container.querySelectorAll('.heatmap-cell:not(.heatmap-pad)');
+      const cells = container.querySelectorAll('.heatmapCell:not(.heatmapPad)');
       expect(cells.length).toBe(31);
     });
 
@@ -58,7 +58,7 @@ describe('Heatmap', () => {
     it('renders correct padding for first day of month', () => {
       // March 2026 starts on a Sunday — Monday-anchored grid means 6 padding cells
       const { container } = render(<Heatmap habit={dailyHabit} completions={[]} />);
-      const pads = container.querySelectorAll('.heatmap-pad');
+      const pads = container.querySelectorAll('.heatmapPad');
       expect(pads.length).toBe(6);
     });
 
@@ -76,7 +76,7 @@ describe('Heatmap', () => {
           completions={[{ habitId: 'other-habit', date: '2026-03-10', count: 1 }]}
         />
       );
-      const filled = container.querySelectorAll('.heatmap-filled');
+      const filled = container.querySelectorAll('.heatmapFilled');
       expect(filled.length).toBe(0);
     });
   });
@@ -89,12 +89,12 @@ describe('Heatmap', () => {
           completions={[{ habitId: 'h1', date: '2026-03-10', count: 1 }]}
         />
       );
-      expect(container.querySelectorAll('.heatmap-filled').length).toBe(1);
+      expect(container.querySelectorAll('.heatmapFilled').length).toBe(1);
     });
 
     it('marks an incomplete day as empty', () => {
       const { container } = render(<Heatmap habit={dailyHabit} completions={[]} />);
-      expect(container.querySelectorAll('.heatmap-empty').length).toBe(31);
+      expect(container.querySelectorAll('.heatmapEmpty').length).toBe(31);
     });
 
     it('marks partial completions correctly for multi-daily habits', () => {
@@ -108,24 +108,24 @@ describe('Heatmap', () => {
             { habitId: 'h4', date: '2026-03-13', count: 4 }, // 100%
           ]}
         />
-      );
+      );        
       expect
         .soft(
-          screen.getByText('10').closest('.heatmap-cell')?.classList.contains('heatmap-fill-25')
+          screen.getByText('10').closest('.heatmapCell')?.classList.contains('heatmapFill25')
         )
         .toBe(true);
       expect
         .soft(
-          screen.getByText('11').closest('.heatmap-cell')?.classList.contains('heatmap-fill-50')
+          screen.getByText('11').closest('.heatmapCell')?.classList.contains('heatmapFill50')
         )
         .toBe(true);
       expect
         .soft(
-          screen.getByText('12').closest('.heatmap-cell')?.classList.contains('heatmap-fill-75')
+          screen.getByText('12').closest('.heatmapCell')?.classList.contains('heatmapFill75')
         )
         .toBe(true);
       expect
-        .soft(screen.getByText('13').closest('.heatmap-cell')?.classList.contains('heatmap-filled'))
+        .soft(screen.getByText('13').closest('.heatmapCell')?.classList.contains('heatmapFilled'))
         .toBe(true);
     });
   });
@@ -145,7 +145,7 @@ describe('Heatmap', () => {
       // Mon Mar 2 - Sun Mar 8 — 3 logged, 4 remaining show period-complete
       ['2', '3', '8'].forEach(d => {
         expect
-          .soft(screen.getByText(d).closest('.heatmap-cell')?.classList.contains('heatmap-filled'))
+          .soft(screen.getByText(d).closest('.heatmapCell')?.classList.contains('heatmapFilled'))
           .toBe(true);
       });
       ['4', '5', '6', '7'].forEach(d => {
@@ -153,8 +153,8 @@ describe('Heatmap', () => {
           .soft(
             screen
               .getByText(d)
-              .closest('.heatmap-cell')
-              ?.classList.contains('heatmap-period-complete')
+              .closest('.heatmapCell')
+              ?.classList.contains('heatmapPeriodComplete')
           )
           .toBe(true);
       });
@@ -171,7 +171,7 @@ describe('Heatmap', () => {
           ]}
         />
       );
-      expect(container.querySelectorAll('.heatmap-period-complete').length).toBe(0);
+      expect(container.querySelectorAll('.heatmapPeriodComplete').length).toBe(0);
     });
   });
 
@@ -188,7 +188,7 @@ describe('Heatmap', () => {
       );
       ['2', '8'].forEach(d => {
         expect
-          .soft(screen.getByText(d).closest('.heatmap-cell')?.classList.contains('heatmap-filled'))
+          .soft(screen.getByText(d).closest('.heatmapCell')?.classList.contains('heatmapFilled'))
           .toBe(true);
       });
       // Spot-check spread of unlogged days
@@ -197,13 +197,13 @@ describe('Heatmap', () => {
           .soft(
             screen
               .getByText(d)
-              .closest('.heatmap-cell')
-              ?.classList.contains('heatmap-period-complete')
+              .closest('.heatmapCell')
+              ?.classList.contains('heatmapPeriodComplete')
           )
           .toBe(true);
       });
       // No day should be empty
-      expect(container.querySelectorAll('.heatmap-empty').length).toBe(0);
+      expect(container.querySelectorAll('.heatmapEmpty').length).toBe(0);
     });
 
     it('does not mark month as completed when threshold is not met', () => {
@@ -216,7 +216,7 @@ describe('Heatmap', () => {
           ]}
         />
       );
-      expect(container.querySelectorAll('.heatmap-period-complete').length).toBe(0);
+      expect(container.querySelectorAll('.heatmapPeriodComplete').length).toBe(0);
     });
   });
 
@@ -239,7 +239,7 @@ describe('Heatmap', () => {
       const habit: Habit = { ...dailyHabit, createdAt: '2026-01-01' };
       const { container } = render(<Heatmap habit={habit} completions={[]} />);
       fireEvent.click(screen.getByRole('button', { name: /previous month/i }));
-      const cells = container.querySelectorAll('.heatmap-cell:not(.heatmap-pad)');
+      const cells = container.querySelectorAll('.heatmapCell:not(.heatmapPad)');
       expect.soft(screen.getByText('February 2026')).toBeInTheDocument();
       expect.soft(cells.length).toBe(28);
     });
