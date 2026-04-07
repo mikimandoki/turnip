@@ -7,8 +7,8 @@ export default function PrivacyPage() {
   useForceLightMode();
   return (
     <div className='app app-legal'>
-      <div className='header'>
-        <div className='header-title header-title-centered'>Privacy Policy</div>
+      <div className='header header--solo'>
+        <div className='header-title'>Privacy Policy</div>
       </div>
       <div className='card'>
         <div className='legal-content'>

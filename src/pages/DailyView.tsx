@@ -51,7 +51,7 @@ export default function DailyView() {
           <ChevronLeft size={16} />
         </button>
         <div
-          className={`header-title ${styles.headerDateBtn}`}
+          className={`header-title ${styles.headerDateBtn} header-title-centered`}
           onClick={() => {
             try {
               dateInputRef.current?.showPicker();

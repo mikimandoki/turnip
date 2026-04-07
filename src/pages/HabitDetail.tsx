@@ -1,8 +1,6 @@
 import { parseISO } from 'date-fns';
 import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
-
-import styles from './HabitDetail.module.css';
 import { useNavigate, useParams } from 'react-router';
 
 import Alert from '../components/Alert';
@@ -32,6 +30,7 @@ import {
 } from '../utils/notifications';
 import { NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
+import styles from './HabitDetail.module.css';
 
 export default function HabitDetail() {
   const { id } = useParams();
