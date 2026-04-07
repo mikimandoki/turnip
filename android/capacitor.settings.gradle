@@ -28,3 +28,6 @@ project(':capacitor-share').projectDir = new File('../node_modules/.pnpm/@capaci
 
 include ':capacitor-toast'
 project(':capacitor-toast').projectDir = new File('../node_modules/.pnpm/@capacitor+toast@8.0.1_@capacitor+core@8.3.0/node_modules/@capacitor/toast/android')
+
+include ':capacitor-native-settings'
+project(':capacitor-native-settings').projectDir = new File('../node_modules/.pnpm/capacitor-native-settings@8.1.0_@capacitor+core@8.3.0/node_modules/capacitor-native-settings/android')
