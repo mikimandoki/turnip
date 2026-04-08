@@ -239,7 +239,7 @@ export default function AddHabitPage() {
             }}
           />
           <div className='form-row'>
-            <button className='btn-base btn-primary' type='submit'>
+            <button className='btn-base btn-primary' type='submit' aria-label='Add habit'>
               Add habit
             </button>
             <button className='btn-base btn-ghost' type='button' onClick={() => void navigate('/')}>
@@ -247,7 +247,12 @@ export default function AddHabitPage() {
             </button>
           </div>
           {errors.map(err => (
-            <p className='error-message' key={err}>
+            <p
+              className='error-message'
+              aria-label='Error message'
+              data-testid='error-message'
+              key={err}
+            >
               {err}
             </p>
           ))}

@@ -136,12 +136,13 @@ export default function HabitDetail() {
                   type='text'
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
+                  aria-label='Habit name input'
                 />
               ) : (
                 <div className={styles.habitCardTitle}>{cleanName}</div>
               )}
               {errors.map(err => (
-                <p className='error-message' key={err}>
+                <p className='error-message' key={err} aria-label='Error message'>
                   {err}
                 </p>
               ))}
@@ -163,7 +164,11 @@ export default function HabitDetail() {
             <div className={styles.habitCardActions}>
               {isEditing ? (
                 <>
-                  <button className='btn-action' onClick={() => void handleSave()}>
+                  <button
+                    className='btn-action'
+                    onClick={() => void handleSave()}
+                    aria-label='Save edits'
+                  >
                     <Check size={16} />
                   </button>
                   <button
@@ -187,7 +192,11 @@ export default function HabitDetail() {
                 </>
               ) : (
                 <>
-                  <button className='btn-action' onClick={() => setIsEditing(true)}>
+                  <button
+                    className='btn-action'
+                    onClick={() => setIsEditing(true)}
+                    aria-label='Edit habit'
+                  >
                     <Pencil size={16} />
                   </button>
                   <button

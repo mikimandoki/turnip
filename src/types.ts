@@ -81,6 +81,7 @@ type DevTestId = 'dev-delete-all' | 'dev-password' | 'dev-submit';
 export type DataTestId =
   | DevTestId
   | 'completion-count'
+  | 'error-message'
   | 'habit-title'
   | 'input-email'
   | 'progress-bar'
@@ -90,15 +91,19 @@ export type DataTestId =
   | 'submit-password';
 
 export type AriaLabel =
+  | 'Add habit'
   | 'Add new habit'
   | 'Decrease count'
   | 'Decrease interval'
   | 'Decrease period'
   | 'Decrease times'
   | 'Delete habit'
+  | 'Edit habit'
+  | 'Error message'
   | 'Frequency unit'
   | 'Habit card'
   | 'Habit name'
+  | 'Habit name input'
   | 'Increase count'
   | 'Increase interval'
   | 'Increase period'
@@ -110,7 +115,7 @@ export type AriaLabel =
   | 'Period length'
   | 'Previous day'
   | 'Previous month'
+  | 'Save edits'
   | 'Switch to dark mode'
   | 'Switch to light mode'
   | 'Times';
-  

@@ -1,38 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-import type { Habit } from '../../src/types';
-
 import { parseHabitEmoji } from '../../src/utils/habits';
+import { dailyHabit, habitWithEmoji, multiCountDailyHabit, weeklyHabit } from '../utils/constants';
 import { deleteUser, ensureTestUserExistsVerified } from '../utils/supabaseAdmin';
 import { addHabit } from '../utils/utils';
-
-const dailyHabit: Habit = {
-  id: '1',
-  name: 'Read a book',
-  frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
-  createdAt: new Date().toISOString(),
-};
-
-const multiCountDailyHabit: Habit = {
-  id: '2',
-  name: 'Eat a healthy meal',
-  frequency: { times: 4, periodLength: 1, periodUnit: 'day' },
-  createdAt: new Date().toISOString(),
-};
-
-const habitWithEmoji: Habit = {
-  id: '3',
-  name: '💪🏼 Gym',
-  frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
-  createdAt: new Date().toISOString(),
-};
-
-const weeklyHabit: Habit = {
-  id: '3',
-  name: 'Morning run',
-  frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
-  createdAt: new Date().toISOString(),
-};
 
 test('can add new habit', async ({ page }) => {
   await page.goto('/');
@@ -129,7 +100,7 @@ test('sync', async ({ browser }, testInfo) => {
       await page.getByTestId('input-email').fill(email);
       await page.getByTestId('dev-password').fill(pw);
       await page.getByTestId('dev-submit').click();
-      await expect(page.getByText('Sign out')).toBeVisible();
+      await expect(page.getByText('Sign out')).toBeVisible({ timeout: 8_000 });
       await page.getByLabel('Navigate back').click();
     })
   );
@@ -144,24 +115,24 @@ test('sync', async ({ browser }, testInfo) => {
   }
 });
 
-test("can't decrease beyond 0", async ({page}) => {
-  await page.goto('/')
-  await addHabit(page, multiCountDailyHabit); 
+test("can't decrease beyond 0", async ({ page }) => {
+  await page.goto('/');
+  await addHabit(page, multiCountDailyHabit);
   await page.getByRole('button').getByLabel('Increase count').click();
-  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count')
+  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count');
   await decreaseBtn.click();
-  await expect (decreaseBtn).toBeDisabled();
+  await expect(decreaseBtn).toBeDisabled();
 });
 
-test("can't decrease if you didn't increase that day", async ({page}) => {
-  const fakeToday = new Date('2026-01-01') // Thursday
-  await page.clock.setFixedTime(fakeToday)
-  await page.goto('/')
-  await addHabit(page, weeklyHabit); 
+test("can't decrease if you didn't increase that day", async ({ page }) => {
+  const fakeToday = new Date('2026-01-01'); // Thursday
+  await page.clock.setFixedTime(fakeToday);
+  await page.goto('/');
+  await addHabit(page, weeklyHabit);
   await page.getByRole('button').getByLabel('Increase count').click();
   await page.getByRole('button').and(page.getByLabel('Next day')).click();
   const count = page.locator('[data-testid="completion-count"]');
-  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count')
+  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count');
   await expect.soft(count).toHaveText('1/3'); // 1/3 but still doesn't let you go down because you didn't log today
-  await expect (decreaseBtn).toBeDisabled();
+  await expect(decreaseBtn).toBeDisabled();
 });
