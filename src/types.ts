@@ -75,3 +75,39 @@ export interface HabitStats {
   completedPeriods: number;
   streakContinuable: boolean; // current period not yet done, but the previous one was
 }
+
+type DevTestId = 'dev-delete-all' | 'dev-password' | 'dev-submit';
+
+export type DataTestId =
+  | DevTestId
+  | 'completion-count'
+  | 'habit-title'
+  | 'input-email'
+  | 'progress-bar'
+  | 'streak-indicator-continuable'
+  | 'streak-indicator-ongoing'
+  | 'submit-email'
+  | 'submit-password';
+
+export type AriaLabel =
+  | 'Decrease count'
+  | 'Decrease interval'
+  | 'Decrease period'
+  | 'Decrease times'
+  | 'Delete habit'
+  | 'Frequency unit'
+  | 'Habit card'
+  | 'Habit name'
+  | 'Increase count'
+  | 'Increase interval'
+  | 'Increase period'
+  | 'Increase times'
+  | 'Navigate back'
+  | 'Next day'
+  | 'Next month'
+  | 'Open settings'
+  | 'Period length'
+  | 'Previous day'
+  | 'Previous month'
+  | 'Times';
+  

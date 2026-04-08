@@ -364,7 +364,7 @@ export default function SettingsPage() {
                     className='text-input'
                     type='email'
                     placeholder='you@example.com'
-                    data-testid='email-input'
+                    data-testid='input-email'
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                   />

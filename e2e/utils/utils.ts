@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import type { Habit } from '../src/types';
+import type { Habit } from '../../src/types';
 
 export async function addHabit(page: Page, habit: Habit) {
   await page.getByRole('button', { name: 'Add new habit' }).click();

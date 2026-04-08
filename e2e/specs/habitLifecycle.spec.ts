@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
-import type { Habit } from '../src/types';
+import type { Habit } from '../../src/types';
 
-import { parseHabitEmoji } from '../src/utils/habits';
-import { deleteUser, ensureTestUserExistsVerified } from './supabaseAdmin';
-import { addHabit } from './utils';
+import { parseHabitEmoji } from '../../src/utils/habits';
+import { deleteUser, ensureTestUserExistsVerified } from '../utils/supabaseAdmin';
+import { addHabit } from '../utils/utils';
 
 const dailyHabit: Habit = {
   id: '1',
