@@ -66,6 +66,7 @@ export default function SettingsPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+  const [devPassword, setDevPassword] = useState('');
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -122,6 +123,33 @@ export default function SettingsPage() {
     setOtp('');
   }
 
+  async function handleDevPassword() {
+    if (!import.meta.env.DEV) return;
+    setAuthLoading(true);
+    setAuthError(null);
+
+    // Dev-only password sign-in
+    if (devPassword.trim().length > 0) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: devPassword,
+      });
+
+      setAuthLoading(false);
+
+      if (error) {
+        setAuthError(error.message);
+        return;
+      }
+
+      setAuthStep('idle');
+      setEmail('');
+      setOtp('');
+      setDevPassword('');
+      return;
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     setAuthStep('idle');
@@ -156,7 +184,11 @@ export default function SettingsPage() {
   return (
     <div className='app'>
       <div className='header'>
-        <button className='btn-action' onClick={() => void navigate('/')}>
+        <button
+          className='btn-action'
+          onClick={() => void navigate('/')}
+          aria-label='Navigate back'
+        >
           <ChevronLeft size={16} />
         </button>
         <div className='header-title header-title-centered'>
@@ -305,6 +337,7 @@ export default function SettingsPage() {
                   />
                   <button
                     className='btn-base btn-ghost'
+                    data-testid='submit-password'
                     disabled={otp.length < 8 || authLoading}
                     onClick={() => void handleVerifyOtp()}
                   >
@@ -331,16 +364,37 @@ export default function SettingsPage() {
                     className='text-input'
                     type='email'
                     placeholder='you@example.com'
+                    data-testid='email-input'
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                   />
+                  {import.meta.env.DEV && (
+                    <input
+                      className='text-input'
+                      type='password'
+                      placeholder='Dev password'
+                      data-testid='dev-password'
+                      value={devPassword}
+                      onChange={e => setDevPassword(e.target.value)}
+                    />
+                  )}
                   <button
                     className='btn-base btn-ghost'
+                    data-testid='submit-email'
                     disabled={!email.includes('@') || authLoading}
                     onClick={() => void handleSendOtp()}
                   >
                     {authLoading ? 'Sending…' : 'Continue'}
                   </button>
+                  {import.meta.env.DEV && (
+                    <button
+                      className='btn-base btn-ghost'
+                      data-testid='dev-submit'
+                      onClick={() => void handleDevPassword()}
+                    >
+                      Dev Login
+                    </button>
+                  )}
                   <p className='auth-clickwrap'>
                     By continuing, you agree to the{' '}
                     <LegalLink href='/terms' nativeUrl='https://getturnip.com/terms'>

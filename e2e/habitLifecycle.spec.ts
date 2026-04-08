@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 
 import type { Habit } from '../src/types';
 
-import { parseHabitEmoji } from '../src/utils/habits'
+import { parseHabitEmoji } from '../src/utils/habits';
+import { deleteUser, ensureTestUserExistsVerified } from './supabaseAdmin';
 import { addHabit } from './utils';
 
 const dailyHabit: Habit = {
@@ -96,7 +97,42 @@ test('can mark multi-completion daily habit as done', async ({ page }) => {
 test('can show habit emoji on daily view', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, habitWithEmoji);
-  const habitEmoji = page.getByLabel('Habit icon')
-  await expect(habitEmoji).toHaveText(parseHabitEmoji(habitWithEmoji.name).emoji)
+  const habitEmoji = page.getByLabel('Habit icon');
+  await expect(habitEmoji).toHaveText(parseHabitEmoji(habitWithEmoji.name).emoji);
+});
 
-})
+test('sync', async ({ browser }, testInfo) => {
+  const workerId = testInfo.workerIndex;
+  const email = `test+worker${workerId}@getturnip.com`;
+  const userID = await ensureTestUserExistsVerified(email);
+  const pw = process.env.SUPABASE_TEST_PW;
+  if (!pw) {
+    throw new Error('Supabase test credentials missing');
+  }
+
+  const context1 = await browser.newContext();
+  const context2 = await browser.newContext();
+
+  const page1 = await context1.newPage();
+  const page2 = await context2.newPage();
+  await Promise.all(
+    [page1, page2].map(async page => {
+      await page.goto('/?pwTest=1');
+      await page.getByLabel('Open settings').click();
+      await page.getByTestId('email-input').fill(email);
+      await page.getByTestId('dev-password').fill(pw);
+      await page.getByTestId('dev-submit').click();
+      await expect(page.getByText('Sign out')).toBeVisible();
+      await page.getByLabel('Navigate back').click();
+    })
+  );
+  try {
+    await addHabit(page1, dailyHabit);
+    await page2.reload();
+    const habitCardTitle = page2.locator('[data-testid="habit-title"]');
+    await expect(habitCardTitle).toHaveText(dailyHabit.name);
+  } finally {
+    await page1.getByTestId('dev-delete-all').click();
+    await deleteUser(userID);
+  }
+});

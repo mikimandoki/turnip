@@ -179,7 +179,11 @@ export default function DailyView() {
           tree-shaking removes them entirely in production builds. */}
       {import.meta.env.MODE === 'development' && (
         <div className='btn-row'>
-          <button className={styles.btnAddHabit} onClick={() => void clearAll()}>
+          <button
+            className={styles.btnAddHabit}
+            onClick={() => void clearAll()}
+            data-testid='dev-delete-all'
+          >
             Delete All
           </button>
           <button className={styles.btnAddHabit} onClick={() => void debugNotifs()}>
