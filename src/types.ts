@@ -90,6 +90,7 @@ export type DataTestId =
   | 'submit-password';
 
 export type AriaLabel =
+  | 'Add new habit'
   | 'Decrease count'
   | 'Decrease interval'
   | 'Decrease period'
@@ -109,5 +110,7 @@ export type AriaLabel =
   | 'Period length'
   | 'Previous day'
   | 'Previous month'
+  | 'Switch to dark mode'
+  | 'Switch to light mode'
   | 'Times';
   

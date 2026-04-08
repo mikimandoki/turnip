@@ -8,7 +8,7 @@ import { addHabit } from '../utils/utils';
 
 const dailyHabit: Habit = {
   id: '1',
-  name: 'Go for a run',
+  name: 'Read a book',
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: new Date().toISOString(),
 };
@@ -27,6 +27,13 @@ const habitWithEmoji: Habit = {
   createdAt: new Date().toISOString(),
 };
 
+const weeklyHabit: Habit = {
+  id: '3',
+  name: 'Morning run',
+  frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
+  createdAt: new Date().toISOString(),
+};
+
 test('can add new habit', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, dailyHabit);
@@ -37,7 +44,7 @@ test('can add new habit', async ({ page }) => {
 test('can mark habit as done', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, dailyHabit);
-  await page.getByRole('button').and(page.getByLabel('Increase count')).click();
+  await page.getByRole('button').getByLabel('Increase count').click();
   const count = page.locator('[data-testid="completion-count"]');
   const progress = page
     .locator('[data-testid="progress-bar"]')
@@ -51,11 +58,11 @@ test('only start showing streak for 2 consecutive daily completions', async ({ p
   await page.clock.setFixedTime(fakeToday);
   await page.goto('/');
   await addHabit(page, dailyHabit);
-  await page.getByRole('button').and(page.getByLabel('Increase count')).click();
+  await page.getByRole('button').getByLabel('Increase count').click();
   const streak = page.locator('[data-testid="streak-indicator-ongoing"]');
   await expect.soft(streak).not.toBeVisible();
   await page.getByRole('button').and(page.getByLabel('Next day')).click();
-  await page.getByRole('button').and(page.getByLabel('Increase count')).click();
+  await page.getByRole('button').getByLabel('Increase count').click();
   await expect(streak).toHaveText('🔥 2 day streak');
 });
 
@@ -117,9 +124,9 @@ test('sync', async ({ browser }, testInfo) => {
   const page2 = await context2.newPage();
   await Promise.all(
     [page1, page2].map(async page => {
-      await page.goto('/?pwTest=1');
+      await page.goto('/');
       await page.getByLabel('Open settings').click();
-      await page.getByTestId('email-input').fill(email);
+      await page.getByTestId('input-email').fill(email);
       await page.getByTestId('dev-password').fill(pw);
       await page.getByTestId('dev-submit').click();
       await expect(page.getByText('Sign out')).toBeVisible();
@@ -135,4 +142,26 @@ test('sync', async ({ browser }, testInfo) => {
     await page1.getByTestId('dev-delete-all').click();
     await deleteUser(userID);
   }
+});
+
+test("can't decrease beyond 0", async ({page}) => {
+  await page.goto('/')
+  await addHabit(page, multiCountDailyHabit); 
+  await page.getByRole('button').getByLabel('Increase count').click();
+  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count')
+  await decreaseBtn.click();
+  await expect (decreaseBtn).toBeDisabled();
+});
+
+test("can't decrease if you didn't increase that day", async ({page}) => {
+  const fakeToday = new Date('2026-01-01') // Thursday
+  await page.clock.setFixedTime(fakeToday)
+  await page.goto('/')
+  await addHabit(page, weeklyHabit); 
+  await page.getByRole('button').getByLabel('Increase count').click();
+  await page.getByRole('button').and(page.getByLabel('Next day')).click();
+  const count = page.locator('[data-testid="completion-count"]');
+  const decreaseBtn = page.getByRole('button').getByLabel('Decrease count')
+  await expect.soft(count).toHaveText('1/3'); // 1/3 but still doesn't let you go down because you didn't log today
+  await expect (decreaseBtn).toBeDisabled();
 });
