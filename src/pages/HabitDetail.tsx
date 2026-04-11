@@ -1,7 +1,9 @@
 import { parseISO } from 'date-fns';
 import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useReducer } from 'react';
 import { useNavigate, useParams } from 'react-router';
+
+import type { Frequency } from '../types';
 
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
@@ -32,31 +34,111 @@ import { NOTIF_BLOCKED_MESSAGE } from '../utils/strings';
 import { formatCount, isNative, validateInputs } from '../utils/utils';
 import styles from './HabitDetail.module.css';
 
+type EditState = {
+  isEditing: boolean;
+  editName: string;
+  editNotif: NotificationValue;
+  errors: string[];
+  notifValidated: boolean;
+  deleteOpen: boolean;
+  notifBlockedOpen: boolean;
+};
+
+type EditAction =
+  | { type: 'CANCEL_EDIT' }
+  | { type: 'CLEAR_NOTIF_VALIDATED' }
+  | { type: 'CLOSE_DELETE_MODAL' }
+  | { type: 'CLOSE_NOTIF_BLOCKED_MODAL' }
+  | { type: 'OPEN_DELETE_MODAL' }
+  | { type: 'OPEN_NOTIF_BLOCKED_MODAL' }
+  | { type: 'SAVE_SUCCESS'; name: string }
+  | { type: 'SET_ERRORS'; errors: string[] }
+  | { type: 'SET_NAME'; name: string }
+  | { type: 'SET_NOTIF_VALIDATED' }
+  | { type: 'SET_NOTIF'; notif: NotificationValue }
+  | { type: 'START_EDIT' };
+
+function getDefaultEditNotif(habit: {
+  frequency: Pick<Frequency, 'periodLength' | 'periodUnit'>;
+  notification?: NotificationValue;
+}) {
+  return {
+    ...defaultNotificationValue(),
+    mode: notifModeForUnit(
+      habit.frequency.periodLength > 1 ? 'custom' : habit.frequency.periodUnit
+    ),
+    ...habit.notification,
+  };
+}
+
+function editReducer(state: EditState, action: EditAction): EditState {
+  switch (action.type) {
+    case 'START_EDIT':
+      return { ...state, isEditing: true };
+    case 'CANCEL_EDIT':
+      return {
+        ...state,
+        isEditing: false,
+        errors: [],
+        notifValidated: false,
+        editName: '',
+        editNotif: state.editNotif, // keep current - reset would need habit ref
+      };
+    case 'SET_NAME':
+      return { ...state, editName: action.name };
+    case 'SET_NOTIF':
+      return { ...state, editNotif: action.notif, notifValidated: false };
+    case 'SET_ERRORS':
+      return { ...state, errors: action.errors };
+    case 'SET_NOTIF_VALIDATED':
+      return { ...state, notifValidated: true };
+    case 'CLEAR_NOTIF_VALIDATED':
+      return { ...state, notifValidated: false };
+    case 'OPEN_DELETE_MODAL':
+      return { ...state, deleteOpen: true };
+    case 'CLOSE_DELETE_MODAL':
+      return { ...state, deleteOpen: false };
+    case 'OPEN_NOTIF_BLOCKED_MODAL':
+      return { ...state, notifBlockedOpen: true };
+    case 'CLOSE_NOTIF_BLOCKED_MODAL':
+      return { ...state, notifBlockedOpen: false };
+    case 'SAVE_SUCCESS':
+      return {
+        ...state,
+        isEditing: false,
+        editName: action.name,
+        errors: [],
+        notifValidated: false,
+      };
+    default:
+      return state;
+  }
+}
+
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { habits, completions, deleteHabit, editHabit, recheckNotificationPermission } =
     useHabitContext();
   const habit = habits.find(h => h.id === id);
-  // TODO: calculateHabitStats is memoized with useMemo in HabitCard but called raw here.
-  // Memoize for consistency and to avoid recalculating on every render.
-  const habitStats = habit ? calculateHabitStats(habit, completions, new Date()) : undefined;
-  // TODO: these 6 state variables all belong to the same edit flow and move together.
-  // Replace with a single useReducer (or grouped state object) to simplify reset logic and
-  // avoid stale-closure bugs when multiple setters fire in the same event.
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(habit?.name ?? '');
-  const [editNotif, setEditNotif] = useState<NotificationValue>({
-    ...defaultNotificationValue(),
-    mode: notifModeForUnit(
-      (habit?.frequency.periodLength ?? 1) > 1 ? 'custom' : (habit?.frequency.periodUnit ?? 'day')
-    ),
-    ...habit?.notification,
+  const habitStats = useMemo(
+    () => (habit ? calculateHabitStats(habit, completions, new Date()) : undefined),
+    [habit, completions]
+  );
+
+  const [
+    { isEditing, editName, editNotif, errors, notifValidated, deleteOpen, notifBlockedOpen },
+    dispatch,
+  ] = useReducer(editReducer, {
+    isEditing: false,
+    editName: habit?.name ?? '',
+    editNotif: habit ? getDefaultEditNotif(habit) : defaultNotificationValue(),
+    errors: [],
+    notifValidated: false,
+    deleteOpen: false,
+    notifBlockedOpen: false,
   });
-  const [errors, setErrors] = useState<string[]>([]);
-  const [notifValidated, setNotifValidated] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [notifBlockedOpen, setNotifBlockedOpen] = useState(false);
+
   const { emoji, cleanName } = parseHabitEmoji(habit?.name ?? '');
 
   if (!habit) return <div>Habit not found</div>;
@@ -74,30 +156,28 @@ export default function HabitDetail() {
     const updated = { ...habit, name: trimmedName };
     const inputErrors = validateInputs(updated);
     if (inputErrors.length > 0) {
-      setErrors(inputErrors);
+      dispatch({ type: 'SET_ERRORS', errors: inputErrors });
       return;
     }
     if (validateNotif(editNotif)) {
-      setNotifValidated(true);
+      dispatch({ type: 'SET_NOTIF_VALIDATED' });
       return;
     }
     if (isNative && editNotif.enabled) {
       const permStatus = await checkNotificationPermission();
       if (permStatus === 'blocked') {
-        setNotifBlockedOpen(true);
+        dispatch({ type: 'OPEN_NOTIF_BLOCKED_MODAL' });
       } else if (permStatus === 'prompt') {
         const result = await requestNotificationPermission();
-        if (result === 'blocked') setNotifBlockedOpen(true);
+        if (result === 'blocked') dispatch({ type: 'OPEN_NOTIF_BLOCKED_MODAL' });
         void recheckNotificationPermission();
       }
     }
-    setErrors([]);
     await editHabit(habit, {
       name: trimmedName,
       notification: editNotif.enabled ? editNotif : undefined,
     });
-    setEditName(trimmedName);
-    setIsEditing(false);
+    dispatch({ type: 'SAVE_SUCCESS', name: trimmedName });
   }
 
   function buildNotifSuffix(notif: NotificationValue): string {
@@ -135,7 +215,7 @@ export default function HabitDetail() {
                   className={styles.editNameInput}
                   type='text'
                   value={editName}
-                  onChange={e => setEditName(e.target.value)}
+                  onChange={e => dispatch({ type: 'SET_NAME', name: e.target.value })}
                   aria-label='Habit name input'
                 />
               ) : (
@@ -171,22 +251,7 @@ export default function HabitDetail() {
                   >
                     <Check size={16} />
                   </button>
-                  <button
-                    className='btn-action'
-                    onClick={() => {
-                      setErrors([]);
-                      setNotifValidated(false);
-                      setIsEditing(false);
-                      setEditName(habit.name);
-                      setEditNotif({
-                        ...defaultNotificationValue(),
-                        mode: notifModeForUnit(
-                          habit.frequency.periodLength > 1 ? 'custom' : habit.frequency.periodUnit
-                        ),
-                        ...habit.notification,
-                      });
-                    }}
-                  >
+                  <button className='btn-action' onClick={() => dispatch({ type: 'CANCEL_EDIT' })}>
                     <X size={16} />
                   </button>
                 </>
@@ -194,14 +259,14 @@ export default function HabitDetail() {
                 <>
                   <button
                     className='btn-action'
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => dispatch({ type: 'START_EDIT' })}
                     aria-label='Edit habit'
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     className='btn-action delete'
-                    onClick={() => setDeleteOpen(true)}
+                    onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
                     aria-label='Delete habit'
                   >
                     <Trash2 size={16} />
@@ -216,14 +281,13 @@ export default function HabitDetail() {
                 value={editNotif}
                 validated={notifValidated}
                 onChange={next => {
-                  setNotifValidated(false);
                   if (!editNotif.enabled && next.enabled) {
-                    setEditNotif({
-                      ...next,
-                      days: defaultNotifDays(habit.frequency),
+                    dispatch({
+                      type: 'SET_NOTIF',
+                      notif: { ...next, days: defaultNotifDays(habit.frequency) },
                     });
                   } else {
-                    setEditNotif(next);
+                    dispatch({ type: 'SET_NOTIF', notif: next });
                   }
                 }}
               />
@@ -283,7 +347,7 @@ export default function HabitDetail() {
         confirm='Delete'
         cancel='Cancel'
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        onOpenChange={open => dispatch({ type: open ? 'OPEN_DELETE_MODAL' : 'CLOSE_DELETE_MODAL' })}
         onConfirm={() => {
           // We call the async logic here, but the handler itself returns void
           void (async () => {
@@ -299,7 +363,9 @@ export default function HabitDetail() {
         confirm='Open Settings'
         cancel='Not now'
         variant='primary'
-        onOpenChange={setNotifBlockedOpen}
+        onOpenChange={open =>
+          dispatch({ type: open ? 'OPEN_NOTIF_BLOCKED_MODAL' : 'CLOSE_NOTIF_BLOCKED_MODAL' })
+        }
         onConfirm={() => void openAppSettings()}
       />
     </>

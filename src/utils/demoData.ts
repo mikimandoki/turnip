@@ -51,8 +51,6 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
     const dow = d.getDay();
 
     // Morning run: 3x/week target, any day (~43% daily)
-    // TODO: extract magic probability values (0.43, 0.85, 0.75) to named constants at the top
-    // of this function (e.g. RUN_HIT_RATE, READ_HIT_RATE, MEDITATE_HIT_RATE) so tuning is obvious.
     if (Math.random() < 0.43) completions.push({ habitId: 'demo-1', date, count: 1 });
 
     // Read: daily, ~85% hit rate

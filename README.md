@@ -40,7 +40,7 @@ Both flavors use the **debug** build type so no signing keystore is needed. The 
 
 The QA app name comes from a string resource overlay at `android/app/src/qa/res/values/strings.xml`, which Android merges over the base `strings.xml` for that flavor.
 
-# Web
+## Web
 
 `jeep-sqlite` requires the `sql-wasm.wasm` binary in `public/assets/` to run the SQLite engine in the browser.
 
