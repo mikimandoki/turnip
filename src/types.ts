@@ -39,23 +39,27 @@ export const HabitSchema = z.object({
 // A habit the user wants to track
 export type Habit = z.infer<typeof HabitSchema>;
 
-export type HabitRowFromDB = {
-  id: string;
-  name: string;
-  createdAt: string;
-  times: number;
-  periodLength: number;
-  periodUnit: Frequency['periodUnit'];
-  sortOrder: number;
-  notif_enabled: number | null;
-  notif_mode: 'daily' | 'days-of-month' | 'days-of-week' | 'interval' | null;
-  notif_time: string | null;
-  notif_days: string | null; // JSON string
-  notif_monthDays: string | null; // JSON string
-  notif_customMessage: string | null;
-  notif_intervalN: number | null;
-  notif_intervalUnit: 'days' | 'weeks' | null;
-};
+// Schema for raw habit rows from SQLite (includes notification columns)
+export const HabitRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  createdAt: z.string(),
+  times: z.number(),
+  periodLength: z.number(),
+  periodUnit: z.enum(['day', 'week', 'month']),
+  sortOrder: z.number(),
+  updated_at: z.string().nullable(),
+  notif_enabled: z.number().nullable(),
+  notif_mode: z.enum(['daily', 'days-of-week', 'interval', 'days-of-month']).nullable(),
+  notif_time: z.string().nullable(),
+  notif_days: z.string().nullable(),
+  notif_monthDays: z.string().nullable(),
+  notif_customMessage: z.string().nullable(),
+  notif_intervalN: z.number().nullable(),
+  notif_intervalUnit: z.enum(['days', 'weeks']).nullable(),
+});
+
+export type HabitRowFromDB = z.infer<typeof HabitRowSchema>;
 
 export const CompletionSchema = z.object({
   habitId: z.string(),
@@ -65,6 +69,14 @@ export const CompletionSchema = z.object({
 
 // A single completion of a habit
 export type Completion = z.infer<typeof CompletionSchema>;
+
+// Schema for validating raw completion rows from SQLite
+export const CompletionRowSchema = z.object({
+  habitId: z.string(),
+  date: z.string(),
+  count: z.number(),
+  updated_at: z.string().nullable(),
+});
 
 export interface HabitStats {
   currentStreak: number;
@@ -102,6 +114,7 @@ export type AriaLabel =
   | 'Error message'
   | 'Frequency unit'
   | 'Habit card'
+  | 'Habit icon'
   | 'Habit name'
   | 'Habit name input'
   | 'Increase count'

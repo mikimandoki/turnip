@@ -1,7 +1,6 @@
 import type { SQLiteDBConnection } from '@capacitor-community/sqlite';
 
-import type { Completion, Habit } from '../types';
-
+import { type Completion, CompletionRowSchema, type Habit, HabitRowSchema } from '../types';
 import { supabase } from './supabase';
 
 async function getUser() {
@@ -158,21 +157,27 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at
      FROM habits WHERE deleted_at IS NULL`
   );
-  // TODO: these `as string` / `as number` casts on Record<string, unknown> are unsafe. If the
-  // SQLite column names or types drift, this silently produces garbage. Replace with a Zod schema
-  // that validates the raw row shape before mapping, the same way loadDataFromDB does.
-  const remoteHabits = (habitRows.values ?? []).map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    user_id: user.id,
-    name: row.name as string,
-    created_at: row.createdAt as string,
-    times: row.times as number,
-    period_length: row.periodLength as number,
-    period_unit: row.periodUnit as string,
-    sort_order: row.sortOrder as number,
-    updated_at: (row.updated_at as string) ?? new Date().toISOString(),
-    deleted_at: null,
-  }));
+  const remoteHabits: ReturnType<typeof toRemoteHabit>[] = [];
+  for (const rawRow of habitRows.values ?? []) {
+    const parseResult = HabitRowSchema.safeParse(rawRow);
+    if (!parseResult.success) {
+      console.warn('[sync] Invalid habit row from SQLite, skipping:', parseResult.error.message);
+      continue;
+    }
+    const row = parseResult.data;
+    remoteHabits.push({
+      id: row.id,
+      user_id: user.id,
+      name: row.name,
+      created_at: row.createdAt,
+      times: row.times,
+      period_length: row.periodLength,
+      period_unit: row.periodUnit,
+      sort_order: row.sortOrder,
+      updated_at: row.updated_at ?? new Date().toISOString(),
+      deleted_at: null,
+    });
+  }
 
   if (remoteHabits.length > 0) {
     const { error } = await supabase
@@ -183,14 +188,33 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read completions with their actual updated_at from SQLite
   const compRows = await db.query(`SELECT habitId, date, count, updated_at FROM completions`);
-  const remoteCompletions = (compRows.values ?? []).map((row: Record<string, unknown>) => ({
-    user_id: user.id,
-    habit_id: row.habitId as string,
-    date: row.date as string,
-    count: row.count as number,
-    updated_at: (row.updated_at as string) ?? new Date().toISOString(),
-    deleted_at: null,
-  }));
+  const remoteCompletions: {
+    user_id: string;
+    habit_id: string;
+    date: string;
+    count: number;
+    updated_at: string;
+    deleted_at: null;
+  }[] = [];
+  for (const rawRow of compRows.values ?? []) {
+    const parseResult = CompletionRowSchema.safeParse(rawRow);
+    if (!parseResult.success) {
+      console.warn(
+        '[sync] Invalid completion row from SQLite, skipping:',
+        parseResult.error.message
+      );
+      continue;
+    }
+    const row = parseResult.data;
+    remoteCompletions.push({
+      user_id: user.id,
+      habit_id: row.habitId,
+      date: row.date,
+      count: row.count,
+      updated_at: row.updated_at ?? new Date().toISOString(),
+      deleted_at: null,
+    });
+  }
 
   if (remoteCompletions.length > 0) {
     const { error } = await supabase
