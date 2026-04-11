@@ -105,6 +105,7 @@ export type DataTestId =
 export type AriaLabel =
   | 'Add habit'
   | 'Add new habit'
+  | 'Cancel edits'
   | 'Decrease count'
   | 'Decrease interval'
   | 'Decrease period'

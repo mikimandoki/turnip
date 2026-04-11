@@ -45,7 +45,7 @@ type EditState = {
 };
 
 type EditAction =
-  | { type: 'CANCEL_EDIT' }
+  | { type: 'CANCEL_EDIT'; habitName: string; defaultNotif: NotificationValue }
   | { type: 'CLEAR_NOTIF_VALIDATED' }
   | { type: 'CLOSE_DELETE_MODAL' }
   | { type: 'CLOSE_NOTIF_BLOCKED_MODAL' }
@@ -81,8 +81,8 @@ function editReducer(state: EditState, action: EditAction): EditState {
         isEditing: false,
         errors: [],
         notifValidated: false,
-        editName: '',
-        editNotif: state.editNotif, // keep current - reset would need habit ref
+        editName: action.habitName,
+        editNotif: action.defaultNotif,
       };
     case 'SET_NAME':
       return { ...state, editName: action.name };
@@ -251,7 +251,17 @@ export default function HabitDetail() {
                   >
                     <Check size={16} />
                   </button>
-                  <button className='btn-action' onClick={() => dispatch({ type: 'CANCEL_EDIT' })}>
+                  <button
+                    className='btn-action'
+                    aria-label='Cancel edits'
+                    onClick={() =>
+                      dispatch({
+                        type: 'CANCEL_EDIT',
+                        habitName: habit.name,
+                        defaultNotif: getDefaultEditNotif(habit),
+                      })
+                    }
+                  >
                     <X size={16} />
                   </button>
                 </>
