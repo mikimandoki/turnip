@@ -85,19 +85,19 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const now = new Date().toISOString();
       if (newCount === 0) {
         await db.run(`DELETE FROM completions WHERE habitId = ? AND date = ?;`, [habitId, today]);
-        // TODO: fire-and-forget sync ops like these silently swallow failures. At minimum add
-        // .catch(e => console.error(...)) so failures are visible; ideally queue with retry.
-        void softDeleteCompletion(habitId, today);
+        void softDeleteCompletion(habitId, today).catch(e =>
+          console.error('[sync] softDeleteCompletion failed:', e)
+        );
       } else {
-        // 2. The UPSERT: Insert new row or update existing count
         await db.run(
           `INSERT INTO completions (habitId, date, count, updated_at)
            VALUES (?, ?, ?, ?)
            ON CONFLICT(habitId, date) DO UPDATE SET count = excluded.count, updated_at = excluded.updated_at;`,
           [habitId, today, newCount, now]
         );
-        // TODO: same as above — fire-and-forget with no error visibility.
-        void pushCompletion(habitId, today, newCount);
+        void pushCompletion(habitId, today, newCount).catch(e =>
+          console.error('[sync] pushCompletion failed:', e)
+        );
       }
 
       await syncDB();
@@ -162,8 +162,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       ]);
       const sortOrder =
         (sortResult2.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
-      // TODO: fire-and-forget — add .catch or a background sync queue with retry.
-      void pushHabit(newHabit, sortOrder);
+      void pushHabit(newHabit, sortOrder).catch(e => console.error('[sync] pushHabit failed:', e));
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
       console.error('❌ Add Habit Failed:', errorMsg);
@@ -213,7 +212,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 4. Push to Supabase (fire-and-forget)
       const sortRes = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [habit.id]);
       const sortOrder = (sortRes.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
-      void pushHabit(merged, sortOrder);
+      void pushHabit(merged, sortOrder).catch(e => console.error('[sync] pushHabit failed:', e));
 
       void hapticsMedium();
     } catch (e) {
@@ -362,7 +361,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Delete habit — cascades to completions and notification_queue
       await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
-      void softDeleteHabit(habit.id);
+      void softDeleteHabit(habit.id).catch(e => console.error('[sync] softDeleteHabit failed:', e));
 
       // 3. Sync the SQLite file to IndexedDB (Web layer)
       await syncDB();
@@ -391,7 +390,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function clearAll() {
     const db = await getDB();
     await cancelAllHabitNotifications();
-    void softDeleteAllHabits();
+    void softDeleteAllHabits().catch(e => console.error('[sync] softDeleteAllHabits failed:', e));
     await db.run(`DELETE FROM habits`);
     await syncDB();
     await clearStorage();
@@ -465,8 +464,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Perform updates in a single loop
       // Note: We use a loop here because we're usually reordering < 20 items.
-      // TODO: replace with executeSet for atomicity — also the reorderHabits fire-and-forget below
-      // (void pushAllHabits) swallows errors; add .catch or retry.
+      // TODO: replace with executeSet for atomicity.
       const reorderNow = new Date().toISOString();
       for (let i = 0; i < newOrderedHabits.length; i++) {
         await db.run(`UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`, [
@@ -478,7 +476,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
-      void pushAllHabits(newOrderedHabits);
+      void pushAllHabits(newOrderedHabits).catch(e =>
+        console.error('[sync] pushAllHabits failed:', e)
+      );
       void hapticsLight();
     } catch (e) {
       console.error('Failed to sync reorder to DB:', e);
@@ -563,8 +563,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await syncDB();
       await saveToStorage('hasOnboarded', true);
 
-      void pushAllHabits(parsed.habits);
-      void pushAllCompletions(parsed.completions);
+      void pushAllHabits(parsed.habits).catch(e =>
+        console.error('[sync] pushAllHabits failed:', e)
+      );
+      void pushAllCompletions(parsed.completions).catch(e =>
+        console.error('[sync] pushAllCompletions failed:', e)
+      );
 
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
