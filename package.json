@@ -20,8 +20,8 @@
     "watch": "tsc -b -w",
     "generate-assets": "capacitor-assets generate --ios --android",
     "generate-licences": "license-checker-rseidelsohn --production --markdown --out ATTRIBUTIONS.md --excludePackages 'turnip'",
-    "android": "vite build --mode development && cap sync android && cd android && ./gradlew installQaDebug",
-    "android:prod": "pnpm build && cap sync android && cd android && ./gradlew installProdDebug",
+    "android": "vite build --mode qa && cap sync android && cd android && ./gradlew installQaDebug",
+    "android:prod": "vite build --mode production && cap sync android && cd android && ./gradlew installProdDebug",
     "ios": "vite build --mode development && cap sync ios && cap run ios",
     "ios:prod": "pnpm build && cap sync ios && cap run ios"
   },

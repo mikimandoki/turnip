@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router';
 import Alert from '../components/Alert';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { exportData } from '../utils/dataTransfer';
+import { isDevUI } from '../utils/dev';
 import { openAppSettings } from '../utils/localNotifications';
 import { supabase } from '../utils/supabase';
 import { isNative } from '../utils/utils';
@@ -368,7 +369,7 @@ export default function SettingsPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                   />
-                  {import.meta.env.DEV && (
+                  {isDevUI && (
                     <input
                       className='text-input'
                       type='password'
@@ -386,7 +387,7 @@ export default function SettingsPage() {
                   >
                     {authLoading ? 'Sending…' : 'Continue'}
                   </button>
-                  {import.meta.env.DEV && (
+                  {isDevUI && (
                     <button
                       className='btn-base btn-ghost'
                       data-testid='dev-submit'

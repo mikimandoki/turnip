@@ -1,0 +1,3 @@
+.btn {
+  composes: btnAddHabit from '../pages/DailyView.module.css';
+}

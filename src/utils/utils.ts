@@ -1,11 +1,10 @@
 import type { Frequency, Habit } from '../types';
 
-// TODO: replace the `window as unknown as` double-cast with a proper interface extension:
-// interface WindowWithCapacitor extends Window { Capacitor?: { isNativePlatform: () => boolean } }
-// This avoids bypassing TypeScript's type checker. Same pattern in dataTransfer.ts.
 export const isNative = !!(
   window as unknown as { Capacitor?: { isNativePlatform: () => boolean } }
 ).Capacitor?.isNativePlatform();
+
+export const isDev = import.meta.env.DEV;
 
 import { parseHabitEmoji } from './habits';
 

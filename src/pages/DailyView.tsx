@@ -6,20 +6,12 @@ import { useNavigate } from 'react-router';
 
 import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
+import DevButtons from '../dev/DevButtons';
 import { namedDayOrDate, toDateString } from '../utils/date';
+import { isDevUI } from '../utils/dev';
 import { getCompletionsInPeriod } from '../utils/habits';
-import { getPendingNotifications } from '../utils/localNotifications';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
-
-async function debugNotifs() {
-  const { notifications } = await getPendingNotifications();
-  alert(
-    notifications.length === 0
-      ? 'No pending notifications'
-      : notifications.map(n => `[${n.id}] "${n.title}" — ${JSON.stringify(n.schedule)}`).join('\n')
-  );
-}
 
 export default function DailyView() {
   const navigate = useNavigate();
@@ -174,23 +166,7 @@ export default function DailyView() {
         </button>
       )}
 
-      {/* TODO: these dev buttons (and the debugNotifs function above) are present in the
-          production bundle — only the render is gated. Move them to a dev-only module so
-          tree-shaking removes them entirely in production builds. */}
-      {import.meta.env.MODE === 'development' && (
-        <div className='btn-row'>
-          <button
-            className={styles.btnAddHabit}
-            onClick={() => void clearAll()}
-            data-testid='dev-delete-all'
-          >
-            Delete All
-          </button>
-          <button className={styles.btnAddHabit} onClick={() => void debugNotifs()}>
-            Debug Notifs
-          </button>
-        </div>
-      )}
+      {isDevUI && <DevButtons onClearAll={() => void clearAll()} />}
     </div>
   );
 }
