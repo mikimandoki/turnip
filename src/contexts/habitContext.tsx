@@ -1,6 +1,6 @@
 import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 
 import { useBackButton } from '../hooks/useBackButton';
@@ -57,6 +57,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [dateString, setDateString] = useState<string>(toDateString(new Date()));
   const displayDate = useMemo(() => parseISO(dateString), [dateString]);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
+  const syncOnSignInInFlight = useRef(false);
 
   useBackButton();
   const { darkMode, toggleDarkMode } = useDarkMode();
@@ -332,23 +333,27 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // On sign-in: push local data up, then pull remote down, then refresh UI
-  // TODO: this IIFE has race conditions — if SIGNED_IN fires twice quickly (e.g. token refresh)
-  // both runs execute concurrently with no guard. Also, errors at any step fail silently.
-  // Consider a dedicated sync state machine or at minimum an in-flight flag.
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session && !syncOnSignInInFlight.current) {
+        syncOnSignInInFlight.current = true;
         void (async () => {
-          const db = await getDB();
-          await syncOnSignIn(db);
-          const synced = await loadDataFromDB();
-          setHabits(synced.habits);
-          setCompletions(synced.completions);
+          try {
+            const db = await getDB();
+            await syncOnSignIn(db);
+            const synced = await loadDataFromDB();
+            setHabits(synced.habits);
+            setCompletions(synced.completions);
+          } catch (e) {
+            console.error('[sync] syncOnSignIn failed:', e);
+          } finally {
+            syncOnSignInInFlight.current = false;
+          }
         })();
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [syncOnSignInInFlight]);
 
   async function deleteHabit(habit: Habit) {
     const db = await getDB();
