@@ -9,7 +9,7 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import DevButtons from '../dev/DevButtons';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { isDevUI } from '../utils/dev';
-import { getCompletionsInPeriod } from '../utils/habits';
+import { applyDragReorder, getCompletionsInPeriod } from '../utils/habits';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
 
@@ -20,7 +20,6 @@ export default function DailyView() {
     completions,
     displayDate,
     hasOnboarded,
-    updateCompletion,
     reorderHabits,
     shiftDate,
     setDate,
@@ -84,9 +83,6 @@ export default function DailyView() {
         </div>
       )}
 
-      {/* TODO: extract the onDragEnd body into a standalone pure utility function
-          (e.g. applyDragReorder(habits, visibleHabits, from, to) → Habit[]) so it can be
-          unit-tested without mounting a component. */}
       {habits.length > 0 && (
         <DragDropProvider
           onDragEnd={event => {
@@ -98,38 +94,17 @@ export default function DailyView() {
             const to = source.index;
             if (from === to) return;
 
-            // 1. Calculate the new order for ONLY the visible items
-            const reorderedVisible = [...visibleHabits];
-            const [movedItem] = reorderedVisible.splice(from, 1);
-            reorderedVisible.splice(to, 0, movedItem);
-
-            // 2. Map those changes back into the MASTER list
-            // We keep non-visible habits where they are, and update the visible ones in place
-            const visibleIds = new Set(visibleHabits.map(h => h.id));
-            let visibleIdx = 0;
-
-            const finalMasterList = habits.map(h => {
-              if (visibleIds.has(h.id)) {
-                return reorderedVisible[visibleIdx++];
-              }
-              return h;
-            });
-
-            // 3. Send the master list to the DB handler
-            void reorderHabits(finalMasterList);
+            const reordered = applyDragReorder(habits, visibleHabits, from, to);
+            void reorderHabits(reordered);
           }}
         >
           <div className={styles.habitList}>
             {visibleHabits.map((habit, index) => (
-              // TODO: onClick and onLog are recreated every render. Wrap with useCallback (keyed
-              // by habit.id) so a memoized HabitCard can skip re-renders.
               <HabitCard
                 key={habit.id}
                 index={index}
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
-                onClick={() => void navigate(`/habit/${habit.id}`)}
-                onLog={delta => void updateCompletion(habit.id, delta)}
               />
             ))}
           </div>

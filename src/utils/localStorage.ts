@@ -12,10 +12,10 @@ export async function loadFromStorage<T>(
     const { value } = await Preferences.get({ key });
     if (!value) return fallback;
     return schema.parse(JSON.parse(value));
-  } catch {
-    // TODO: this catch conflates three different cases: key not found (expected), JSON parse
-    // error (data corruption), and permission/platform error. Log unexpected errors so they're
-    // not silently swallowed as if the key was simply missing.
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error('[loadFromStorage] Unexpected error:', e.message);
+    }
     return fallback;
   }
 }

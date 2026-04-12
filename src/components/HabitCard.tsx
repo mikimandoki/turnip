@@ -1,7 +1,8 @@
 import { useSortable } from '@dnd-kit/react/sortable';
 import clsx from 'clsx';
 import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import type { Habit } from '../types';
 
@@ -27,21 +28,25 @@ const motivationalMessages = [
   'small steps, big results!',
 ];
 
-export default function HabitCard({
+function HabitCard({
   habit,
   index,
   completedCount,
-  onClick,
-  onLog,
 }: {
   habit: Habit;
   index: number;
   completedCount: number;
-  onClick: () => void;
-  onLog: (delta: number) => void;
 }) {
   const [showTick, setShowTick] = useState(false);
-  const { displayDate, isFutureDate, osNotificationsGranted, completions } = useHabitContext();
+  const navigate = useNavigate();
+  const { displayDate, isFutureDate, osNotificationsGranted, completions, updateCompletion } =
+    useHabitContext();
+
+  const handleClick = useCallback(() => void navigate(`/habit/${habit.id}`), [habit.id, navigate]);
+  const handleLog = useCallback(
+    (delta: number) => void updateCompletion(habit.id, delta),
+    [habit.id, updateCompletion]
+  );
   const targetCount = habit.frequency.times;
   const loggedToday = completions.some(
     c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
@@ -69,7 +74,7 @@ export default function HabitCard({
   return (
     <div
       ref={ref}
-      onClick={onClick}
+      onClick={handleClick}
       className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
       aria-label='Habit card'
     >
@@ -101,7 +106,7 @@ export default function HabitCard({
               className='btn-action'
               onClick={e => {
                 e.stopPropagation();
-                onLog(-1);
+                handleLog(-1);
               }}
               disabled={isFutureDate || !loggedToday}
             >
@@ -112,7 +117,7 @@ export default function HabitCard({
               className='btn-action'
               onClick={e => {
                 e.stopPropagation();
-                onLog(1);
+                handleLog(1);
                 setShowTick(true);
               }}
               disabled={isFutureDate}
@@ -153,3 +158,14 @@ export default function HabitCard({
     </div>
   );
 }
+
+const HabitCardMemo = memo(HabitCard, (prev, next) => {
+  return (
+    prev.habit.id === next.habit.id &&
+    prev.habit.name === next.habit.name &&
+    prev.completedCount === next.completedCount &&
+    prev.index === next.index
+  );
+});
+
+export default HabitCardMemo;

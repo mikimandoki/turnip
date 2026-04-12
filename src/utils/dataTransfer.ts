@@ -14,11 +14,7 @@ export type ImportResult =
   | { success: false; error: string }
   | { success: true; habits: Habit[]; completions: Completion[]; warning?: string };
 
-// TODO: same `window as unknown as` double-cast anti-pattern as in utils.ts. Define a shared
-// WindowWithCapacitor interface and use it in both files.
-const platform =
-  (window as unknown as { Capacitor?: { getPlatform: () => string } }).Capacitor?.getPlatform() ??
-  'web';
+const platform = window.Capacitor?.getPlatform() ?? 'web';
 
 export async function exportData(
   habits: Habit[],

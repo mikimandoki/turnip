@@ -9,6 +9,13 @@ import { useHabitContext } from '../contexts/useHabitContext';
 import { calculateHabitStats } from '../utils/habits';
 import HabitCard from './HabitCard';
 
+const mockNavigate = vi.fn();
+const mockUpdateCompletion = vi.fn();
+
+vi.mock('react-router', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 vi.mock('../contexts/useHabitContext', () => ({
   useHabitContext: vi.fn(),
 }));
@@ -55,6 +62,7 @@ const baseContext: Partial<HabitContextType> = {
   isFutureDate: false,
   osNotificationsGranted: false,
   completions: [],
+  updateCompletion: mockUpdateCompletion,
 };
 
 function mockContext(overrides: Partial<HabitContextType> = {}) {
@@ -65,23 +73,13 @@ function mockContext(overrides: Partial<HabitContextType> = {}) {
 }
 
 function renderCard(props: Partial<Parameters<typeof HabitCard>[0]> & { habit?: Habit } = {}) {
-  const onLog = vi.fn();
-  const onClick = vi.fn();
-  render(
-    <HabitCard
-      habit={habit}
-      index={0}
-      completedCount={0}
-      onClick={onClick}
-      onLog={onLog}
-      {...props}
-    />
-  );
-  return { onLog, onClick };
+  render(<HabitCard habit={habit} index={0} completedCount={0} {...props} />);
 }
 
 beforeEach(() => {
   mockContext();
+  mockNavigate.mockClear();
+  mockUpdateCompletion.mockClear();
 });
 
 describe('HabitCard', () => {
@@ -115,42 +113,22 @@ describe('HabitCard', () => {
 
   describe('progress status', () => {
     it('applies "behind" class when completedCount is 0', () => {
-      const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={0} onClick={vi.fn()} onLog={vi.fn()} />
-      );
+      const { container } = render(<HabitCard habit={habit} index={0} completedCount={0} />);
       expect(container.querySelector('.progressFill')?.classList.contains('behind')).toBe(true);
     });
 
     it('applies "in-progress" class when partially complete', () => {
-      const { container } = render(
-        <HabitCard
-          habit={multiHabit}
-          index={0}
-          completedCount={1}
-          onClick={vi.fn()}
-          onLog={vi.fn()}
-        />
-      );
+      const { container } = render(<HabitCard habit={multiHabit} index={0} completedCount={1} />);
       expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets target', () => {
-      const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={1} onClick={vi.fn()} onLog={vi.fn()} />
-      );
+      const { container } = render(<HabitCard habit={habit} index={0} completedCount={1} />);
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets multi-target', () => {
-      const { container } = render(
-        <HabitCard
-          habit={multiHabit}
-          index={0}
-          completedCount={3}
-          onClick={vi.fn()}
-          onLog={vi.fn()}
-        />
-      );
+      const { container } = render(<HabitCard habit={multiHabit} index={0} completedCount={3} />);
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
   });
@@ -160,16 +138,12 @@ describe('HabitCard', () => {
       mockContext({
         completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
       });
-      const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={1} onClick={vi.fn()} onLog={vi.fn()} />
-      );
+      const { container } = render(<HabitCard habit={habit} index={0} completedCount={1} />);
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(true);
     });
 
     it('does not add logged-today class when no completion for today', () => {
-      const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={0} onClick={vi.fn()} onLog={vi.fn()} />
-      );
+      const { container } = render(<HabitCard habit={habit} index={0} completedCount={0} />);
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(false);
     });
   });
@@ -195,27 +169,41 @@ describe('HabitCard', () => {
       expect(screen.getByRole('button', { name: 'Decrease count' })).not.toBeDisabled();
     });
 
+    it('calls updateCompletion(+1) when increase button is clicked', async () => {
+      const user = userEvent.setup();
+      renderCard();
+      await user.click(screen.getByRole('button', { name: 'Increase count' }));
+      expect(mockUpdateCompletion).toHaveBeenCalledWith('h1', 1);
+    });
+
+    it('calls updateCompletion(-1) when decrease button is clicked', async () => {
+      const user = userEvent.setup();
+      mockContext({
+        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
+      });
+      renderCard();
+      await user.click(screen.getByRole('button', { name: 'Decrease count' }));
+      expect(mockUpdateCompletion).toHaveBeenCalledWith('h1', -1);
+    });
+
     it('does not navigate when action buttons are clicked', async () => {
       const user = userEvent.setup();
       mockContext({
         completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
       });
-      const { onClick } = renderCard();
+      renderCard();
       await user.click(screen.getByRole('button', { name: 'Decrease count' }));
       await user.click(screen.getByRole('button', { name: 'Increase count' }));
-      expect(onClick).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 
   describe('card click', () => {
-    it('calls onClick when the card is clicked', async () => {
+    it('navigates to habit detail when the card is clicked', async () => {
       const user = userEvent.setup();
-      const onClick = vi.fn();
-      const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={0} onClick={onClick} onLog={vi.fn()} />
-      );
-      await user.click(container.querySelector('.card')!);
-      expect(onClick).toHaveBeenCalled();
+      renderCard();
+      await user.click(screen.getByLabelText('Habit card'));
+      expect(mockNavigate).toHaveBeenCalledWith('/habit/h1');
     });
   });
 

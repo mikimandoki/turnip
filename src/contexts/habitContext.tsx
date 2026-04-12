@@ -1,6 +1,6 @@
 import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
 import { useBackButton } from '../hooks/useBackButton';
@@ -51,11 +51,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [completions, setCompletions] = useState<Completion[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
-  // TODO: store displayDate as a Date directly instead of round-tripping through string.
-  // Currently: new Date() → toDateString (string) → parseISO (Date) on every render.
-  // Store a Date in state and only convert to string when writing to DB or comparing dates.
-  const [dateString, setDateString] = useState<string>(toDateString(new Date()));
-  const displayDate = useMemo(() => parseISO(dateString), [dateString]);
+  const [displayDate, setDisplayDate] = useState<Date>(new Date());
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
   const syncOnSignInInFlight = useRef(false);
 
@@ -72,7 +68,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   } = useNotificationPermission();
 
   async function updateCompletion(habitId: string, increment: number) {
-    const today = dateString;
+    const today = toDateString(displayDate);
     const db = await getDB();
 
     try {
@@ -385,11 +381,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   function shiftDate(days: number) {
-    setDateString(toDateString(addDays(displayDate, days)));
+    setDisplayDate(addDays(displayDate, days));
   }
 
   function setDate(value: string | null) {
-    setDateString(value ?? toDateString(new Date()));
+    setDisplayDate(value ? parseISO(value) : new Date());
   }
 
   async function clearAll() {

@@ -5,6 +5,29 @@ import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from './date';
 
+export function applyDragReorder(
+  habits: Habit[],
+  visibleHabits: Habit[],
+  fromIndex: number,
+  toIndex: number
+): Habit[] {
+  if (fromIndex === toIndex) return habits;
+
+  const reorderedVisible = [...visibleHabits];
+  const [movedItem] = reorderedVisible.splice(fromIndex, 1);
+  reorderedVisible.splice(toIndex, 0, movedItem);
+
+  const visibleIds = new Set(visibleHabits.map(h => h.id));
+  let visibleIdx = 0;
+
+  return habits.map(h => {
+    if (visibleIds.has(h.id)) {
+      return reorderedVisible[visibleIdx++];
+    }
+    return h;
+  });
+}
+
 export function describeFrequency(frequency: Frequency) {
   const unit =
     frequency.periodLength === 1

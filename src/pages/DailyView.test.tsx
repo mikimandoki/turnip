@@ -161,9 +161,14 @@ describe('DailyView actions', () => {
 
 describe('DailyView header', () => {
   it('renders the current date', () => {
-    render(<DailyView />);
-    // 2026-04-11 is today in tests, so namedDayOrDate returns "Today"
-    expect(screen.getByText('Today')).toBeInTheDocument();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-11'));
+    try {
+      render(<DailyView />);
+      expect(screen.getByText('Today')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('calls shiftDate(-1) when previous day button is clicked', async () => {
