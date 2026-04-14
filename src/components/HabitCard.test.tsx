@@ -202,7 +202,7 @@ describe('HabitCard', () => {
     it('navigates to habit detail when the card is clicked', async () => {
       const user = userEvent.setup();
       renderCard();
-      await user.click(screen.getByLabelText('Habit card'));
+      await user.click(screen.getByRole('button', { name: habit.name }));
       expect(mockNavigate).toHaveBeenCalledWith('/habit/h1');
     });
   });

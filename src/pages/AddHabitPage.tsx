@@ -95,15 +95,15 @@ export default function AddHabitPage() {
   }
 
   return (
-    <div className='app'>
-      <div className='header'>
-        <button className='btn-action' onClick={() => void navigate('/')}>
+    <main className='app'>
+      <header className='header'>
+        <button className='btn-action' onClick={() => void navigate('/')} aria-label='Go back'>
           <ChevronLeft size={16} />
         </button>
         <div className='header-title header-title-centered'>
           <h1>New habit</h1>
         </div>
-      </div>
+      </header>
       <div className='card'>
         <form className={styles.addHabitForm} onSubmit={e => void handleSubmit(e)}>
           <div className='form-row'>
@@ -247,12 +247,7 @@ export default function AddHabitPage() {
             </button>
           </div>
           {errors.map(err => (
-            <p
-              className='error-message'
-              aria-label='Error message'
-              data-testid='error-message'
-              key={err}
-            >
+            <p className='error-message' role='alert' data-testid='error-message' key={err}>
               {err}
             </p>
           ))}
@@ -271,6 +266,6 @@ export default function AddHabitPage() {
         }}
         onConfirm={() => void openAppSettings()}
       />
-    </div>
+    </main>
   );
 }

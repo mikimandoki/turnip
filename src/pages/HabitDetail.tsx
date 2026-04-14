@@ -200,12 +200,12 @@ export default function HabitDetail() {
 
   return (
     <>
-      <div className='app'>
-        <div className='header'>
-          <button className='btn-action' onClick={() => void navigate('/')}>
+      <main className='app'>
+        <header className='header'>
+          <button className='btn-action' onClick={() => void navigate('/')} aria-label='Go back'>
             <ChevronLeft size={16} />
           </button>
-        </div>
+        </header>
         <div className='card'>
           <div className={styles.habitCardContent}>
             <HabitEmoji emoji={emoji} />
@@ -219,10 +219,10 @@ export default function HabitDetail() {
                   aria-label='Habit name input'
                 />
               ) : (
-                <div className={styles.habitCardTitle}>{cleanName}</div>
+                <h1 className={styles.habitCardTitle}>{cleanName}</h1>
               )}
               {errors.map(err => (
-                <p className='error-message' key={err} aria-label='Error message'>
+                <p className='error-message' key={err} role='alert'>
                   {err}
                 </p>
               ))}
@@ -348,7 +348,7 @@ export default function HabitDetail() {
         <div className='card'>
           <Heatmap habit={habit} completions={completions} />
         </div>
-      </div>
+      </main>
       <Alert
         title={`Delete "${parseHabitEmoji(habit.name).cleanName}"?`}
         description={

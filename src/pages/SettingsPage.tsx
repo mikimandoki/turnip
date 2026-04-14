@@ -183,8 +183,8 @@ export default function SettingsPage() {
       : 'Restore habits and history from a backup file.';
 
   return (
-    <div className='app'>
-      <div className='header'>
+    <main className='app'>
+      <header className='header'>
         <button
           className='btn-action'
           onClick={() => void navigate('/')}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
         <div className='header-title header-title-centered'>
           <h1>Settings</h1>
         </div>
-      </div>
+      </header>
 
       {notifPermissionPrompt ? (
         <div className='card'>
@@ -242,6 +242,7 @@ export default function SettingsPage() {
                   checked={darkMode}
                   onCheckedChange={toggleDarkMode}
                   className='switch-root'
+                  aria-label='Dark mode'
                 >
                   <Switch.Thumb className='switch-thumb' />
                 </Switch.Root>
@@ -331,6 +332,7 @@ export default function SettingsPage() {
                     className='text-input'
                     type='text'
                     inputMode='numeric'
+                    aria-label='Email verification code'
                     placeholder='12345678'
                     maxLength={8}
                     value={otp}
@@ -364,6 +366,7 @@ export default function SettingsPage() {
                   <input
                     className='text-input'
                     type='email'
+                    aria-label='Email address'
                     placeholder='you@example.com'
                     data-testid='input-email'
                     value={email}
@@ -469,6 +472,6 @@ export default function SettingsPage() {
           })();
         }}
       />
-    </div>
+    </main>
   );
 }

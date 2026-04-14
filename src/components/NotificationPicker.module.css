@@ -1,5 +1,6 @@
+/* ---- Notification mode tabs ---- */
+
 .notifModeTabs {
-  display: flex;
   border-radius: 8px;
   overflow: hidden;
   border: 0.5px solid var(--color-border-secondary);
@@ -7,19 +8,15 @@
 }
 
 .notifModeTab {
-  flex: 1;
-  padding: 6px 2px;
   font-size: 11px;
   font-weight: 500;
   background: var(--color-background-tertiary);
   border: none;
-  border-right: 0.5px solid var(--color-border-secondary);
   color: var(--color-text-secondary);
   cursor: pointer;
-}
-
-.notifModeTab:last-child {
-  border-right: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .notifModeTab.active {
@@ -27,27 +24,93 @@
   color: var(--color-accent-text);
 }
 
+/* Touch: 2×2 grid */
+@media (pointer: coarse) {
+  .notifModeTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .notifModeTab {
+    min-height: 48px;
+    padding: 0 2px;
+  }
+
+  /* Divider between left and right columns */
+  .notifModeTab:nth-child(odd) {
+    border-right: 0.5px solid var(--color-border-secondary);
+  }
+
+  /* Divider between top and bottom rows */
+  .notifModeTab:nth-child(n + 3) {
+    border-top: 0.5px solid var(--color-border-secondary);
+  }
+}
+
+/* Mouse: single row */
+@media (pointer: fine) {
+  .notifModeTabs {
+    display: flex;
+  }
+
+  .notifModeTab {
+    flex: 1;
+    padding: 6px 2px;
+    border-right: 0.5px solid var(--color-border-secondary);
+  }
+
+  .notifModeTab:last-child {
+    border-right: none;
+  }
+}
+
+/* ---- Day picker ---- */
+
 .notifDayPicker {
-  display: flex;
-  justify-content: space-between;
   padding-top: var(--spacing-sm);
 }
 
 .notifDayBtn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
   font-size: 11px;
   font-weight: 500;
   background: var(--color-background-tertiary);
   border: 0.5px solid var(--color-border-secondary);
   color: var(--color-text-secondary);
   cursor: pointer;
-  flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .notifDayBtn.active {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-accent-text);
+}
+
+/* Touch: 4-column grid → Mon–Thu / Fri–Sun */
+@media (pointer: coarse) {
+  .notifDayPicker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .notifDayBtn {
+    width: 44px;
+    height: 44px;
+    justify-self: center;
+  }
+}
+
+/* Mouse: single row */
+@media (pointer: fine) {
+  .notifDayPicker {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .notifDayBtn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
 }

@@ -44,7 +44,7 @@
 .btnAddHabit {
   all: unset;
   box-sizing: border-box;
-  height: 32px;
+  height: 48px;
   border-radius: var(--radius-md);
   border: 0.5px solid var(--color-border-secondary);
   color: var(--color-text-secondary);
@@ -54,6 +54,12 @@
   align-items: center;
   justify-content: center;
   padding: 0 var(--spacing-lg);
+}
+
+@media (pointer: fine) {
+  .btnAddHabit {
+    height: 32px;
+  }
 }
 
 .btnAddHabit:hover {

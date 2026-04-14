@@ -40,7 +40,7 @@ test('only start showing streak for 2 consecutive daily completions', async ({ p
 test('can delete habit', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, dailyHabit);
-  await page.getByRole('button').and(page.getByLabel('Habit card')).click();
+  await page.getByRole('button', { name: dailyHabit.name }).click();
   await page.getByRole('button', { name: 'Delete habit' }).click();
   const modalTitle = page.getByText(`Delete "${dailyHabit.name}"?`);
   const modalBody = page.getByText(

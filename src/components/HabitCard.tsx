@@ -4,7 +4,7 @@ import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import type { Habit } from '../types';
+import type { AriaLabel, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod, toDateString } from '../utils/date';
@@ -74,9 +74,10 @@ function HabitCard({
   return (
     <div
       ref={ref}
+      role='button'
       onClick={handleClick}
       className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
-      aria-label='Habit card'
+      aria-label={cleanName as AriaLabel}
     >
       <div className={styles.habitCardContent}>
         <HabitEmoji emoji={emoji} />
@@ -90,13 +91,15 @@ function HabitCard({
           {isNative &&
             habit.notification?.enabled &&
             (osNotificationsGranted ? (
-              <BellRing size={12} className={styles.habitCardNotifIcon} />
+              <BellRing size={12} className={styles.habitCardNotifIcon} aria-hidden='true' />
             ) : (
-              <BellOff size={12} className={styles.habitCardNotifIcon} />
+              <BellOff size={12} className={styles.habitCardNotifIcon} aria-hidden='true' />
             ))}
           <span
             className={clsx(styles.completionCount, statusClass[status])}
             data-testid='completion-count'
+            aria-live='polite'
+            aria-atomic='true'
           >
             {completedCount}/{targetCount}
           </span>
@@ -135,7 +138,15 @@ function HabitCard({
           </div>
         </div>
       </div>
-      <div className={styles.progressBar} data-testid='progress-bar'>
+      <div
+        className={styles.progressBar}
+        data-testid='progress-bar'
+        role='progressbar'
+        aria-valuenow={completedCount}
+        aria-valuemin={0}
+        aria-valuemax={targetCount}
+        aria-label={`${completedCount} of ${targetCount} completions`}
+      >
         <div
           className={clsx(styles.progressFill, statusClass[status])}
           style={{ width: `${progressPercent}%` }}

@@ -11,7 +11,7 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-import type { Completion, Habit } from '../types';
+import type { AriaLabel, Completion, Habit } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from '../utils/date';
 import styles from './Heatmap.module.css';
@@ -117,10 +117,13 @@ export default function Heatmap({
           const dateStr = toDateString(day);
           const count = completionMap.get(dateStr) ?? 0;
           const periodComplete = completedPeriods.has(startDatePeriod(habit, day));
+          const label =
+            `${format(day, 'MMMM d')}: ${count} of ${habit.frequency.times} completion${habit.frequency.times === 1 ? '' : 's'}` as AriaLabel;
           return (
             <div
               key={dateStr}
               className={`${styles.heatmapCell} ${getDayClass(count, habit.frequency.times, isDailyPeriod, periodComplete)}`}
+              aria-label={label}
             >
               <span className={styles.heatmapDayNumber}>{day.getDate()}</span>
             </div>

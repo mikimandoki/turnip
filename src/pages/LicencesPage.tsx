@@ -6,15 +6,15 @@ import { useForceLightMode } from '../hooks/useForceLightMode';
 export default function LicencesPage() {
   useForceLightMode();
   return (
-    <div className='app app-legal'>
-      <div className='header header--solo'>
-        <div className='header-title'>Third-Party Licences</div>
-      </div>
+    <main className='app app-legal'>
+      <header className='header header--solo'>
+        <h1 className='header-title'>Third-Party Licences</h1>
+      </header>
       <div className='card'>
         <div className='legal-content'>
           <ReactMarkdown>{content}</ReactMarkdown>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

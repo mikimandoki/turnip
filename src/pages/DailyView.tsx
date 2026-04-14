@@ -36,13 +36,13 @@ export default function DailyView() {
   }, []);
 
   return (
-    <div className='app'>
-      <div className='header'>
+    <main className='app'>
+      <header className='header'>
         <button className='btn-action' onClick={() => shiftDate(-1)} aria-label='Previous day'>
           <ChevronLeft size={16} />
         </button>
         <div
-          className={`header-title ${styles.headerDateBtn}`}
+          className={styles.headerDateBtn}
           onClick={() => {
             try {
               dateInputRef.current?.showPicker();
@@ -51,11 +51,12 @@ export default function DailyView() {
             }
           }}
         >
-          {namedDayOrDate(displayDate)}
+          <h1 className='header-title'>{namedDayOrDate(displayDate)}</h1>
           <input
             ref={dateInputRef}
             className={styles.headerDateInput}
             type='date'
+            aria-label='Select date'
             value={toDateString(displayDate)}
             onChange={e => setDate(e.target.value || null)}
           />
@@ -63,7 +64,7 @@ export default function DailyView() {
         <button className='btn-action' onClick={() => shiftDate(1)} aria-label='Next day'>
           <ChevronRight size={16} />
         </button>
-      </div>
+      </header>
 
       {habits.length === 0 && !hasOnboarded && (
         <div className='card'>
@@ -142,6 +143,6 @@ export default function DailyView() {
       )}
 
       {isDevUI && <DevButtons onClearAll={() => void clearAll()} />}
-    </div>
+    </main>
   );
 }

@@ -37,6 +37,7 @@ export default function NotificationPicker({
           checked={value.enabled}
           onCheckedChange={enabled => onChange({ ...value, enabled })}
           className='switch-root'
+          aria-label='Remind me'
         >
           <Switch.Thumb className='switch-thumb' />
         </Switch.Root>
@@ -49,6 +50,7 @@ export default function NotificationPicker({
                 key={id}
                 type='button'
                 className={clsx(styles.notifModeTab, value.mode === id && styles.active)}
+                aria-pressed={value.mode === id}
                 onClick={() => onChange({ ...value, mode: id })}
               >
                 {label}
@@ -65,6 +67,7 @@ export default function NotificationPicker({
                     styles.notifDayBtn,
                     value.days.includes(weekday) && styles.active
                   )}
+                  aria-pressed={value.days.includes(weekday)}
                   onClick={() => {
                     const days = value.days.includes(weekday)
                       ? value.days.filter(d => d !== weekday)
@@ -111,6 +114,8 @@ export default function NotificationPicker({
                       key={day}
                       type='button'
                       className={clsx(styles.notifDayBtn, styles.active)}
+                      aria-pressed={true}
+                      aria-label={`${ordinal(day)}, remove`}
                       onClick={() =>
                         onChange({ ...value, monthDays: value.monthDays.filter(d => d !== day) })
                       }
@@ -144,6 +149,7 @@ export default function NotificationPicker({
                   inputMode='numeric'
                   pattern='[0-9]*'
                   className='input-stepper'
+                  aria-label='Interval count'
                   value={value.intervalN}
                   onChange={e =>
                     onChange({ ...value, intervalN: Math.max(1, parseInt(e.target.value) || 1) })
@@ -173,6 +179,7 @@ export default function NotificationPicker({
             <span className='form-label'>at</span>
             <input
               type='time'
+              aria-label='Notification time'
               value={value.time}
               onChange={e => onChange({ ...value, time: e.target.value })}
             />
@@ -193,6 +200,7 @@ export default function NotificationPicker({
             <input
               type='text'
               className='text-input'
+              aria-label='Custom notification message'
               placeholder='Custom message (optional)'
               value={value.customMessage}
               onChange={e => onChange({ ...value, customMessage: e.target.value })}

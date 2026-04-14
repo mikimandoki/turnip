@@ -10,7 +10,7 @@ test.describe('add habit', () => {
     await page.getByRole('button', { name: 'Add new habit' }).click();
     await page.getByLabel('Habit name').fill(emptyString);
     await page.getByLabel('Add habit').click();
-    await expect(page.getByLabel('Error message')).toHaveText('Name is required');
+    await expect(page.getByRole('alert')).toHaveText('Name is required');
   });
 
   test("can't have just emoji", async ({ page }) => {
@@ -19,9 +19,7 @@ test.describe('add habit', () => {
     await page.getByRole('button', { name: 'Add new habit' }).click();
     await page.getByLabel('Habit name').fill(emojiOnly);
     await page.getByLabel('Add habit').click();
-    await expect(page.getByLabel('Error message')).toHaveText(
-      'Habit name needs more than just an emoji'
-    );
+    await expect(page.getByRole('alert')).toHaveText('Habit name needs more than just an emoji');
   });
 });
 
@@ -30,23 +28,21 @@ test.describe('edit habit', () => {
     const emptyString = '';
     await page.goto('/');
     await addHabit(page, dailyHabit);
-    await page.getByLabel('Habit card').click();
+    await page.getByRole('button', { name: dailyHabit.name }).click();
     await page.getByRole('button').and(page.getByLabel('Edit habit')).click();
     await page.getByLabel('Habit name input').fill(emptyString);
     await page.getByRole('button').and(page.getByLabel('Save edits')).click();
-    await expect(page.getByLabel('Error message')).toHaveText('Name is required');
+    await expect(page.getByRole('alert')).toHaveText('Name is required');
   });
 
   test("can't have just emoji", async ({ page }) => {
     const emojiOnly = '💀';
     await page.goto('/');
     await addHabit(page, dailyHabit);
-    await page.getByLabel('Habit card').click();
+    await page.getByRole('button', { name: dailyHabit.name }).click();
     await page.getByRole('button').and(page.getByLabel('Edit habit')).click();
     await page.getByLabel('Habit name input').fill(emojiOnly);
     await page.getByRole('button').and(page.getByLabel('Save edits')).click();
-    await expect(page.getByLabel('Error message')).toHaveText(
-      'Habit name needs more than just an emoji'
-    );
+    await expect(page.getByRole('alert')).toHaveText('Habit name needs more than just an emoji');
   });
 });
