@@ -463,17 +463,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       const db = await getDB();
 
-      // 2. Perform updates in a single loop
-      // Note: We use a loop here because we're usually reordering < 20 items.
-      // TODO: replace with executeSet for atomicity.
+      // 2. Perform all sortOrder updates atomically
       const reorderNow = new Date().toISOString();
-      for (let i = 0; i < newOrderedHabits.length; i++) {
-        await db.run(`UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`, [
-          i,
-          reorderNow,
-          newOrderedHabits[i].id,
-        ]);
-      }
+      await db.executeSet(
+        newOrderedHabits.map((h, i) => ({
+          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`,
+          values: [i, reorderNow, h.id],
+        })),
+        true
+      );
 
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
