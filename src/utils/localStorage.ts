@@ -1,6 +1,8 @@
 import { Preferences } from '@capacitor/preferences';
 import { z } from 'zod';
 
+import { logger } from './logger';
+
 export const HasOnboardedSchema = z.boolean();
 
 export async function loadFromStorage<T>(
@@ -13,9 +15,7 @@ export async function loadFromStorage<T>(
     if (!value) return fallback;
     return schema.parse(JSON.parse(value));
   } catch (e) {
-    if (e instanceof Error) {
-      console.error('[loadFromStorage] Unexpected error:', e.message);
-    }
+    logger.error('storage', 'loadFromStorage unexpected error', e);
     return fallback;
   }
 }

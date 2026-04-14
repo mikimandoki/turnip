@@ -1,8 +1,8 @@
-import { Toast } from '@capacitor/toast';
 import { addDays, isFuture, parseISO } from 'date-fns';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
+import { useToast } from '../components/useToast';
 import { useBackButton } from '../hooks/useBackButton';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useNotificationPermission } from '../hooks/useNotificationPermission';
@@ -27,6 +27,7 @@ import {
   loadFromStorage,
   saveToStorage,
 } from '../utils/localStorage';
+import { logger, pruneLogs } from '../utils/logger';
 import { cancelNotificationsForHabit, syncHabitNotification } from '../utils/notificationService';
 import { getDB, syncDB } from '../utils/sqlite';
 import { APP_NAME } from '../utils/strings';
@@ -54,6 +55,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
   const syncOnSignInInFlight = useRef(false);
+
+  const { showToast } = useToast();
 
   useBackButton();
   const { darkMode, toggleDarkMode } = useDarkMode();
@@ -83,7 +86,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       if (newCount === 0) {
         await db.run(`DELETE FROM completions WHERE habitId = ? AND date = ?;`, [habitId, today]);
         void softDeleteCompletion(habitId, today).catch(e =>
-          console.error('[sync] softDeleteCompletion failed:', e)
+          logger.error('sync', 'softDeleteCompletion failed', e)
         );
       } else {
         await db.run(
@@ -93,7 +96,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           [habitId, today, newCount, now]
         );
         void pushCompletion(habitId, today, newCount).catch(e =>
-          console.error('[sync] pushCompletion failed:', e)
+          logger.error('sync', 'pushCompletion failed', e)
         );
       }
 
@@ -114,7 +117,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       setCompletions(updatedCompletions);
       void hapticsLight();
     } catch (e) {
-      console.error('Failed to update completion in SQLite:', e);
+      logger.error('db', 'Failed to update completion', e);
     }
   }
 
@@ -153,21 +156,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         await syncDB();
       }
 
+      logger.info('habit', 'Habit added', { id: newHabit.id });
+      showToast('Habit added', 'success');
+
       // 4. Push to Supabase (fire-and-forget)
       const sortResult2 = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [
         newHabit.id,
       ]);
       const sortOrder =
         (sortResult2.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
-      void pushHabit(newHabit, sortOrder).catch(e => console.error('[sync] pushHabit failed:', e));
+      void pushHabit(newHabit, sortOrder).catch(e => logger.error('sync', 'pushHabit failed', e));
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : 'Unknown error';
-      console.error('❌ Add Habit Failed:', errorMsg);
-
-      void Toast.show({
-        text: `Failed to save: ${errorMsg}`,
-        duration: 'long',
-      });
+      logger.error('habit', 'Add habit failed', { message: errorMsg });
+      showToast(`Failed to save: ${errorMsg}`, 'error');
 
       // Rollback UI if DB fails
       setHabits(prev => prev.filter(h => h.id !== newHabit.id));
@@ -209,19 +211,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 4. Push to Supabase (fire-and-forget)
       const sortRes = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [habit.id]);
       const sortOrder = (sortRes.values?.[0] as { sortOrder: number } | undefined)?.sortOrder ?? 0;
-      void pushHabit(merged, sortOrder).catch(e => console.error('[sync] pushHabit failed:', e));
+      void pushHabit(merged, sortOrder).catch(e => logger.error('sync', 'pushHabit failed', e));
 
+      logger.info('habit', 'Habit edited', { id: habit.id });
+      showToast('Changes saved', 'success');
       void hapticsMedium();
     } catch (e) {
-      console.error('❌ Could not edit habit:', e);
-      void Toast.show({
-        text: `Update failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        duration: 'long',
-      });
+      logger.error('habit', 'Edit habit failed', e);
+      showToast(`Update failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
     }
   }
 
-  async function loadDataFromDB() {
+  const loadDataFromDB = useCallback(async () => {
     const db = await getDB();
 
     try {
@@ -272,16 +273,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      console.error('❌ Database Hydration Failed:', errorMsg);
-
-      void Toast.show({
-        text: 'DB Error: ' + errorMsg,
-        duration: 'long',
-      });
-
+      logger.error('db', 'Database hydration failed', { message: errorMsg });
+      showToast('DB Error: ' + errorMsg, 'error');
       return { habits: [], completions: [] };
     }
-  }
+  }, [showToast]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -301,7 +297,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [habits, onNotifVisible]);
+  }, [habits, loadDataFromDB, onNotifVisible]);
 
   useEffect(() => {
     void (async () => {
@@ -325,8 +321,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       setHasOnboarded(onboarded || dbData.habits.length > 0);
       setLoading(false);
+      void pruneLogs();
     })();
-  }, []);
+  }, [loadDataFromDB]);
 
   // On sign-in: push local data up, then pull remote down, then refresh UI
   useEffect(() => {
@@ -341,7 +338,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             setHabits(synced.habits);
             setCompletions(synced.completions);
           } catch (e) {
-            console.error('[sync] syncOnSignIn failed:', e);
+            logger.error('sync', 'syncOnSignIn failed', e);
           } finally {
             syncOnSignInInFlight.current = false;
           }
@@ -349,7 +346,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, [syncOnSignInInFlight]);
+  }, [loadDataFromDB, syncOnSignInInFlight]);
 
   async function deleteHabit(habit: Habit) {
     const db = await getDB();
@@ -362,7 +359,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Delete habit — cascades to completions and notification_queue
       await db.run(`DELETE FROM habits WHERE id = ?;`, [habit.id]);
-      void softDeleteHabit(habit.id).catch(e => console.error('[sync] softDeleteHabit failed:', e));
+      void softDeleteHabit(habit.id).catch(e => logger.error('sync', 'softDeleteHabit failed', e));
 
       // 3. Sync the SQLite file to IndexedDB (Web layer)
       await syncDB();
@@ -372,11 +369,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       setCompletions(completions.filter(c => c.habitId !== habit.id));
 
       // 5. Feedback
+      logger.info('habit', 'Habit deleted', { id: habit.id });
       void hapticsMedium();
-      void Toast.show({ text: 'Habit deleted' });
+      showToast('Habit deleted', 'success');
     } catch (e) {
-      console.error('❌ Could not delete habit:', e);
-      void Toast.show({ text: 'Delete failed', duration: 'short' });
+      logger.error('habit', 'Delete habit failed', e);
+      showToast('Delete failed', 'error');
     }
   }
 
@@ -391,7 +389,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function clearAll() {
     const db = await getDB();
     await cancelAllHabitNotifications();
-    void softDeleteAllHabits().catch(e => console.error('[sync] softDeleteAllHabits failed:', e));
+    void softDeleteAllHabits().catch(e => logger.error('sync', 'softDeleteAllHabits failed', e));
     await db.run(`DELETE FROM habits`);
     await syncDB();
     await clearStorage();
@@ -476,11 +474,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
       void pushAllHabits(newOrderedHabits).catch(e =>
-        console.error('[sync] pushAllHabits failed:', e)
+        logger.error('sync', 'pushAllHabits failed', e)
       );
       void hapticsLight();
     } catch (e) {
-      console.error('Failed to sync reorder to DB:', e);
+      logger.error('db', 'Reorder failed', e);
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
     }
@@ -540,7 +538,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             try {
               await syncHabitNotification(h, h.notification!, new Date());
             } catch (e) {
-              console.warn(`[import] Failed to schedule notifications for ${h.name}`, e);
+              logger.warn('import', `Failed to schedule notifications for ${h.name}`, e);
             }
           }
         } else if (permStatus === 'blocked') {
@@ -562,11 +560,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await syncDB();
       await saveToStorage('hasOnboarded', true);
 
-      void pushAllHabits(parsed.habits).catch(e =>
-        console.error('[sync] pushAllHabits failed:', e)
-      );
+      void pushAllHabits(parsed.habits).catch(e => logger.error('sync', 'pushAllHabits failed', e));
       void pushAllCompletions(parsed.completions).catch(e =>
-        console.error('[sync] pushAllCompletions failed:', e)
+        logger.error('sync', 'pushAllCompletions failed', e)
       );
 
       const fresh = await loadDataFromDB();
@@ -576,7 +572,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       return { success: true };
     } catch (e) {
-      console.error('❌ Import failed:', e);
+      logger.error('import', 'Import failed', e);
       return {
         success: false,
         error: `Import failed: ${e instanceof Error ? e.message : 'Unknown error'}`,

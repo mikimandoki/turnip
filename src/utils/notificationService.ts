@@ -7,6 +7,7 @@ import {
   checkNotificationPermission,
   scheduleHabitNotifications,
 } from './localNotifications';
+import { logger } from './logger';
 import {
   habitNotificationId,
   NOTIFICATION_WINDOW_DAYS,
@@ -122,7 +123,7 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
   // Prune fired entries so the queue doesn't grow indefinitely
   await db.run(`DELETE FROM notification_queue WHERE scheduledAt < ?`, [now.toISOString()]);
 
-  console.log('[maintenance] Checking notification horizons...');
+  logger.debug('maintenance', 'Checking notification horizons');
 
   for (const habit of habits) {
     const { notification } = habit;
@@ -146,7 +147,7 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
     const horizon = maxDate ? new Date(maxDate) : null;
 
     if (!horizon || isBefore(horizon, warningThreshold)) {
-      console.log(`[maintenance] Top-up needed for: ${habit.name}`);
+      logger.debug('maintenance', `Top-up needed for: ${habit.name}`);
       // For interval mode the next occurrence is exactly horizon + intervalDays.
       // For unsafe DOM mode +1 is correct — the builder scans month-by-month from there.
       const from = horizon ? addDays(horizon, stepDays) : now;
@@ -166,9 +167,9 @@ export async function performNotificationMaintenance(habits: Habit[]): Promise<v
           );
         }
         await syncDB();
-        console.log(`[maintenance] ✅ Topped up: ${habit.name}`);
+        logger.info('maintenance', `Topped up notifications for: ${habit.name}`);
       } catch (error) {
-        console.error(`[maintenance] ❌ Failed to top up ${habit.name}:`, error);
+        logger.error('maintenance', `Failed to top up ${habit.name}`, error);
       }
     }
   }

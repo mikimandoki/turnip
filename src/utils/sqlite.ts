@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
@@ -119,8 +119,25 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     await db.run(`PRAGMA user_version = 2`);
   }
 
+  if (currentVersion < 3) {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS app_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        level TEXT NOT NULL,
+        tag TEXT NOT NULL,
+        message TEXT NOT NULL,
+        data TEXT,
+        created_at TEXT NOT NULL
+      );
+    `);
+    await db.execute(
+      `CREATE INDEX IF NOT EXISTS idx_app_logs_created_at ON app_logs (created_at);`
+    );
+    await db.run(`PRAGMA user_version = 3`);
+  }
+
   // Future versions go here:
-  // if (currentVersion < 3) { ... await db.run(`PRAGMA user_version = 3`); }
+  // if (currentVersion < 4) { ... await db.run(`PRAGMA user_version = 4`); }
 }
 
 /**

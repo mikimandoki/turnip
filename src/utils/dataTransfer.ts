@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { type Completion, CompletionSchema, type Habit, HabitSchema } from '../types';
+import { shareFile } from './share';
 
 const SCHEMA_VERSION = 1;
 
@@ -14,47 +15,12 @@ export type ImportResult =
   | { success: false; error: string }
   | { success: true; habits: Habit[]; completions: Completion[]; warning?: string };
 
-const platform = window.Capacitor?.getPlatform() ?? 'web';
-
 export async function exportData(
   habits: Habit[],
   completions: Completion[]
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const json = JSON.stringify({ version: SCHEMA_VERSION, habits, completions }, null, 2);
-
-    if (platform === 'ios') {
-      const file = new File([json], 'turnip-backup.json', { type: 'application/json' });
-      await navigator.share({ files: [file] });
-    } else if (platform === 'android') {
-      const { Directory, Encoding, Filesystem } = await import('@capacitor/filesystem');
-      const { Share } = await import('@capacitor/share');
-      await Filesystem.writeFile({
-        path: 'turnip-backup.json',
-        data: json,
-        directory: Directory.Cache,
-        encoding: Encoding.UTF8,
-      });
-      const { uri } = await Filesystem.getUri({
-        path: 'turnip-backup.json',
-        directory: Directory.Cache,
-      });
-      await Share.share({ title: 'Turnip Backup', url: uri });
-    } else {
-      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'turnip-backup.json';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-    }
-
-    return { success: true };
-  } catch (e) {
-    if (e instanceof Error && (e.name === 'AbortError' || e.message === 'Share canceled'))
-      return { success: true };
-    return { success: false, error: '[exportData] Failed to export data' };
-  }
+  const json = JSON.stringify({ version: SCHEMA_VERSION, habits, completions }, null, 2);
+  return shareFile(json, 'turnip-backup.json', 'application/json', 'Turnip Backup');
 }
 
 /** Parses and validates a JSON backup string. Does not write to any storage. */

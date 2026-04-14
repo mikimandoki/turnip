@@ -1,6 +1,6 @@
 # Turnip Privacy Policy
 
-**Last Updated:** April 5, 2026
+**Last Updated:** April 14, 2026
 
 ## 1. Who We Are
 
@@ -15,6 +15,10 @@ Turnip is built on a local-first philosophy. Your habits are your business. By d
 ### Local Data
 
 All habit entries, notes, and progress are stored locally on your device (SQLite database). The maintainer does not have access to this data under normal operation of the Service.
+
+### Diagnostic Logs
+
+When you use the app, a rolling diagnostic log is stored locally in the same on-device database as your habits. Log entries contain operation names, internal identifiers, timestamps, and error details — they do not include habit names or other personal content. Logs are automatically deleted after 7 days and capped at 1,000 entries. Logs are never transmitted automatically; they only leave your device if you explicitly export them via **Settings → Export logs** for the purpose of reporting a bug.
 
 ### Account Information (Cloud Sync only)
 

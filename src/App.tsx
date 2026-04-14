@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router';
 
 import ErrorBoundary from './components/ErrorBoundary';
+import { ToastProvider } from './components/Toast';
 import { HabitProvider } from './contexts/habitContext';
 import AddHabitPage from './pages/AddHabitPage';
 import DailyView from './pages/DailyView';
@@ -14,17 +15,19 @@ export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <HabitProvider>
-          <Routes>
-            <Route path='/' element={<DailyView />} />
-            <Route path='/habit/:id' element={<HabitDetail />} />
-            <Route path='/add' element={<AddHabitPage />} />
-            <Route path='/settings' element={<SettingsPage />} />
-            <Route path='/privacy' element={<PrivacyPage />} />
-            <Route path='/terms' element={<TermsPage />} />
-            <Route path='/licences' element={<LicencesPage />} />
-          </Routes>
-        </HabitProvider>
+        <ToastProvider>
+          <HabitProvider>
+            <Routes>
+              <Route path='/' element={<DailyView />} />
+              <Route path='/habit/:id' element={<HabitDetail />} />
+              <Route path='/add' element={<AddHabitPage />} />
+              <Route path='/settings' element={<SettingsPage />} />
+              <Route path='/privacy' element={<PrivacyPage />} />
+              <Route path='/terms' element={<TermsPage />} />
+              <Route path='/licences' element={<LicencesPage />} />
+            </Routes>
+          </HabitProvider>
+        </ToastProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

@@ -3,6 +3,7 @@ import { AndroidSettings, IOSSettings, NativeSettings } from 'capacitor-native-s
 import { addDays, endOfMonth, isAfter, setHours, setMinutes } from 'date-fns';
 
 import { parseHabitEmoji } from './habits';
+import { logger } from './logger';
 import {
   habitNotificationId,
   type NotificationValue,
@@ -240,7 +241,7 @@ export async function scheduleHabitNotifications(
   }
 
   const all = [...perpetual, ...windowed];
-  console.log('[notifications] schedule', { habitId, habitName, count: all.length });
+  logger.debug('notifications', 'schedule', { habitId, habitName, count: all.length });
 
   if (isNative && all.length > 0) {
     await LocalNotifications.schedule({ notifications: all });
@@ -254,7 +255,7 @@ export async function scheduleHabitNotifications(
 
 export async function cancelHabitNotifications(notificationIds: number[]): Promise<void> {
   if (!isNative || notificationIds.length === 0) return;
-  console.log('[notifications] cancel', { notificationIds });
+  logger.debug('notifications', 'cancel', { notificationIds });
   if (isNative) {
     await LocalNotifications.cancel({
       notifications: notificationIds.map(id => ({ id })),

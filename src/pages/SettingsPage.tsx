@@ -8,10 +8,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import Alert from '../components/Alert';
+import { useToast } from '../components/useToast';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { exportData } from '../utils/dataTransfer';
 import { isDevUI } from '../utils/dev';
 import { openAppSettings } from '../utils/localNotifications';
+import { clearAllLogs, exportLogsToFile, getLogCount } from '../utils/logger';
 import { supabase } from '../utils/supabase';
 import { isNative } from '../utils/utils';
 import styles from './SettingsPage.module.css';
@@ -52,11 +54,13 @@ export default function SettingsPage() {
     dismissNotifPrompt,
     confirmNotifPrompt,
   } = useHabitContext();
+  const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<{
     message: string;
     state: 'error' | 'ok' | 'warning';
   } | null>(null);
+  const [logCount, setLogCount] = useState<number | null>(null);
 
   // --- Auth state ---
   const [user, setUser] = useState<User | null>(null);
@@ -68,6 +72,10 @@ export default function SettingsPage() {
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
   const [devPassword, setDevPassword] = useState('');
+
+  useEffect(() => {
+    void getLogCount().then(setLogCount);
+  }, []);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
@@ -174,6 +182,17 @@ export default function SettingsPage() {
     };
     reader.readAsText(file);
     e.target.value = '';
+  }
+
+  async function handleExportLogs() {
+    const result = await exportLogsToFile();
+    if (result.error) showToast(result.error, 'error');
+  }
+
+  async function handleClearLogs() {
+    await clearAllLogs();
+    setLogCount(0);
+    showToast('Logs cleared', 'success');
   }
 
   const habitCount = habits.length;
@@ -413,6 +432,35 @@ export default function SettingsPage() {
                   {authError && <p className={styles.statusError}>{authError}</p>}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className='card'>
+            <div className='settings-section'>
+              <div className={styles.settingsItemStack}>
+                <span className='settings-item-label'>Diagnostics</span>
+                <span className='settings-item-desc'>
+                  {logCount === null
+                    ? 'Loading…'
+                    : logCount === 0
+                      ? 'No logs recorded yet'
+                      : `${logCount} log ${logCount === 1 ? 'entry' : 'entries'} stored (last 7 days)`}
+                </span>
+                <button
+                  className='btn-base btn-ghost'
+                  disabled={!logCount}
+                  onClick={() => void handleExportLogs()}
+                >
+                  Export logs
+                </button>
+                <button
+                  className='btn-base btn-ghost'
+                  disabled={!logCount}
+                  onClick={() => void handleClearLogs()}
+                >
+                  Clear logs
+                </button>
+              </div>
             </div>
           </div>
 
