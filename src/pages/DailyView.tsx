@@ -1,8 +1,10 @@
 import { DragDropProvider } from '@dnd-kit/react';
 import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Moon, Settings, Sun } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router';
+
+import type { Completion } from '../types';
 
 import HabitCard from '../components/HabitCard';
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -12,6 +14,8 @@ import { isDevUI } from '../utils/dev';
 import { applyDragReorder, getCompletionsInPeriod } from '../utils/habits';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
+
+const EMPTY_COMPLETIONS: Completion[] = [];
 
 export default function DailyView() {
   const navigate = useNavigate();
@@ -29,6 +33,18 @@ export default function DailyView() {
     toggleDarkMode,
   } = useHabitContext();
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
+  const completionsByHabitId = useMemo(() => {
+    const map = new Map<string, Completion[]>();
+    for (const c of completions) {
+      let arr = map.get(c.habitId);
+      if (!arr) {
+        arr = [];
+        map.set(c.habitId, arr);
+      }
+      arr.push(c);
+    }
+    return map;
+  }, [completions]);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -106,6 +122,7 @@ export default function DailyView() {
                 index={index}
                 habit={habit}
                 completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
+                habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
               />
             ))}
           </div>

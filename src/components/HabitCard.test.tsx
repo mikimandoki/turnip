@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HabitContextType } from '../contexts/useHabitContext';
-import type { Habit } from '../types';
+import type { Completion, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { calculateHabitStats } from '../utils/habits';
@@ -61,7 +61,6 @@ const baseContext: Partial<HabitContextType> = {
   displayDate: new Date('2026-03-31'),
   isFutureDate: false,
   osNotificationsGranted: false,
-  completions: [],
   updateCompletion: mockUpdateCompletion,
 };
 
@@ -72,8 +71,19 @@ function mockContext(overrides: Partial<HabitContextType> = {}) {
   } as HabitContextType);
 }
 
-function renderCard(props: Partial<Parameters<typeof HabitCard>[0]> & { habit?: Habit } = {}) {
-  render(<HabitCard habit={habit} index={0} completedCount={0} {...props} />);
+function renderCard(
+  props: Partial<Parameters<typeof HabitCard>[0]> & { habit?: Habit } = {},
+  habitCompletions: Completion[] = []
+) {
+  render(
+    <HabitCard
+      habit={habit}
+      index={0}
+      completedCount={0}
+      habitCompletions={habitCompletions}
+      {...props}
+    />
+  );
 }
 
 beforeEach(() => {
@@ -113,37 +123,51 @@ describe('HabitCard', () => {
 
   describe('progress status', () => {
     it('applies "behind" class when completedCount is 0', () => {
-      const { container } = render(<HabitCard habit={habit} index={0} completedCount={0} />);
+      const { container } = render(
+        <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+      );
       expect(container.querySelector('.progressFill')?.classList.contains('behind')).toBe(true);
     });
 
     it('applies "in-progress" class when partially complete', () => {
-      const { container } = render(<HabitCard habit={multiHabit} index={0} completedCount={1} />);
+      const { container } = render(
+        <HabitCard habit={multiHabit} index={0} completedCount={1} habitCompletions={[]} />
+      );
       expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets target', () => {
-      const { container } = render(<HabitCard habit={habit} index={0} completedCount={1} />);
+      const { container } = render(
+        <HabitCard habit={habit} index={0} completedCount={1} habitCompletions={[]} />
+      );
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets multi-target', () => {
-      const { container } = render(<HabitCard habit={multiHabit} index={0} completedCount={3} />);
+      const { container } = render(
+        <HabitCard habit={multiHabit} index={0} completedCount={3} habitCompletions={[]} />
+      );
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
   });
 
   describe('logged-today', () => {
     it('adds logged-today class when completion exists for today', () => {
-      mockContext({
-        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
-      });
-      const { container } = render(<HabitCard habit={habit} index={0} completedCount={1} />);
+      const { container } = render(
+        <HabitCard
+          habit={habit}
+          index={0}
+          completedCount={1}
+          habitCompletions={[{ habitId: 'h1', date: '2026-03-31', count: 1 }]}
+        />
+      );
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(true);
     });
 
     it('does not add logged-today class when no completion for today', () => {
-      const { container } = render(<HabitCard habit={habit} index={0} completedCount={0} />);
+      const { container } = render(
+        <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+      );
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(false);
     });
   });
@@ -162,10 +186,7 @@ describe('HabitCard', () => {
     });
 
     it('enables decrease button when something has been logged today', () => {
-      mockContext({
-        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
-      });
-      renderCard();
+      renderCard({}, [{ habitId: 'h1', date: '2026-03-31', count: 1 }]);
       expect(screen.getByRole('button', { name: 'Decrease count' })).not.toBeDisabled();
     });
 
@@ -178,20 +199,14 @@ describe('HabitCard', () => {
 
     it('calls updateCompletion(-1) when decrease button is clicked', async () => {
       const user = userEvent.setup();
-      mockContext({
-        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
-      });
-      renderCard();
+      renderCard({}, [{ habitId: 'h1', date: '2026-03-31', count: 1 }]);
       await user.click(screen.getByRole('button', { name: 'Decrease count' }));
       expect(mockUpdateCompletion).toHaveBeenCalledWith('h1', -1);
     });
 
     it('does not navigate when action buttons are clicked', async () => {
       const user = userEvent.setup();
-      mockContext({
-        completions: [{ habitId: 'h1', date: '2026-03-31', count: 1 }],
-      });
-      renderCard();
+      renderCard({}, [{ habitId: 'h1', date: '2026-03-31', count: 1 }]);
       await user.click(screen.getByRole('button', { name: 'Decrease count' }));
       await user.click(screen.getByRole('button', { name: 'Increase count' }));
       expect(mockNavigate).not.toHaveBeenCalled();

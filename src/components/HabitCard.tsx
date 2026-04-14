@@ -4,7 +4,7 @@ import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import type { AriaLabel, Habit } from '../types';
+import type { AriaLabel, Completion, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod, toDateString } from '../utils/date';
@@ -32,15 +32,16 @@ function HabitCard({
   habit,
   index,
   completedCount,
+  habitCompletions,
 }: {
   habit: Habit;
   index: number;
   completedCount: number;
+  habitCompletions: Completion[];
 }) {
   const [showTick, setShowTick] = useState(false);
   const navigate = useNavigate();
-  const { displayDate, isFutureDate, osNotificationsGranted, completions, updateCompletion } =
-    useHabitContext();
+  const { displayDate, isFutureDate, osNotificationsGranted, updateCompletion } = useHabitContext();
 
   const handleClick = useCallback(() => void navigate(`/habit/${habit.id}`), [habit.id, navigate]);
   const handleLog = useCallback(
@@ -48,16 +49,13 @@ function HabitCard({
     [habit.id, updateCompletion]
   );
   const targetCount = habit.frequency.times;
-  const loggedToday = completions.some(
-    c => c.habitId === habit.id && c.date === toDateString(displayDate) && c.count > 0
+  const loggedToday = habitCompletions.some(
+    c => c.date === toDateString(displayDate) && c.count > 0
   );
   const { ref, isDragging } = useSortable({ id: habit.id, index });
-  // TODO: `completions` comes from context and is a new array reference on every render, so this
-  // useMemo will almost never skip. To make it effective, either memoize the completions array in
-  // context, or pass only the relevant completions for this habit as a prop.
   const habitStats = useMemo(
-    () => calculateHabitStats(habit, completions, displayDate),
-    [habit, completions, displayDate]
+    () => calculateHabitStats(habit, habitCompletions, displayDate),
+    [habit, habitCompletions, displayDate]
   );
   const periodStart = startDatePeriod(habit, displayDate);
   const seed = simpleHash(habit.id + periodStart);
@@ -175,7 +173,8 @@ const HabitCardMemo = memo(HabitCard, (prev, next) => {
     prev.habit.id === next.habit.id &&
     prev.habit.name === next.habit.name &&
     prev.completedCount === next.completedCount &&
-    prev.index === next.index
+    prev.index === next.index &&
+    prev.habitCompletions === next.habitCompletions
   );
 });
 
