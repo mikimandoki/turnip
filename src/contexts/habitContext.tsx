@@ -135,11 +135,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const maxSort =
         (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newHabit.id,
           newHabit.name,
+          newHabit.note ?? null,
           newHabit.createdAt,
           newHabit.frequency.times,
           newHabit.frequency.periodLength,
@@ -184,9 +185,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Update core habit fields
       await db.run(
-        `UPDATE habits SET name = ?, times = ?, periodLength = ?, periodUnit = ?, updated_at = ? WHERE id = ?;`,
+        `UPDATE habits SET name = ?, note = ?, times = ?, periodLength = ?, periodUnit = ?, updated_at = ? WHERE id = ?;`,
         [
           merged.name.trim(),
+          merged.note ?? null,
           merged.frequency.times,
           merged.frequency.periodLength,
           merged.frequency.periodUnit,
@@ -228,7 +230,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Fetch habits (notif settings are columns on the habit row now)
       const habitResult = await db.query(
-        `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder,
+        `SELECT id, name, note, createdAt, times, periodLength, periodUnit, sortOrder,
                 notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
                 notif_customMessage, notif_intervalN, notif_intervalUnit
          FROM habits
@@ -239,6 +241,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => ({
         id: row.id,
         name: row.name,
+        note: row.note ?? undefined,
         createdAt: row.createdAt,
         sortOrder: row.sortOrder,
         frequency: {
@@ -499,12 +502,13 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         [
           { statement: `DELETE FROM habits`, values: [] },
           ...parsed.habits.map((h, i) => ({
-            statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at,
+            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays, notif_customMessage, notif_intervalN, notif_intervalUnit)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             values: [
               h.id,
               h.name,
+              h.note ?? null,
               h.createdAt,
               h.frequency.times,
               h.frequency.periodLength,

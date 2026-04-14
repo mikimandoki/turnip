@@ -20,6 +20,7 @@ export type Frequency = z.infer<typeof FrequencySchema>;
 export const HabitSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
+  note: z.string().optional(),
   frequency: FrequencySchema,
   createdAt: z.string(),
   notification: z
@@ -43,6 +44,7 @@ export type Habit = z.infer<typeof HabitSchema>;
 export const HabitRowSchema = z.object({
   id: z.string(),
   name: z.string(),
+  note: z.string().nullable(),
   createdAt: z.string(),
   times: z.number(),
   periodLength: z.number(),
@@ -129,6 +131,7 @@ export type AriaLabel =
   | 'Navigate back'
   | 'Next day'
   | 'Next month'
+  | 'Note'
   | 'Notification time'
   | 'Open settings'
   | 'Period length'

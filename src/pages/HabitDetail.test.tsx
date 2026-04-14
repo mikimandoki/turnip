@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,6 +58,8 @@ const habit: Habit = {
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-01-01',
 };
+
+const habitWithNote: Habit = { ...habit, note: 'My private note' };
 
 let editHabit: ReturnType<typeof vi.fn>;
 let deleteHabit: ReturnType<typeof vi.fn>;
@@ -180,6 +182,80 @@ describe('HabitDetail', () => {
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
       expect(deleteHabit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('note', () => {
+    it('displays note text when habit has a note', () => {
+      mockContext({ habits: [habitWithNote] });
+      setup();
+      expect(screen.getByText('My private note')).toBeInTheDocument();
+    });
+
+    it('does not render a note card when habit has no note', () => {
+      setup();
+      expect(screen.queryByRole('textbox', { name: 'Note' })).not.toBeInTheDocument();
+      expect(screen.queryByText('My private note')).not.toBeInTheDocument();
+    });
+
+    it('shows note textarea in edit mode even when habit has no note', async () => {
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      expect(screen.getByRole('textbox', { name: 'Note' })).toBeInTheDocument();
+    });
+
+    it('pre-fills note textarea with the existing note', async () => {
+      mockContext({ habits: [habitWithNote] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('My private note');
+    });
+
+    it('calls editHabit with the typed note', async () => {
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await user.type(screen.getByRole('textbox', { name: 'Note' }), 'New note');
+      await user.click(screen.getByRole('button', { name: 'Save edits' }));
+      expect(editHabit).toHaveBeenCalledWith(habit, expect.objectContaining({ note: 'New note' }));
+    });
+
+    it('calls editHabit with undefined when note is cleared', async () => {
+      mockContext({ habits: [habitWithNote] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await user.clear(screen.getByRole('textbox', { name: 'Note' }));
+      await user.click(screen.getByRole('button', { name: 'Save edits' }));
+      const updates = editHabit.mock.calls[0][1] as { note?: string };
+      expect(updates.note).toBeUndefined();
+    });
+
+    it('restores original note after cancel', async () => {
+      mockContext({ habits: [habitWithNote] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await user.clear(screen.getByRole('textbox', { name: 'Note' }));
+      await user.type(screen.getByRole('textbox', { name: 'Note' }), 'Something else');
+      await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('My private note');
+    });
+
+    it('shows character counter when note exceeds 900 characters', async () => {
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+        target: { value: 'a'.repeat(950) },
+      });
+      expect(screen.getByText('50 characters remaining')).toBeInTheDocument();
+    });
+
+    it('shows error at the 1000-character limit', async () => {
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+        target: { value: 'a'.repeat(1000) },
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('0 characters remaining');
     });
   });
 

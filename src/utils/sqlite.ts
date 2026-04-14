@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
@@ -136,8 +136,17 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     await db.run(`PRAGMA user_version = 3`);
   }
 
+  if (currentVersion < 4) {
+    const h4 = await db.query(`PRAGMA table_info(habits)`);
+    const hCols4 = new Set((h4.values ?? []).map((r: { name: string }) => r.name));
+    if (!hCols4.has('note')) {
+      await db.execute(`ALTER TABLE habits ADD COLUMN note TEXT`);
+    }
+    await db.run(`PRAGMA user_version = 4`);
+  }
+
   // Future versions go here:
-  // if (currentVersion < 4) { ... await db.run(`PRAGMA user_version = 4`); }
+  // if (currentVersion < 5) { ... await db.run(`PRAGMA user_version = 5`); }
 }
 
 /**

@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 import { parseHabitEmoji } from '../../src/utils/habits';
-import { dailyHabit, habitWithEmoji, multiCountDailyHabit, weeklyHabit } from '../utils/constants';
+import {
+  dailyHabit,
+  habitWithEmoji,
+  habitWithNote,
+  multiCountDailyHabit,
+  weeklyHabit,
+} from '../utils/constants';
 import { deleteUser, ensureTestUserExistsVerified } from '../utils/supabaseAdmin';
 import { addHabit } from '../utils/utils';
 
@@ -135,4 +141,40 @@ test("can't decrease if you didn't increase that day", async ({ page }) => {
   const decreaseBtn = page.getByRole('button').getByLabel('Decrease count');
   await expect.soft(count).toHaveText('1/3'); // 1/3 but still doesn't let you go down because you didn't log today
   await expect(decreaseBtn).toBeDisabled();
+});
+
+test('note is saved and shown on the detail page', async ({ page }) => {
+  await page.goto('/');
+  await addHabit(page, habitWithNote);
+  await page.getByRole('button', { name: habitWithNote.name }).click();
+  await expect(page.getByText(habitWithNote.note!)).toBeVisible();
+});
+
+test('can add a note to an existing habit', async ({ page }) => {
+  await page.goto('/');
+  await addHabit(page, dailyHabit);
+  await page.getByRole('button', { name: dailyHabit.name }).click();
+  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByLabel('Note').fill('My reading notes');
+  await page.getByRole('button', { name: 'Save edits' }).click();
+  await expect(page.getByText('My reading notes')).toBeVisible();
+});
+
+test('can clear a note from a habit', async ({ page }) => {
+  await page.goto('/');
+  await addHabit(page, habitWithNote);
+  await page.getByRole('button', { name: habitWithNote.name }).click();
+  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByLabel('Note').clear();
+  await page.getByRole('button', { name: 'Save edits' }).click();
+  await expect(page.getByText(habitWithNote.note!)).not.toBeVisible();
+});
+
+test('note character counter appears when near the 1000-char limit', async ({ page }) => {
+  await page.goto('/');
+  await addHabit(page, dailyHabit);
+  await page.getByRole('button', { name: dailyHabit.name }).click();
+  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByLabel('Note').fill('a'.repeat(950));
+  await expect(page.getByText('50 characters remaining')).toBeVisible();
 });

@@ -51,6 +51,7 @@ export default function AddHabitPage() {
   const [placeholder] = useState(
     () => placeholderExamples[Math.floor(Math.random() * placeholderExamples.length)]
   );
+  const [note, setNote] = useState('');
   const [notif, setNotif] = useState<NotificationValue>(defaultNotificationValue);
   const [notifValidated, setNotifValidated] = useState(false);
   const [notifBlockedOpen, setNotifBlockedOpen] = useState(false);
@@ -72,6 +73,7 @@ export default function AddHabitPage() {
     await addHabit({
       id: nanoid(),
       name: trimmedName,
+      note: note.trim() || undefined,
       frequency,
       createdAt: toDateString(displayDate),
       notification: notif.enabled ? notif : undefined,
@@ -238,6 +240,26 @@ export default function AddHabitPage() {
               }
             }}
           />
+          <div>
+            <textarea
+              className='text-input'
+              aria-label='Note'
+              placeholder='Private note (optional)'
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              rows={3}
+              style={{ resize: 'vertical', width: '100%' }}
+              maxLength={1000}
+            />
+            {note.length >= 900 && (
+              <p
+                className={note.length === 1000 ? 'error-message' : styles.noteCounter}
+                role={note.length === 1000 ? 'alert' : undefined}
+              >
+                {1000 - note.length} characters remaining
+              </p>
+            )}
+          </div>
           <div className='form-row'>
             <button className='btn-base btn-primary' type='submit' aria-label='Add habit'>
               Add habit

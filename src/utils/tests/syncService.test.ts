@@ -21,6 +21,7 @@ describe('toRemoteHabit', () => {
       id: 'habit-1',
       user_id: USER_ID,
       name: 'Drink water',
+      note: null,
       created_at: '2025-01-01',
       times: 1,
       period_length: 1,
@@ -48,6 +49,16 @@ describe('toRemoteHabit', () => {
     const result = toRemoteHabit(habit, USER_ID, 0, NOW);
     const keys = Object.keys(result);
     expect(keys.some(k => k.startsWith('notif_'))).toBe(false);
+  });
+
+  it('maps note to remote when present', () => {
+    const result = toRemoteHabit({ ...baseHabit, note: 'drink more' }, USER_ID, 0, NOW);
+    expect(result.note).toBe('drink more');
+  });
+
+  it('sets note to null when absent', () => {
+    const result = toRemoteHabit(baseHabit, USER_ID, 0, NOW);
+    expect(result.note).toBeNull();
   });
 
   it('uses the sortOrder argument, not the habit sortOrder', () => {

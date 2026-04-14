@@ -15,5 +15,8 @@ export async function addHabit(page: Page, habit: Habit) {
       .selectOption(habit.frequency.periodUnit);
     await page.getByLabel('Times', { exact: true }).fill(habit.frequency.times.toString());
   }
+  if (habit.note) {
+    await page.getByLabel('Note').fill(habit.note);
+  }
   await page.getByRole('button', { name: 'Add habit' }).click();
 }

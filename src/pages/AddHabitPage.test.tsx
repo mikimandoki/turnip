@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -237,6 +237,62 @@ describe('AddHabitPage', () => {
       await user.click(screen.getByRole('button', { name: 'Set days-of-month no days' }));
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
       expect(addHabit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('note', () => {
+    it('renders the note textarea', () => {
+      setup();
+      expect(screen.getByRole('textbox', { name: 'Note' })).toBeInTheDocument();
+    });
+
+    it('passes note to addHabit when filled in', async () => {
+      const { user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
+      await user.type(screen.getByRole('textbox', { name: 'Note' }), 'My private note');
+      await user.click(screen.getByRole('button', { name: 'Add habit' }));
+      expect(addHabit).toHaveBeenCalledWith(expect.objectContaining({ note: 'My private note' }));
+    });
+
+    it('omits note from addHabit when left blank', async () => {
+      const { user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
+      await user.click(screen.getByRole('button', { name: 'Add habit' }));
+      const called = addHabit.mock.calls[0][0] as { note?: string };
+      expect(called.note).toBeUndefined();
+    });
+
+    it('omits note from addHabit when whitespace only', async () => {
+      const { user } = setup();
+      await user.type(screen.getByRole('textbox', { name: 'Habit name' }), 'Exercise');
+      await user.type(screen.getByRole('textbox', { name: 'Note' }), '   ');
+      await user.click(screen.getByRole('button', { name: 'Add habit' }));
+      const called = addHabit.mock.calls[0][0] as { note?: string };
+      expect(called.note).toBeUndefined();
+    });
+
+    it('shows character counter when note exceeds 900 characters', () => {
+      setup();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+        target: { value: 'a'.repeat(950) },
+      });
+      expect(screen.getByText('50 characters remaining')).toBeInTheDocument();
+    });
+
+    it('does not show counter below 900 characters', () => {
+      setup();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+        target: { value: 'a'.repeat(899) },
+      });
+      expect(screen.queryByText(/characters remaining/)).not.toBeInTheDocument();
+    });
+
+    it('shows error at the 1000-character limit', () => {
+      setup();
+      fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+        target: { value: 'a'.repeat(1000) },
+      });
+      expect(screen.getByRole('alert')).toHaveTextContent('0 characters remaining');
     });
   });
 

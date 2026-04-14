@@ -37,6 +37,7 @@ import styles from './HabitDetail.module.css';
 type EditState = {
   isEditing: boolean;
   editName: string;
+  editNote: string;
   editNotif: NotificationValue;
   errors: string[];
   notifValidated: boolean;
@@ -45,15 +46,16 @@ type EditState = {
 };
 
 type EditAction =
-  | { type: 'CANCEL_EDIT'; habitName: string; defaultNotif: NotificationValue }
+  | { type: 'CANCEL_EDIT'; habitName: string; habitNote: string; defaultNotif: NotificationValue }
   | { type: 'CLEAR_NOTIF_VALIDATED' }
   | { type: 'CLOSE_DELETE_MODAL' }
   | { type: 'CLOSE_NOTIF_BLOCKED_MODAL' }
   | { type: 'OPEN_DELETE_MODAL' }
   | { type: 'OPEN_NOTIF_BLOCKED_MODAL' }
-  | { type: 'SAVE_SUCCESS'; name: string }
+  | { type: 'SAVE_SUCCESS'; name: string; note: string }
   | { type: 'SET_ERRORS'; errors: string[] }
   | { type: 'SET_NAME'; name: string }
+  | { type: 'SET_NOTE'; note: string }
   | { type: 'SET_NOTIF_VALIDATED' }
   | { type: 'SET_NOTIF'; notif: NotificationValue }
   | { type: 'START_EDIT' };
@@ -82,10 +84,13 @@ function editReducer(state: EditState, action: EditAction): EditState {
         errors: [],
         notifValidated: false,
         editName: action.habitName,
+        editNote: action.habitNote,
         editNotif: action.defaultNotif,
       };
     case 'SET_NAME':
       return { ...state, editName: action.name };
+    case 'SET_NOTE':
+      return { ...state, editNote: action.note };
     case 'SET_NOTIF':
       return { ...state, editNotif: action.notif, notifValidated: false };
     case 'SET_ERRORS':
@@ -107,6 +112,7 @@ function editReducer(state: EditState, action: EditAction): EditState {
         ...state,
         isEditing: false,
         editName: action.name,
+        editNote: action.note,
         errors: [],
         notifValidated: false,
       };
@@ -127,11 +133,21 @@ export default function HabitDetail() {
   );
 
   const [
-    { isEditing, editName, editNotif, errors, notifValidated, deleteOpen, notifBlockedOpen },
+    {
+      isEditing,
+      editName,
+      editNote,
+      editNotif,
+      errors,
+      notifValidated,
+      deleteOpen,
+      notifBlockedOpen,
+    },
     dispatch,
   ] = useReducer(editReducer, {
     isEditing: false,
     editName: habit?.name ?? '',
+    editNote: habit?.note ?? '',
     editNotif: habit ? getDefaultEditNotif(habit) : defaultNotificationValue(),
     errors: [],
     notifValidated: false,
@@ -173,11 +189,13 @@ export default function HabitDetail() {
         void recheckNotificationPermission();
       }
     }
+    const trimmedNote = editNote.trim();
     await editHabit(habit, {
       name: trimmedName,
+      note: trimmedNote || undefined,
       notification: editNotif.enabled ? editNotif : undefined,
     });
-    dispatch({ type: 'SAVE_SUCCESS', name: trimmedName });
+    dispatch({ type: 'SAVE_SUCCESS', name: trimmedName, note: trimmedNote });
   }
 
   function buildNotifSuffix(notif: NotificationValue): string {
@@ -258,6 +276,7 @@ export default function HabitDetail() {
                       dispatch({
                         type: 'CANCEL_EDIT',
                         habitName: habit.name,
+                        habitNote: habit.note ?? '',
                         defaultNotif: getDefaultEditNotif(habit),
                       })
                     }
@@ -285,7 +304,7 @@ export default function HabitDetail() {
               )}
             </div>
           </div>
-          {isNative && isEditing && (
+          {(isNative || import.meta.env.MODE === 'development') && isEditing && (
             <div className={styles.habitDetailNotif}>
               <NotificationPicker
                 value={editNotif}
@@ -304,6 +323,33 @@ export default function HabitDetail() {
             </div>
           )}
         </div>
+        {(isEditing || habit.note) && (
+          <div className='card'>
+            {isEditing ? (
+              <>
+                <textarea
+                  className={styles.editNoteTextarea}
+                  aria-label='Note'
+                  placeholder='Private note (optional)'
+                  value={editNote}
+                  onChange={e => dispatch({ type: 'SET_NOTE', note: e.target.value })}
+                  rows={3}
+                  maxLength={1000}
+                />
+                {editNote.length >= 900 && (
+                  <p
+                    className={editNote.length === 1000 ? 'error-message' : styles.noteCounter}
+                    role={editNote.length === 1000 ? 'alert' : undefined}
+                  >
+                    {1000 - editNote.length} characters remaining
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className={styles.habitNote}>{habit.note}</p>
+            )}
+          </div>
+        )}
         <div className='card'>
           <div className={styles.statsGrid}>
             <div className={styles.statBox}>

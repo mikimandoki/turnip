@@ -9,6 +9,7 @@ import { type Completion, CompletionRowSchema, type Habit } from '../types';
 const SyncHabitRowSchema = z.object({
   id: z.string(),
   name: z.string(),
+  note: z.string().nullable(),
   createdAt: z.string(),
   times: z.number(),
   periodLength: z.number(),
@@ -29,6 +30,7 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
     id: habit.id,
     user_id: userId,
     name: habit.name,
+    note: habit.note ?? null,
     created_at: habit.createdAt,
     times: habit.frequency.times,
     period_length: habit.frequency.periodLength,
@@ -141,6 +143,7 @@ export async function pushAllCompletions(completions: Completion[]): Promise<voi
 type RemoteHabitRow = {
   id: string;
   name: string;
+  note: string | null;
   created_at: string;
   times: number;
   period_length: number;
@@ -170,7 +173,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
-    `SELECT id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at
+    `SELECT id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at
      FROM habits WHERE deleted_at IS NULL`
   );
   const remoteHabits: ReturnType<typeof toRemoteHabit>[] = [];
@@ -185,6 +188,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
       id: row.id,
       user_id: user.id,
       name: row.name,
+      note: row.note ?? null,
       created_at: row.createdAt,
       times: row.times,
       period_length: row.periodLength,
@@ -269,15 +273,16 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
       ?.updated_at;
     if (!localUpdatedAt || new Date(row.updated_at) >= new Date(localUpdatedAt)) {
       await db.run(
-        `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
-           name = excluded.name, times = excluded.times, periodLength = excluded.periodLength,
-           periodUnit = excluded.periodUnit, sortOrder = excluded.sortOrder,
-           updated_at = excluded.updated_at`,
+           name = excluded.name, note = excluded.note, times = excluded.times,
+           periodLength = excluded.periodLength, periodUnit = excluded.periodUnit,
+           sortOrder = excluded.sortOrder, updated_at = excluded.updated_at`,
         [
           row.id,
           row.name,
+          row.note ?? null,
           row.created_at,
           row.times,
           row.period_length,

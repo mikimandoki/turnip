@@ -50,6 +50,42 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 
+.editNoteTextarea {
+  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  outline: none;
+  resize: vertical;
+  font-size: 14px;
+  width: 100%;
+}
+
+.editNoteTextarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.editNoteTextarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.habitNote {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+}
+
+.noteCounter {
+  margin: var(--spacing-sm) 0 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
 .habitDetailNotif {
   display: flex;
   flex-direction: column;

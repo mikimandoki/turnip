@@ -27,3 +27,11 @@ export const weeklyHabit: Habit = {
   frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
   createdAt: new Date().toISOString(),
 };
+
+export const habitWithNote: Habit = {
+  id: '4',
+  name: 'Meditate',
+  frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
+  createdAt: new Date().toISOString(),
+  note: 'Focus on breathing',
+};
