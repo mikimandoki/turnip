@@ -10,6 +10,8 @@ import {
   type Completion,
   CompletionSchema,
   type Habit,
+  type HabitGroup,
+  HabitGroupSchema,
   type HabitRowFromDB,
   HabitSchema,
 } from '../types';
@@ -50,6 +52,7 @@ import { HabitContext } from './useHabitContext';
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
+  const [groups, setGroups] = useState<HabitGroup[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
@@ -209,6 +212,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 3. Reload state from DB
       const updatedData = await loadDataFromDB();
       setHabits(updatedData.habits);
+      setGroups(updatedData.groups);
 
       // 4. Push to Supabase (fire-and-forget)
       const sortRes = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [habit.id]);
@@ -230,7 +234,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Fetch habits (notif settings are columns on the habit row now)
       const habitResult = await db.query(
-        `SELECT id, name, note, createdAt, times, periodLength, periodUnit, sortOrder,
+        `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
                 notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
                 notif_customMessage, notif_intervalN, notif_intervalUnit
          FROM habits
@@ -242,8 +246,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         id: row.id,
         name: row.name,
         note: row.note ?? undefined,
+        groupId: row.groupId ?? undefined,
         createdAt: row.createdAt,
-        sortOrder: row.sortOrder,
         frequency: {
           times: row.times,
           periodLength: row.periodLength,
@@ -269,16 +273,23 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const compResult = await db.query(`SELECT * FROM completions`);
       const completions = compResult.values || [];
 
-      // 4. Final Zod Validation
+      // 4. Fetch groups
+      const groupResult = await db.query(
+        `SELECT id, name, createdAt FROM habit_groups ORDER BY createdAt ASC;`
+      );
+      const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
+
+      // 5. Final Zod Validation
       return {
         habits: z.array(HabitSchema).parse(habits),
         completions: z.array(CompletionSchema).parse(completions),
+        groups,
       };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       logger.error('db', 'Database hydration failed', { message: errorMsg });
       showToast('DB Error: ' + errorMsg, 'error');
-      return { habits: [], completions: [] };
+      return { habits: [], completions: [], groups: [] };
     }
   }, [showToast]);
 
@@ -295,6 +306,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           const synced = await loadDataFromDB();
           setHabits(synced.habits);
           setCompletions(synced.completions);
+          setGroups(synced.groups);
         })(),
       ]);
     };
@@ -317,9 +329,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const synced = await loadDataFromDB();
         setHabits(synced.habits);
         setCompletions(synced.completions);
+        setGroups(synced.groups);
       } else {
         setHabits(dbData.habits);
         setCompletions(dbData.completions);
+        setGroups(dbData.groups);
       }
 
       setHasOnboarded(onboarded || dbData.habits.length > 0);
@@ -340,6 +354,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             const synced = await loadDataFromDB();
             setHabits(synced.habits);
             setCompletions(synced.completions);
+            setGroups(synced.groups);
           } catch (e) {
             logger.error('sync', 'syncOnSignIn failed', e);
           } finally {
@@ -454,6 +469,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const fresh = await loadDataFromDB();
     setHabits(fresh.habits);
     setCompletions(fresh.completions);
+    setGroups(fresh.groups);
     setHasOnboarded(true);
   }
 
@@ -485,6 +501,35 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
     }
+  }
+
+  async function createGroup(name: string, habitIdA: string, habitIdB: string): Promise<void> {
+    const db = await getDB();
+    const now = new Date().toISOString();
+    const group: HabitGroup = { id: crypto.randomUUID(), name, createdAt: now };
+    await db.executeSet(
+      [
+        {
+          statement: `INSERT INTO habit_groups (id, name, createdAt) VALUES (?, ?, ?)`,
+          values: [group.id, group.name, group.createdAt],
+        },
+        {
+          statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+          values: [group.id, now, habitIdA],
+        },
+        {
+          statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+          values: [group.id, now, habitIdB],
+        },
+      ],
+      true
+    );
+    await syncDB();
+    setGroups(prev => [...prev, group]);
+    setHabits(prev =>
+      prev.map(h => (h.id === habitIdA || h.id === habitIdB ? { ...h, groupId: group.id } : h))
+    );
+    void hapticsMedium();
   }
 
   async function applyImport(
@@ -572,6 +617,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
       setCompletions(fresh.completions);
+      setGroups(fresh.groups);
       setHasOnboarded(true);
 
       return { success: true };
@@ -609,6 +655,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       value={{
         habits,
         completions,
+        groups,
         displayDate,
         isFutureDate,
         hasOnboarded,
@@ -624,6 +671,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadDemoData,
         applyImport,
         reorderHabits,
+        createGroup,
         toggleDarkMode,
         osNotificationsGranted,
         recheckNotificationPermission,

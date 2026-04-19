@@ -76,6 +76,7 @@ function HabitCard({
       onClick={handleClick}
       className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
       aria-label={cleanName as AriaLabel}
+      data-habit-id={habit.id}
     >
       <div className={styles.habitCardContent}>
         <HabitEmoji emoji={emoji} />

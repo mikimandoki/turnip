@@ -17,10 +17,19 @@ export const FrequencySchema = z.object({
 //   10x per month:          { times: 10, periodLength: 1, periodUnit: "month" }
 export type Frequency = z.infer<typeof FrequencySchema>;
 
+export const HabitGroupSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+  createdAt: z.string(),
+});
+
+export type HabitGroup = z.infer<typeof HabitGroupSchema>;
+
 export const HabitSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   note: z.string().optional(),
+  groupId: z.string().optional(),
   frequency: FrequencySchema,
   createdAt: z.string(),
   notification: z
@@ -45,6 +54,7 @@ export const HabitRowSchema = z.object({
   id: z.string(),
   name: z.string(),
   note: z.string().nullable(),
+  groupId: z.string().nullable(),
   createdAt: z.string(),
   times: z.number(),
   periodLength: z.number(),

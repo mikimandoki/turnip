@@ -1,10 +1,12 @@
 import { createContext, useContext } from 'react';
 
-import type { Completion, Habit } from '../types';
+import type { Completion, Habit, HabitGroup } from '../types';
 
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
+  groups: HabitGroup[];
+  createGroup: (name: string, habitIdA: string, habitIdB: string) => Promise<void>;
   displayDate: Date;
   isFutureDate: boolean;
   hasOnboarded: boolean;

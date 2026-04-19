@@ -1,0 +1,82 @@
+.groupCard {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.groupHeader {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: 14px var(--spacing-xl);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.groupHeader:active {
+  background: var(--color-background-tertiary);
+}
+
+.groupChevron {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.groupName {
+  font-size: 15px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groupCount {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  margin-right: var(--spacing-sm);
+}
+
+.groupProgress {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.groupProgress.done {
+  color: var(--color-accent);
+}
+
+.groupProgressBar {
+  height: 3px;
+  background: var(--color-background-tertiary);
+  margin: 0 var(--spacing-xl);
+}
+
+.groupProgressFill {
+  height: 3px;
+  background: var(--color-text-secondary);
+  transition: width 0.2s ease;
+}
+
+.groupProgressFill.done {
+  background: var(--color-accent);
+}
+
+.groupHabits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+  border-top: 0.5px solid var(--color-border-tertiary);
+  margin-top: var(--spacing-sm);
+}
