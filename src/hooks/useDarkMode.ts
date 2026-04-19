@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { loadFromStorage, saveToStorage } from '../utils/localStorage';
 
 export function useDarkMode() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
 
   useEffect(() => {
     void loadFromStorage('darkMode', null, z.boolean().nullable()).then(stored => {

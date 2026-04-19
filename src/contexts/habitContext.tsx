@@ -585,7 +585,24 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   if (loading)
-    return <div style={{ height: '100dvh', background: 'var(--color-background-secondary)' }} />;
+    return (
+      <div
+        style={{
+          height: '100dvh',
+          background: 'var(--color-background-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}
+        >
+          <div className='loading-spinner' />
+          <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>Loading...</span>
+        </div>
+      </div>
+    );
 
   return (
     <HabitContext.Provider
