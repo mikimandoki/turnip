@@ -103,7 +103,7 @@
 /* Card state modifiers */
 
 .loggedToday {
-  border-left: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent) 70%, transparent);
 }
 
 .dragging {
