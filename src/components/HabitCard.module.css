@@ -109,3 +109,10 @@
 .dragging {
   opacity: 0.5;
 }
+
+.groupTarget {
+  box-shadow:
+    0 0 0 2px var(--color-accent),
+    0 0 12px color-mix(in srgb, var(--color-accent) 30%, transparent);
+  transition: box-shadow 0.15s ease;
+}

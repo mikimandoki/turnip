@@ -10,6 +10,7 @@
 - [@capacitor/preferences@8.0.1](https://github.com/ionic-team/capacitor-plugins) - MIT
 - [@capacitor/share@8.0.1](https://github.com/ionic-team/capacitor-plugins) - MIT
 - [@capacitor/toast@8.0.1](https://github.com/ionic-team/capacitor-plugins) - MIT
+- [@dnd-kit/collision@0.3.2](https://github.com/clauderic/dnd-kit) - MIT
 - [@dnd-kit/react@0.3.2](https://github.com/clauderic/dnd-kit) - MIT
 - [@supabase/supabase-js@2.101.1](https://github.com/supabase/supabase-js) - MIT
 - [capacitor-native-settings@8.1.0](https://github.com/RaphaelWoude/capacitor-native-settings) - MIT

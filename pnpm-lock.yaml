@@ -47,6 +47,9 @@ importers:
       '@capacitor/toast':
         specifier: ^8.0.1
         version: 8.0.1(@capacitor/core@8.3.0)
+      '@dnd-kit/collision':
+        specifier: 0.3.2
+        version: 0.3.2
       '@dnd-kit/react':
         specifier: ^0.3.2
         version: 0.3.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)

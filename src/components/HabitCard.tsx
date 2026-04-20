@@ -8,6 +8,7 @@ import type { AriaLabel, Completion, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { startDatePeriod, toDateString } from '../utils/date';
+import { betweenCardsCollision } from '../utils/dnd';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { isNative, simpleHash } from '../utils/utils';
 import styles from './HabitCard.module.css';
@@ -33,11 +34,13 @@ function HabitCard({
   index,
   completedCount,
   habitCompletions,
+  isGroupTarget,
 }: {
   habit: Habit;
   index: number;
   completedCount: number;
   habitCompletions: Completion[];
+  isGroupTarget?: boolean;
 }) {
   const [showTick, setShowTick] = useState(false);
   const navigate = useNavigate();
@@ -52,7 +55,11 @@ function HabitCard({
   const loggedToday = habitCompletions.some(
     c => c.date === toDateString(displayDate) && c.count > 0
   );
-  const { ref, isDragging } = useSortable({ id: habit.id, index });
+  const { ref, isDragging } = useSortable({
+    id: habit.id,
+    index,
+    collisionDetector: betweenCardsCollision,
+  });
   const habitStats = useMemo(
     () => calculateHabitStats(habit, habitCompletions, displayDate),
     [habit, habitCompletions, displayDate]
@@ -74,7 +81,12 @@ function HabitCard({
       ref={ref}
       role='button'
       onClick={handleClick}
-      className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
+      className={clsx(
+        'card',
+        isDragging && styles.dragging,
+        loggedToday && styles.loggedToday,
+        isGroupTarget && styles.groupTarget
+      )}
       aria-label={cleanName as AriaLabel}
       data-habit-id={habit.id}
     >
@@ -175,7 +187,8 @@ const HabitCardMemo = memo(HabitCard, (prev, next) => {
     prev.habit.name === next.habit.name &&
     prev.completedCount === next.completedCount &&
     prev.index === next.index &&
-    prev.habitCompletions === next.habitCompletions
+    prev.habitCompletions === next.habitCompletions &&
+    prev.isGroupTarget === next.isGroupTarget
   );
 });
 

@@ -24,6 +24,8 @@ dist-ssr
 *.sln
 *.sw?
 
+AGENTS.md 
+
 TODO
 
 # Playwright

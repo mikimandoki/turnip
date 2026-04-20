@@ -1,7 +1,7 @@
 {
   "name": "turnip",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "author": {
@@ -42,6 +42,7 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@capacitor/toast": "^8.0.1",
+    "@dnd-kit/collision": "0.3.2",
     "@dnd-kit/react": "^0.3.2",
     "@supabase/supabase-js": "^2.101.1",
     "capacitor-native-settings": "^8.1.0",

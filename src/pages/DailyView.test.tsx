@@ -50,10 +50,12 @@ const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
 const baseContext = {
   habits: [],
   completions: [],
+  groups: [],
   displayDate: new Date('2026-04-11'),
   hasOnboarded: true,
   updateCompletion: vi.fn(),
   reorderHabits: vi.fn(),
+  createGroup: vi.fn(),
   shiftDate: mockShiftDate,
   setDate: mockSetDate,
   clearAll: vi.fn(),
