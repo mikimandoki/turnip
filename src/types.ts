@@ -107,6 +107,7 @@ export type DataTestId =
   | DevTestId
   | 'completion-count'
   | 'error-message'
+  | 'habit-card'
   | 'habit-title'
   | 'input-email'
   | 'progress-bar'

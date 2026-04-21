@@ -90,6 +90,7 @@ function HabitCard({
         isGroupCreateTarget && styles.groupTarget
       )}
       aria-label={cleanName as AriaLabel}
+      data-testid='habit-card'
       data-habit-id={habit.id}
       data-habit-index={String(index)}
     >

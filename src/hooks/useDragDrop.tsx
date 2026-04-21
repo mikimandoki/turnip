@@ -13,18 +13,19 @@ import {
   type UngroupHandler,
 } from './useDragDropContext';
 
-interface CardElement extends HTMLElement {
-  dataset: {
-    habitIndex?: string;
-    habitId?: string;
-  };
-}
-
 export type { DragSourceData, DropHandler, DropInfo, UngroupHandler };
 
 export interface DropInfoWithPosition extends DropInfo {
   dropType: 'between' | 'on-top';
   insertBefore?: boolean;
+}
+
+const HIT_ZONE_THRESHOLD = 0.25;
+
+function classifyDrop(relativeY: number): 'between' | 'on-top' {
+  return relativeY > HIT_ZONE_THRESHOLD && relativeY < 1 - HIT_ZONE_THRESHOLD
+    ? 'on-top'
+    : 'between';
 }
 
 export function DragDropProvider({ children }: { children: React.ReactNode }) {
@@ -78,15 +79,14 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
               const rect = innermost.element.getBoundingClientRect();
               const cursorY = location.current.input.clientY;
               const relativeY = (cursorY - rect.top) / rect.height;
-              const dropType: 'between' | 'on-top' =
-                relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
+              const dropType = classifyDrop(relativeY);
 
               if (dropType === 'on-top') {
                 setGroupCreateTargetId(habitId);
                 setReorderInsertIndex(null);
               } else {
                 setGroupCreateTargetId(null);
-                const habitIndex = Number((innermost.element as CardElement).dataset.habitIndex);
+                const habitIndex = Number((innermost.element as HTMLElement).dataset.habitIndex);
                 setReorderInsertIndex(relativeY < 0.5 ? habitIndex : habitIndex + 1);
               }
             }
@@ -105,12 +105,15 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
           setGroupCreateTargetId(null);
           setReorderInsertIndex(null);
 
+          const sourceData = dragDataRef.current;
+          if (!sourceData) return;
+
           if (innermost) {
             const innermostData = innermost.data as DragSourceData;
 
             if (innermostData.type === 'habit' && innermostData.habitId?.startsWith('__gap_')) {
               const info: DropInfoWithPosition = {
-                sourceData: dragDataRef.current!,
+                sourceData,
                 targetData: innermostData,
                 targetElement: innermost.element as HTMLElement,
                 isOverGroup: false,
@@ -123,12 +126,11 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
               const cursorY = location.current.input.clientY;
               const relativeY = (cursorY - rect.top) / rect.height;
 
-              const dropType: 'between' | 'on-top' =
-                relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
+              const dropType = classifyDrop(relativeY);
               const insertBefore = relativeY < 0.5;
 
               const info: DropInfoWithPosition = {
-                sourceData: dragDataRef.current!,
+                sourceData,
                 targetData: innermostData,
                 targetElement: innermost.element as HTMLElement,
                 isOverGroup: false,
@@ -138,7 +140,7 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
               pendingDropRef.current = info;
             } else if (innermostData.type === 'group') {
               const info: DropInfoWithPosition = {
-                sourceData: dragDataRef.current!,
+                sourceData,
                 targetData: innermostData,
                 targetElement: innermost.element as HTMLElement,
                 isOverGroup: true,
@@ -148,26 +150,25 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
             }
           }
 
+          const wasHandled = !!pendingDropRef.current;
           const handler = dropHandlerRef.current;
           if (handler && pendingDropRef.current) {
-            handler(pendingDropRef.current);
+            const dropInfo = pendingDropRef.current;
             pendingDropRef.current = null;
             dragDataRef.current = null;
+            handler(dropInfo);
             return;
           }
 
-          if (
-            !pendingDropRef.current &&
-            dragDataRef.current?.type === 'habit' &&
-            dragDataRef.current.groupId
-          ) {
-            const ungroupHandler = ungroupHandlerRef.current;
-            if (ungroupHandler) {
-              ungroupHandler(dragDataRef.current.habitId);
-            }
-          }
           pendingDropRef.current = null;
           dragDataRef.current = null;
+
+          if (!wasHandled && sourceData.type === 'habit' && sourceData.groupId) {
+            const ungroupHandler = ungroupHandlerRef.current;
+            if (ungroupHandler) {
+              ungroupHandler(sourceData.habitId);
+            }
+          }
         },
       }) as unknown as () => void
     );

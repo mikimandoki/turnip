@@ -5,27 +5,37 @@ import type { Completion, Frequency, Habit, HabitStats } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from './date';
 
-export function applyDragReorder(
-  habits: Habit[],
-  visibleHabits: Habit[],
-  fromIndex: number,
-  toIndex: number
-): Habit[] {
-  if (fromIndex === toIndex) return habits;
+export function calculateReorder({
+  standaloneHabits,
+  habits,
+  sourceHabitId,
+  targetHabitId,
+  insertBefore,
+}: {
+  standaloneHabits: Habit[];
+  habits: Habit[];
+  sourceHabitId: string;
+  targetHabitId: string;
+  insertBefore: boolean;
+}): Habit[] {
+  let targetIndex: number;
+  if (targetHabitId.startsWith('__gap_')) {
+    targetIndex = Number(targetHabitId.replace('__gap_', ''));
+  } else {
+    const targetIdx = standaloneHabits.findIndex(h => h.id === targetHabitId);
+    if (targetIdx === -1) return habits;
+    targetIndex = insertBefore ? targetIdx : targetIdx + 1;
+  }
 
-  const reorderedVisible = [...visibleHabits];
-  const [movedItem] = reorderedVisible.splice(fromIndex, 1);
-  reorderedVisible.splice(toIndex, 0, movedItem);
+  const sourceIdx = standaloneHabits.findIndex(h => h.id === sourceHabitId);
+  if (sourceIdx === -1) return habits;
 
-  const visibleIds = new Set(visibleHabits.map(h => h.id));
-  let visibleIdx = 0;
+  const reordered = [...standaloneHabits];
+  const [moved] = reordered.splice(sourceIdx, 1);
+  const adjustedIdx = sourceIdx < targetIndex ? targetIndex - 1 : targetIndex;
+  reordered.splice(adjustedIdx, 0, moved);
 
-  return habits.map(h => {
-    if (visibleIds.has(h.id)) {
-      return reorderedVisible[visibleIdx++];
-    }
-    return h;
-  });
+  return reordered.map((h, i) => ({ ...h, sortOrder: i }));
 }
 
 export function describeFrequency(frequency: Frequency) {
