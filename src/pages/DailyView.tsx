@@ -34,6 +34,7 @@ function DailyViewInner() {
     createGroup,
     addToGroup,
     removeFromGroup,
+    ungroupAndReorder,
     shiftDate,
     setDate,
     clearAll,
@@ -105,23 +106,63 @@ function DailyViewInner() {
 
   useEffect(() => {
     const handler = (info: DropInfo) => {
+      const sourceData = info.sourceData;
+
       if (info.isOverGroup) {
-        if (info.sourceData.type !== 'habit') return;
-        const targetGroupId = (info.targetData as { groupId: string }).groupId;
-        handleAddToGroup(info.sourceData.habitId, targetGroupId);
+        if (sourceData.type !== 'habit') return;
+        if (sourceData.groupId) {
+          handleUngroup(sourceData.habitId);
+        } else {
+          const targetGroupId = (info.targetData as { groupId: string }).groupId;
+          handleAddToGroup(sourceData.habitId, targetGroupId);
+        }
         return;
       }
 
-      if (info.sourceData.type !== 'habit' || info.targetData.type !== 'habit') return;
+      if (sourceData.type !== 'habit' || info.targetData.type !== 'habit') return;
+
+      const targetData = info.targetData as { habitId?: string; groupId?: string };
+      const isGapTarget = targetData.habitId?.startsWith('__gap_');
+
+      if (sourceData.groupId) {
+        const sameGroup = sourceData.groupId === targetData.groupId;
+        if (isGapTarget) {
+          void ungroupAndReorder(
+            sourceData.habitId,
+            targetData.habitId!,
+            info.insertBefore ?? true
+          );
+        } else if (!sameGroup) {
+          handleUngroup(sourceData.habitId);
+        }
+        return;
+      }
+
+      if (isGapTarget) {
+        handleReorder(sourceData.habitId, targetData.habitId!, info.insertBefore ?? true);
+        return;
+      }
+
+      if (targetData.groupId) {
+        handleAddToGroup(sourceData.habitId, targetData.groupId);
+        return;
+      }
 
       if (info.dropType === 'on-top') {
-        handleCreateGroup(info.sourceData.habitId, info.targetData.habitId);
+        handleCreateGroup(sourceData.habitId, targetData.habitId!);
       } else {
-        handleReorder(info.sourceData.habitId, info.targetData.habitId, info.insertBefore ?? true);
+        handleReorder(sourceData.habitId, targetData.habitId!, info.insertBefore ?? true);
       }
     };
     setDropHandler(handler);
-  }, [setDropHandler, handleAddToGroup, handleCreateGroup, handleReorder]);
+  }, [
+    setDropHandler,
+    handleAddToGroup,
+    handleCreateGroup,
+    handleReorder,
+    handleUngroup,
+    ungroupAndReorder,
+  ]);
 
   useEffect(() => {
     setUngroupHandler(handleUngroup);
@@ -182,41 +223,36 @@ function DailyViewInner() {
 
       {habits.length > 0 && (
         <>
-          <div className={styles.habitList} data-drop-zone='standalone'>
+          <div className={styles.habitList}>
+            {reorderInsertIndex === 0 && <ReorderIndicator index={0} />}
             {standaloneHabits.map((habit, index) => (
               <Fragment key={habit.id}>
-                {reorderInsertIndex === index && (
-                  <ReorderIndicator index={index} isLast={index === standaloneHabits.length} />
-                )}
                 <HabitCard
                   index={index}
                   habit={habit}
                   completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
                   habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
                 />
+                {reorderInsertIndex === index + 1 && <ReorderIndicator index={index + 1} />}
               </Fragment>
             ))}
-            {reorderInsertIndex === standaloneHabits.length && (
-              <ReorderIndicator index={standaloneHabits.length} isLast />
-            )}
+            {visibleGroups.map((group, groupIndex) => {
+              const gapIndex = standaloneHabits.length + groupIndex + 1;
+              return (
+                <Fragment key={group.id}>
+                  <GroupCard
+                    group={group}
+                    habits={visibleHabits.filter(h => h.groupId === group.id)}
+                    completionsByHabitId={completionsByHabitId}
+                    isGroupTarget={group.id === groupTargetId}
+                  />
+                  {reorderInsertIndex === gapIndex + 1 && <ReorderIndicator index={gapIndex + 1} />}
+                </Fragment>
+              );
+            })}
           </div>
-
-          {visibleGroups.length > 0 && (
-            <div className={styles.habitList}>
-              {visibleGroups.map(group => (
-                <GroupCard
-                  key={group.id}
-                  group={group}
-                  habits={visibleHabits.filter(h => h.groupId === group.id)}
-                  completionsByHabitId={completionsByHabitId}
-                  isGroupTarget={group.id === groupTargetId}
-                />
-              ))}
-            </div>
-          )}
         </>
       )}
-
       <div className='btn-row'>
         <button
           className={styles.btnAddHabit}

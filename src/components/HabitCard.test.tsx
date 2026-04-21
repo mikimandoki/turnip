@@ -128,28 +128,36 @@ describe('HabitCard', () => {
   describe('progress status', () => {
     it('applies "behind" class when completedCount is 0', () => {
       const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+        <DragDropProvider>
+          <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+        </DragDropProvider>
       );
       expect(container.querySelector('.progressFill')?.classList.contains('behind')).toBe(true);
     });
 
     it('applies "in-progress" class when partially complete', () => {
       const { container } = render(
-        <HabitCard habit={multiHabit} index={0} completedCount={1} habitCompletions={[]} />
+        <DragDropProvider>
+          <HabitCard habit={multiHabit} index={0} completedCount={1} habitCompletions={[]} />
+        </DragDropProvider>
       );
       expect(container.querySelector('.progressFill')?.classList.contains('inProgress')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets target', () => {
       const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={1} habitCompletions={[]} />
+        <DragDropProvider>
+          <HabitCard habit={habit} index={0} completedCount={1} habitCompletions={[]} />
+        </DragDropProvider>
       );
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
 
     it('applies "done" class when completedCount meets multi-target', () => {
       const { container } = render(
-        <HabitCard habit={multiHabit} index={0} completedCount={3} habitCompletions={[]} />
+        <DragDropProvider>
+          <HabitCard habit={multiHabit} index={0} completedCount={3} habitCompletions={[]} />
+        </DragDropProvider>
       );
       expect(container.querySelector('.progressFill')?.classList.contains('done')).toBe(true);
     });
@@ -158,19 +166,23 @@ describe('HabitCard', () => {
   describe('logged-today', () => {
     it('adds logged-today class when completion exists for today', () => {
       const { container } = render(
-        <HabitCard
-          habit={habit}
-          index={0}
-          completedCount={1}
-          habitCompletions={[{ habitId: 'h1', date: '2026-03-31', count: 1 }]}
-        />
+        <DragDropProvider>
+          <HabitCard
+            habit={habit}
+            index={0}
+            completedCount={1}
+            habitCompletions={[{ habitId: 'h1', date: '2026-03-31', count: 1 }]}
+          />
+        </DragDropProvider>
       );
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(true);
     });
 
     it('does not add logged-today class when no completion for today', () => {
       const { container } = render(
-        <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+        <DragDropProvider>
+          <HabitCard habit={habit} index={0} completedCount={0} habitCompletions={[]} />
+        </DragDropProvider>
       );
       expect(container.querySelector('.card')?.classList.contains('loggedToday')).toBe(false);
     });

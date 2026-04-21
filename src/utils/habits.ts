@@ -18,6 +18,8 @@ export function calculateReorder({
   targetHabitId: string;
   insertBefore: boolean;
 }): Habit[] {
+  const groupedHabits = habits.filter(h => h.groupId);
+
   let targetIndex: number;
   if (targetHabitId.startsWith('__gap_')) {
     targetIndex = Number(targetHabitId.replace('__gap_', ''));
@@ -35,7 +37,9 @@ export function calculateReorder({
   const adjustedIdx = sourceIdx < targetIndex ? targetIndex - 1 : targetIndex;
   reordered.splice(adjustedIdx, 0, moved);
 
-  return reordered.map((h, i) => ({ ...h, sortOrder: i }));
+  const reorderedWithSortOrder = reordered.map((h, i) => ({ ...h, sortOrder: i }));
+
+  return [...groupedHabits, ...reorderedWithSortOrder];
 }
 
 export function describeFrequency(frequency: Frequency) {

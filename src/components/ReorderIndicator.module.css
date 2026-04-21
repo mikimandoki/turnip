@@ -6,6 +6,16 @@
   position: relative;
 }
 
+.indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: transparent;
+  top: -24px;
+}
+
 .indicator::after {
   content: '';
   display: block;

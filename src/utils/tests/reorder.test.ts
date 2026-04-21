@@ -181,10 +181,9 @@ describe('calculateReorder', () => {
         insertBefore: true,
       });
 
-      expect(result.map(h => h.id)).toEqual(['c', 'a']);
       expect(result.find(h => h.id === 'c')!.sortOrder).toBe(0);
       expect(result.find(h => h.id === 'a')!.sortOrder).toBe(1);
-      expect(result.some(h => h.id === 'b')).toBe(false);
+      expect(result.find(h => h.id === 'b')!.sortOrder).toBe(1);
     });
   });
 
