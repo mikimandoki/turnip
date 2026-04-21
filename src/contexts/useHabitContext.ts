@@ -7,6 +7,8 @@ export interface HabitContextType {
   completions: Completion[];
   groups: HabitGroup[];
   createGroup: (name: string, habitIdA: string, habitIdB: string) => Promise<void>;
+  addToGroup: (habitId: string, groupId: string) => Promise<void>;
+  removeFromGroup: (habitId: string) => void;
   displayDate: Date;
   isFutureDate: boolean;
   hasOnboarded: boolean;

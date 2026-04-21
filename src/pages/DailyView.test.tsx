@@ -27,12 +27,10 @@ vi.mock('../utils/dev', () => ({
   isDevUI: false,
 }));
 
-vi.mock('@dnd-kit/react', () => ({
-  DragDropProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-vi.mock('@dnd-kit/react/sortable', () => ({
-  isSortable: () => false,
+vi.mock('@atlaskit/pragmatic-drag-and-drop/element/adapter', () => ({
+  draggable: vi.fn(() => () => {}),
+  dropTargetForElements: vi.fn(() => () => {}),
+  monitorForElements: vi.fn(() => () => {}),
 }));
 
 vi.mock('../components/HabitCard', () => ({
@@ -42,6 +40,7 @@ vi.mock('../components/HabitCard', () => ({
 const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
   id: 'h1',
   name: 'Test habit',
+  sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-04-01',
   ...overrides,

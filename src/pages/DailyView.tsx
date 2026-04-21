@@ -1,7 +1,5 @@
-import { DragDropProvider } from '@dnd-kit/react';
-import { isSortable } from '@dnd-kit/react/sortable';
 import { ChevronLeft, ChevronRight, Moon, Settings, Sun } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import type { Completion } from '../types';
@@ -9,19 +7,78 @@ import type { Completion } from '../types';
 import GroupCard from '../components/GroupCard';
 import GroupDialog from '../components/GroupDialog';
 import HabitCard from '../components/HabitCard';
+import ReorderIndicator from '../components/ReorderIndicator';
 import { useHabitContext } from '../contexts/useHabitContext';
 import DevButtons from '../dev/DevButtons';
-import { useGroupDrag } from '../hooks/useGroupDrag';
+import { DragDropProvider } from '../hooks/useDragDrop';
+import { useDragDropContext } from '../hooks/useDragDropContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { isDevUI } from '../utils/dev';
-import { applyDragReorder, getCompletionsInPeriod } from '../utils/habits';
+import { getCompletionsInPeriod } from '../utils/habits';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
 
 const EMPTY_COMPLETIONS: Completion[] = [];
 
-export default function DailyView() {
+function DropHandler({
+  onReorder,
+  onAddToGroup,
+  onCreateGroup,
+}: {
+  onReorder: (habitId: string, targetHabitId: string, insertBefore: boolean) => void;
+  onAddToGroup: (habitId: string, groupId: string) => void;
+  onCreateGroup: (habitIdA: string, habitIdB: string) => void;
+}) {
+  const { setDropHandler } = useDragDropContext();
+
+  useEffect(() => {
+    const handler = (info: {
+      sourceData:
+        | { type: 'group'; groupId: string }
+        | { type: 'habit'; habitId: string; groupId?: string };
+      targetData:
+        | { type: 'group'; groupId: string }
+        | { type: 'habit'; habitId: string; groupId?: string };
+      isOverGroup: boolean;
+      dropType: 'between' | 'on-top';
+      insertBefore?: boolean;
+    }) => {
+      if (info.isOverGroup) {
+        if (info.sourceData.type !== 'habit') return;
+        const targetGroupId = (info.targetData as { groupId: string }).groupId;
+        onAddToGroup(info.sourceData.habitId, targetGroupId);
+        return;
+      }
+
+      if (info.sourceData.type !== 'habit' || info.targetData.type !== 'habit') return;
+
+      if (info.dropType === 'on-top') {
+        onCreateGroup(info.sourceData.habitId, info.targetData.habitId);
+      } else {
+        onReorder(info.sourceData.habitId, info.targetData.habitId, info.insertBefore ?? true);
+      }
+    };
+    setDropHandler(handler);
+  }, [setDropHandler, onReorder, onAddToGroup, onCreateGroup]);
+
+  return null;
+}
+
+function UngroupHandler({ onUngroup }: { onUngroup: (habitId: string) => void }) {
+  const { setUngroupHandler } = useDragDropContext();
+
+  useEffect(() => {
+    setUngroupHandler(habitId => {
+      onUngroup(habitId);
+    });
+  }, [setUngroupHandler, onUngroup]);
+
+  return null;
+}
+
+function DailyViewInner() {
   const navigate = useNavigate();
+  const { groupTargetId, reorderInsertIndex } = useDragDropContext();
   const {
     habits,
     completions,
@@ -30,6 +87,8 @@ export default function DailyView() {
     hasOnboarded,
     reorderHabits,
     createGroup,
+    addToGroup,
+    removeFromGroup,
     shiftDate,
     setDate,
     clearAll,
@@ -38,8 +97,14 @@ export default function DailyView() {
     toggleDarkMode,
   } = useHabitContext();
 
+  const [pendingGroup, setPendingGroup] = useState<{ sourceId: string; targetId: string } | null>(
+    null
+  );
+
   const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
-  const standaloneHabits = visibleHabits.filter(h => !h.groupId);
+  const standaloneHabits = [...visibleHabits.filter(h => !h.groupId)].sort(
+    (a, b) => a.sortOrder - b.sortOrder
+  );
 
   const completionsByHabitId = useMemo(() => {
     const map = new Map<string, Completion[]>();
@@ -56,7 +121,44 @@ export default function DailyView() {
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  const groupDrag = useGroupDrag(standaloneHabits);
+  const handleReorder = (sourceHabitId: string, targetHabitId: string, insertBefore: boolean) => {
+    const sourceHabit = habits.find(h => h.id === sourceHabitId);
+    const targetHabit = habits.find(h => h.id === targetHabitId);
+    if (!sourceHabit || !targetHabit) return;
+
+    const sourceIdx = standaloneHabits.findIndex(h => h.id === sourceHabitId);
+    const targetIdx = standaloneHabits.findIndex(h => h.id === targetHabitId);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const reordered = [...standaloneHabits];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    const finalIdx = insertBefore ? targetIdx : targetIdx + 1;
+    const adjustedIdx = sourceIdx < targetIdx ? finalIdx - 1 : finalIdx;
+    reordered.splice(adjustedIdx, 0, moved);
+
+    const visibleIds = new Set(standaloneHabits.map(h => h.id));
+    const final = habits.map(h => {
+      if (visibleIds.has(h.id)) {
+        const next = reordered.find(r => r.id === h.id);
+        return next ? { ...h, sortOrder: reordered.indexOf(next) } : h;
+      }
+      return h;
+    });
+
+    void reorderHabits(final);
+  };
+
+  const handleAddToGroup = (habitId: string, groupId: string) => {
+    void addToGroup(habitId, groupId);
+  };
+
+  const handleCreateGroup = (habitIdA: string, habitIdB: string) => {
+    setPendingGroup({ sourceId: habitIdA, targetId: habitIdB });
+  };
+
+  const handleUngroup = (habitId: string) => {
+    void removeFromGroup(habitId);
+  };
 
   useEffect(() => {
     void getDB();
@@ -113,35 +215,30 @@ export default function DailyView() {
 
       {habits.length > 0 && (
         <>
-          <DragDropProvider
-            onDragStart={groupDrag.onDragStart}
-            onDragMove={groupDrag.onDragMove}
-            onDragEnd={event => {
-              groupDrag.onDragEnd(event);
+          <DropHandler
+            onReorder={handleReorder}
+            onAddToGroup={handleAddToGroup}
+            onCreateGroup={handleCreateGroup}
+          />
+          <UngroupHandler onUngroup={handleUngroup} />
 
-              if (event.canceled) return;
-              const { source } = event.operation;
-              if (!isSortable(source)) return;
-              const from = source.initialIndex;
-              const to = source.index;
-              if (from === to) return;
-              const reordered = applyDragReorder(habits, standaloneHabits, from, to);
-              void reorderHabits(reordered);
-            }}
-          >
-            <div className={styles.habitList}>
-              {standaloneHabits.map((habit, index) => (
+          <div className={styles.habitList}>
+            {standaloneHabits.map((habit, index) => (
+              <>
+                {reorderInsertIndex === index && <ReorderIndicator insertBefore={true} />}
                 <HabitCard
                   key={habit.id}
                   index={index}
                   habit={habit}
                   completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
                   habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
-                  isGroupTarget={habit.id === groupDrag.groupTargetId}
                 />
-              ))}
-            </div>
-          </DragDropProvider>
+              </>
+            ))}
+            {reorderInsertIndex === standaloneHabits.length && (
+              <ReorderIndicator insertBefore={true} />
+            )}
+          </div>
 
           {groups.filter(g => visibleHabits.some(h => h.groupId === g.id)).length > 0 && (
             <div className={styles.habitList}>
@@ -153,6 +250,7 @@ export default function DailyView() {
                     group={group}
                     habits={visibleHabits.filter(h => h.groupId === group.id)}
                     completionsByHabitId={completionsByHabitId}
+                    isGroupTarget={group.id === groupTargetId}
                   />
                 ))}
             </div>
@@ -193,14 +291,22 @@ export default function DailyView() {
       {isDevUI && <DevButtons onClearAll={() => void clearAll()} />}
 
       <GroupDialog
-        open={groupDrag.pendingGroup !== null}
+        open={pendingGroup !== null}
         onConfirm={name => {
-          if (!groupDrag.pendingGroup) return;
-          void createGroup(name, groupDrag.pendingGroup.sourceId, groupDrag.pendingGroup.targetId);
-          groupDrag.setPendingGroup(null);
+          if (!pendingGroup) return;
+          void createGroup(name, pendingGroup.sourceId, pendingGroup.targetId);
+          setPendingGroup(null);
         }}
-        onCancel={() => groupDrag.setPendingGroup(null)}
+        onCancel={() => setPendingGroup(null)}
       />
     </main>
+  );
+}
+
+export default function DailyView() {
+  return (
+    <DragDropProvider>
+      <DailyViewInner />
+    </DragDropProvider>
   );
 }

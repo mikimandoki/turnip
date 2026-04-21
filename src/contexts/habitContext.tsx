@@ -1,4 +1,5 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
+import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
@@ -247,6 +248,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         name: row.name,
         note: row.note ?? undefined,
         groupId: row.groupId ?? undefined,
+        sortOrder: row.sortOrder,
         createdAt: row.createdAt,
         frequency: {
           times: row.times,
@@ -480,18 +482,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       const db = await getDB();
 
-      // 2. Perform all sortOrder updates atomically
+      // 2. Perform all sortOrder updates atomically using executeSet
       const reorderNow = new Date().toISOString();
-      await db.executeSet(
-        newOrderedHabits.map((h, i) => ({
-          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`,
-          values: [i, reorderNow, h.id],
-        })),
-        true
-      );
+      const statements = newOrderedHabits.map(h => ({
+        statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+        values: [h.sortOrder ?? 0, reorderNow, h.id],
+      }));
+
+      await db.executeSet(statements);
 
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
+
       void pushAllHabits(newOrderedHabits).catch(e =>
         logger.error('sync', 'pushAllHabits failed', e)
       );
@@ -506,7 +508,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function createGroup(name: string, habitIdA: string, habitIdB: string): Promise<void> {
     const db = await getDB();
     const now = new Date().toISOString();
-    const group: HabitGroup = { id: crypto.randomUUID(), name, createdAt: now };
+    const group: HabitGroup = { id: nanoid(), name, createdAt: now };
     await db.executeSet(
       [
         {
@@ -530,6 +532,78 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       prev.map(h => (h.id === habitIdA || h.id === habitIdB ? { ...h, groupId: group.id } : h))
     );
     void hapticsMedium();
+  }
+
+  async function addToGroup(habitId: string, groupId: string): Promise<void> {
+    const db = await getDB();
+    const now = new Date().toISOString();
+    await db.executeSet(
+      [
+        {
+          statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+          values: [groupId, now, habitId],
+        },
+      ],
+      true
+    );
+    await syncDB();
+    setHabits(prev => prev.map(h => (h.id === habitId ? { ...h, groupId } : h)));
+    void hapticsMedium();
+  }
+
+  function removeFromGroup(habitId: string): void {
+    // Read current habits from state directly, not closure
+    setHabits(currentHabits => {
+      const habit = currentHabits.find(h => h.id === habitId);
+      const groupId = habit?.groupId;
+
+      if (!groupId) return currentHabits;
+
+      const updated = currentHabits.map(h => (h.id === habitId ? { ...h, groupId: undefined } : h));
+
+      const remainingInGroup = currentHabits.filter(h => h.groupId === groupId && h.id !== habitId);
+
+      if (remainingInGroup.length === 0) {
+        setGroups(prev => prev.filter(g => g.id !== groupId));
+        (async () => {
+          const db = await getDB();
+          const now = new Date().toISOString();
+          await db.executeSet(
+            [
+              {
+                statement: `UPDATE habits SET groupId = NULL, updated_at = ? WHERE id = ?`,
+                values: [now, habitId],
+              },
+              {
+                statement: `DELETE FROM habit_groups WHERE id = ?`,
+                values: [groupId],
+              },
+            ],
+            true
+          );
+          await syncDB();
+          void hapticsMedium();
+        })().catch(e => logger.error('db', 'removeFromGroup failed', e));
+      } else {
+        (async () => {
+          const db = await getDB();
+          const now = new Date().toISOString();
+          await db.executeSet(
+            [
+              {
+                statement: `UPDATE habits SET groupId = NULL, updated_at = ? WHERE id = ?`,
+                values: [now, habitId],
+              },
+            ],
+            true
+          );
+          await syncDB();
+          void hapticsMedium();
+        })().catch(e => logger.error('db', 'removeFromGroup failed', e));
+      }
+
+      return updated;
+    });
   }
 
   async function applyImport(
@@ -672,6 +746,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         applyImport,
         reorderHabits,
         createGroup,
+        addToGroup,
+        removeFromGroup,
         toggleDarkMode,
         osNotificationsGranted,
         recheckNotificationPermission,

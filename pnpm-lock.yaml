@@ -11,6 +11,12 @@ importers:
 
   .:
     dependencies:
+      '@atlaskit/pragmatic-drag-and-drop':
+        specifier: ^1.8.0
+        version: 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator':
+        specifier: ^3.2.15
+        version: 3.2.15(react@19.2.4)
       '@capacitor-community/sqlite':
         specifier: ^8.1.0
         version: 8.1.0(@capacitor/core@8.3.0)
@@ -47,12 +53,6 @@ importers:
       '@capacitor/toast':
         specifier: ^8.0.1
         version: 8.0.1(@capacitor/core@8.3.0)
-      '@dnd-kit/collision':
-        specifier: 0.3.2
-        version: 0.3.2
-      '@dnd-kit/react':
-        specifier: ^0.3.2
-        version: 0.3.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@supabase/supabase-js':
         specifier: ^2.101.1
         version: 2.101.1
@@ -184,6 +184,38 @@ packages:
 
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
+
+  '@atlaskit/atlassian-context@0.8.0':
+    resolution: {integrity: sha512-I4Rpupz2sfHumiLRMHG+emYM0dTSisuL0665lfou6k55jjhrLDDbfH1eBfCZV3qts/xIWnBxoSCaNpV2Vgg9ew==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
+
+  '@atlaskit/ds-lib@7.0.0':
+    resolution: {integrity: sha512-Uqywr6YMi6uBpD0BtbRmG8f81fteRT7NBf62J8zzWPSs7u3Jq9G3Oruwm3y+57Dxv6IqfRwrS10WJARlCJdBLw==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
+
+  '@atlaskit/feature-gate-js-client@5.5.11':
+    resolution: {integrity: sha512-kD+qCh2lIKxXB9IemmKiB+QUI+YKSoDmJ+dTGLehwmav0mcpzpZjrFRc/sHIZ3XefXxob761t8svrakO0hqfPw==}
+
+  '@atlaskit/platform-feature-flags@1.1.3':
+    resolution: {integrity: sha512-dRn6UvVmMF5+WXnv7ZlxKTV2rVQncI2TgM0KTGSqpHdD9LnogITWC/rFjzUuF/W8MBCEvpouGilukqhq6rASnw==}
+
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
+    resolution: {integrity: sha512-JWt6eVp6Br2FPHRM8s0dUIHQk/jFInGP1f3ti5CdtM1Ji5/pt8Akm44wDC063Gv2i5RGseixtbW0z/t6RYtbdg==}
+
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15':
+    resolution: {integrity: sha512-D0wyKXsZlmkXcV00IPfFsGfOLVKw6r6vAy4oHn/E0RvHlWHSXxUScXDFKkhN4EDsEEwSxv6xmMNoj3RA8JCKUg==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
+
+  '@atlaskit/pragmatic-drag-and-drop@1.8.0':
+    resolution: {integrity: sha512-xUvSniuXsiu28ImUnR27oEH4Ov8AExQrdwBE3feAq0d9W9ngLgS+dD5DY3PW5wKEMFjdSecIzbg7o9bsctbf5Q==}
+
+  '@atlaskit/tokens@13.0.0':
+    resolution: {integrity: sha512-uvokC3FBpcK/RiNdhohFw5N3RxPNKzDcLaitpIVV0v61YH3N4FtHz3yL/uoRL5XE+3RrD3g8+GXlgIOiPsuftQ==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
 
   '@babel/code-frame@7.29.0':
     resolution: {integrity: sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==}
@@ -337,6 +369,11 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
+  '@compiled/react@0.20.0':
+    resolution: {integrity: sha512-mEJuYGFxIDST1H7CpksyE6a3HRVRQmeDal26O+bCHTEZlPp7iKvs5KD1FOmd2palng+S60dPFFG+UuoZDRILwA==}
+    peerDependencies:
+      react: '>=18.0.0'
+
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
@@ -376,27 +413,6 @@ packages:
   '@csstools/css-tokenizer@4.0.0':
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
-
-  '@dnd-kit/abstract@0.3.2':
-    resolution: {integrity: sha512-uvPVK+SZYD6Viddn9M0K0JQdXknuVSxA/EbMlFRanve3P/XTc18oLa5zGftKSGjfQGmuzkZ34E26DSbly1zi3Q==}
-
-  '@dnd-kit/collision@0.3.2':
-    resolution: {integrity: sha512-pNmNSLCI8S9fNQ7QJ3fBCDjiT0sqBhUFcKgmyYaGvGCAU+kq0AP8OWlh0JSisc9k5mFyxmRpmFQcnJpILz/RPA==}
-
-  '@dnd-kit/dom@0.3.2':
-    resolution: {integrity: sha512-cIUAVgt2szQyz6JRy7I+0r+xeyOAGH21Y15hb5bIyHoDEaZBvIDH+OOlD9eoLjCbsxDLN9WloU2CBi3OE6LYDg==}
-
-  '@dnd-kit/geometry@0.3.2':
-    resolution: {integrity: sha512-3UBPuIS7E3oGiHxOE8h810QA+0pnrnCtGxl4Os1z3yy5YkC/BEYGY+TxWPTQaY1/OMV7GCX7ZNMlama2QN3n3w==}
-
-  '@dnd-kit/react@0.3.2':
-    resolution: {integrity: sha512-1Opg1xw6I75Z95c+rF2NJa0pdGb8rLAENtuopKtJ1J0PudWlz+P6yL137xy/6DV43uaRmNGtsdbMbR0yRYJ72g==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
-
-  '@dnd-kit/state@0.3.2':
-    resolution: {integrity: sha512-dLUIkoYrIJhGXfF2wGLTfb46vUokEsO/OoE21TSfmahYrx7ysTmnwbePsznFaHlwgZhQEh6AlLvthLCeY21b1A==}
 
   '@emnapi/core@1.9.0':
     resolution: {integrity: sha512-0DQ98G9ZQZOxfUcQn1waV2yS8aWdZ6kJMbYCJB3oUBecjWYO1fqJ+a1DRfPF3O5JEkwqwP1A9QEN/9mYm2Yd0w==}
@@ -762,9 +778,6 @@ packages:
     resolution: {integrity: sha512-PG6q63nQg5c9rIi4/Z5lR5IVF7yU5MqmKaPOe0HSc0O2cX1fPi96sUQu5j7eo4gKCkB2AnNGoWt7y4/Xx3Kcqg==}
     engines: {node: '>=18'}
     hasBin: true
-
-  '@preact/signals-core@1.14.0':
-    resolution: {integrity: sha512-AowtCcCU/33lFlh1zRFf/u+12rfrhtNakj7UpaGEsmMwUKpKWMVvcktOGcwBBNiB4lWrZWc01LhiyyzVklJyaQ==}
 
   '@prettier/plugin-xml@2.2.0':
     resolution: {integrity: sha512-UWRmygBsyj4bVXvDiqSccwT1kmsorcwQwaIy30yVh8T+Gspx4OlC0shX1y+ZuwXZvgnafmpRYKks0bAu9urJew==}
@@ -1597,6 +1610,12 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
+  '@statsig/client-core@3.32.6':
+    resolution: {integrity: sha512-VailldiMHr5GSI18tBB3yiqrVNMim9b5iE38JZJYSywJcb5WclJkbJMOAf2ql+g1OtIS0QzrjEQ7dP3Vf6sYAw==}
+
+  '@statsig/js-client@3.32.6':
+    resolution: {integrity: sha512-F6yRAgzFuboVsgsRnxcr7hJrSZu4TK7B5I9DRkQKGxk+Em3oSLFz53SkzWgUcPqtt3htsFjic2aNhIfpeBFEqg==}
+
   '@stencil/core@4.43.3':
     resolution: {integrity: sha512-w41W6txhGULvvEfa5AEgwfNGAbK3YGowQYMTWuRvXSIbnkiyRDGLogsYSYtHDlz1JJe645JJIK9Lvh5uquFiSw==}
     engines: {node: '>=16.0.0', npm: '>=7.10.0'}
@@ -2033,6 +2052,9 @@ packages:
   big-integer@1.6.52:
     resolution: {integrity: sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==}
     engines: {node: '>=0.6'}
+
+  bind-event-listener@3.0.0:
+    resolution: {integrity: sha512-PJvH288AWQhKs2v9zyfYdPzlPqf5bXbGMmhmUIY9x4dAUGIWgomO771oBQNwJnMQSnUIXhKu6sgzpBRXTlvb8Q==}
 
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
@@ -2541,6 +2563,9 @@ packages:
   esutils@2.0.3:
     resolution: {integrity: sha512-kVscqXk4OCp68SZ0dkgEKVi6/8ij300KBWTJq32P/dYeWTSwK41WyTxalN1eRmA5Z9UU/LX9D7FWSmV9SAYx6g==}
     engines: {node: '>=0.10.0'}
+
+  eventemitter3@4.0.7:
+    resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
 
   events-universal@1.0.1:
     resolution: {integrity: sha512-LUd5euvbMLpwOF8m6ivPCbhQeSiYVNb8Vs0fQ8QjXo0JTkEHpz8pxdQf0gStltaPpw0Cca8b39KxvK9cfKRiAw==}
@@ -3630,6 +3655,9 @@ packages:
       '@types/react-dom':
         optional: true
 
+  raf-schd@4.0.3:
+    resolution: {integrity: sha512-tQkJl2GRWh83ui2DiPTJz9wEiMN20syf+5oKfB03yYP7ioZcJwsIK8FjrtLwH1m7C7e+Tt2yYBlrOpdT+dyeIQ==}
+
   rc@1.2.8:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
     hasBin: true
@@ -4039,6 +4067,9 @@ packages:
 
   through@2.3.8:
     resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
+
+  tiny-invariant@1.3.3:
+    resolution: {integrity: sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -4531,6 +4562,69 @@ snapshots:
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
+  '@atlaskit/atlassian-context@0.8.0(react@19.2.4)':
+    dependencies:
+      '@babel/runtime': 7.29.2
+      react: 19.2.4
+
+  '@atlaskit/ds-lib@7.0.0(react@19.2.4)':
+    dependencies:
+      '@babel/runtime': 7.29.2
+      bind-event-listener: 3.0.0
+      react: 19.2.4
+      tiny-invariant: 1.3.3
+
+  '@atlaskit/feature-gate-js-client@5.5.11(react@19.2.4)':
+    dependencies:
+      '@atlaskit/atlassian-context': 0.8.0(react@19.2.4)
+      '@babel/runtime': 7.29.2
+      '@statsig/client-core': 3.32.6
+      '@statsig/js-client': 3.32.6
+      eventemitter3: 4.0.7
+    transitivePeerDependencies:
+      - react
+
+  '@atlaskit/platform-feature-flags@1.1.3(react@19.2.4)':
+    dependencies:
+      '@atlaskit/feature-gate-js-client': 5.5.11(react@19.2.4)
+      '@babel/runtime': 7.29.2
+    transitivePeerDependencies:
+      - react
+
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
+    dependencies:
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@babel/runtime': 7.29.2
+
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15(react@19.2.4)':
+    dependencies:
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
+      '@atlaskit/tokens': 13.0.0(react@19.2.4)
+      '@babel/runtime': 7.29.2
+      '@compiled/react': 0.20.0(react@19.2.4)
+      react: 19.2.4
+    transitivePeerDependencies:
+      - supports-color
+
+  '@atlaskit/pragmatic-drag-and-drop@1.8.0':
+    dependencies:
+      '@babel/runtime': 7.29.2
+      bind-event-listener: 3.0.0
+      raf-schd: 4.0.3
+
+  '@atlaskit/tokens@13.0.0(react@19.2.4)':
+    dependencies:
+      '@atlaskit/ds-lib': 7.0.0(react@19.2.4)
+      '@atlaskit/platform-feature-flags': 1.1.3(react@19.2.4)
+      '@babel/runtime': 7.29.2
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
+      bind-event-listener: 3.0.0
+      react: 19.2.4
+    transitivePeerDependencies:
+      - supports-color
+
   '@babel/code-frame@7.29.0':
     dependencies:
       '@babel/helper-validator-identifier': 7.28.5
@@ -4758,6 +4852,11 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.3.0
 
+  '@compiled/react@0.20.0(react@19.2.4)':
+    dependencies:
+      csstype: 3.2.3
+      react: 19.2.4
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -4785,45 +4884,6 @@ snapshots:
       css-tree: 3.2.1
 
   '@csstools/css-tokenizer@4.0.0': {}
-
-  '@dnd-kit/abstract@0.3.2':
-    dependencies:
-      '@dnd-kit/geometry': 0.3.2
-      '@dnd-kit/state': 0.3.2
-      tslib: 2.8.1
-
-  '@dnd-kit/collision@0.3.2':
-    dependencies:
-      '@dnd-kit/abstract': 0.3.2
-      '@dnd-kit/geometry': 0.3.2
-      tslib: 2.8.1
-
-  '@dnd-kit/dom@0.3.2':
-    dependencies:
-      '@dnd-kit/abstract': 0.3.2
-      '@dnd-kit/collision': 0.3.2
-      '@dnd-kit/geometry': 0.3.2
-      '@dnd-kit/state': 0.3.2
-      tslib: 2.8.1
-
-  '@dnd-kit/geometry@0.3.2':
-    dependencies:
-      '@dnd-kit/state': 0.3.2
-      tslib: 2.8.1
-
-  '@dnd-kit/react@0.3.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@dnd-kit/abstract': 0.3.2
-      '@dnd-kit/dom': 0.3.2
-      '@dnd-kit/state': 0.3.2
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-      tslib: 2.8.1
-
-  '@dnd-kit/state@0.3.2':
-    dependencies:
-      '@preact/signals-core': 1.14.0
-      tslib: 2.8.1
 
   '@emnapi/core@1.9.0':
     dependencies:
@@ -5184,8 +5244,6 @@ snapshots:
   '@playwright/test@1.59.1':
     dependencies:
       playwright: 1.59.1
-
-  '@preact/signals-core@1.14.0': {}
 
   '@prettier/plugin-xml@2.2.0':
     dependencies:
@@ -6016,6 +6074,12 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@statsig/client-core@3.32.6': {}
+
+  '@statsig/js-client@3.32.6':
+    dependencies:
+      '@statsig/client-core': 3.32.6
+
   '@stencil/core@4.43.3':
     optionalDependencies:
       '@rollup/rollup-darwin-arm64': 4.44.0
@@ -6484,6 +6548,8 @@ snapshots:
       require-from-string: 2.0.2
 
   big-integer@1.6.52: {}
+
+  bind-event-listener@3.0.0: {}
 
   bl@4.1.0:
     dependencies:
@@ -7046,6 +7112,8 @@ snapshots:
       '@types/estree': 1.0.8
 
   esutils@2.0.3: {}
+
+  eventemitter3@4.0.7: {}
 
   events-universal@1.0.1:
     dependencies:
@@ -8282,6 +8350,8 @@ snapshots:
       '@types/react': 19.2.14
       '@types/react-dom': 19.2.3(@types/react@19.2.14)
 
+  raf-schd@4.0.3: {}
+
   rc@1.2.8:
     dependencies:
       deep-extend: 0.6.0
@@ -8787,6 +8857,8 @@ snapshots:
       readable-stream: 3.6.2
 
   through@2.3.8: {}
+
+  tiny-invariant@1.3.3: {}
 
   tinybench@2.9.0: {}
 

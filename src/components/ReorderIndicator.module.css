@@ -1,0 +1,8 @@
+.indicator {
+  height: 3px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
+  margin: -2px 0;
+  pointer-events: none;
+  z-index: 10;
+}

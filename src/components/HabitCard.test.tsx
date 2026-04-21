@@ -6,6 +6,7 @@ import type { HabitContextType } from '../contexts/useHabitContext';
 import type { Completion, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
+import { DragDropProvider } from '../hooks/useDragDrop';
 import { calculateHabitStats } from '../utils/habits';
 import HabitCard from './HabitCard';
 
@@ -48,6 +49,7 @@ vi.mock('../utils/habits', async importOriginal => {
 const habit: Habit = {
   id: 'h1',
   name: 'Exercise',
+  sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-01-01',
 };
@@ -76,13 +78,15 @@ function renderCard(
   habitCompletions: Completion[] = []
 ) {
   render(
-    <HabitCard
-      habit={habit}
-      index={0}
-      completedCount={0}
-      habitCompletions={habitCompletions}
-      {...props}
-    />
+    <DragDropProvider>
+      <HabitCard
+        habit={habit}
+        index={0}
+        completedCount={0}
+        habitCompletions={habitCompletions}
+        {...props}
+      />
+    </DragDropProvider>
   );
 }
 

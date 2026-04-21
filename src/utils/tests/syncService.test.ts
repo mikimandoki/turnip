@@ -10,6 +10,7 @@ const USER_ID = 'user-123';
 const baseHabit: Habit = {
   id: 'habit-1',
   name: 'Drink water',
+  sortOrder: 0,
   createdAt: '2025-01-01',
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
 };

@@ -1,9 +1,10 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { Completion, Habit, HabitGroup } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
+import { useDragDropContext } from '../hooks/useDragDropContext';
 import { getCompletionsInPeriod } from '../utils/habits';
 import styles from './GroupCard.module.css';
 import HabitCard from './HabitCard';
@@ -14,13 +15,24 @@ export default function GroupCard({
   group,
   habits,
   completionsByHabitId,
+  isGroupTarget,
 }: {
   group: HabitGroup;
   habits: Habit[];
   completionsByHabitId: Map<string, Completion[]>;
+  isGroupTarget?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { completions, displayDate } = useHabitContext();
+  const { registerCard, groupTargetId } = useDragDropContext();
+
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>(`[data-group-card="${group.id}"]`);
+    if (!el) return;
+    return registerCard(el, { type: 'group', groupId: group.id });
+  }, [group.id, registerCard]);
+
+  const sortedHabits = [...habits].sort((a, b) => a.sortOrder - b.sortOrder);
 
   const totalTarget = habits.reduce((sum, h) => sum + h.frequency.times, 0);
   const totalCompleted = habits.reduce(
@@ -31,9 +43,14 @@ export default function GroupCard({
   const allDone = totalTarget > 0 && totalCompleted >= totalTarget;
 
   return (
-    <div className={styles.groupCard}>
+    <div
+      className={`${styles.groupCard} ${isGroupTarget || groupTargetId === group.id ? styles.groupTarget : ''}`}
+      data-group-id={group.id}
+      data-group-card={group.id}
+    >
       <button
         className={styles.groupHeader}
+        data-group-header-id={group.id}
         onClick={() => setExpanded(e => !e)}
         aria-expanded={expanded}
       >
@@ -56,11 +73,11 @@ export default function GroupCard({
 
       {expanded && (
         <div className={styles.groupHabits}>
-          {habits.map((habit, index) => (
+          {sortedHabits.map((habit, index) => (
             <HabitCard
               key={habit.id}
-              index={index}
               habit={habit}
+              index={index}
               completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
               habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
             />

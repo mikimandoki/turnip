@@ -30,6 +30,7 @@ export const HabitSchema = z.object({
   name: z.string().min(1),
   note: z.string().optional(),
   groupId: z.string().optional(),
+  sortOrder: z.number().optional().default(0),
   frequency: FrequencySchema,
   createdAt: z.string(),
   notification: z
