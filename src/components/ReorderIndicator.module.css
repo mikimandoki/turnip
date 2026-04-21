@@ -1,8 +1,50 @@
 .indicator {
+  height: 32px;
+  background: transparent;
+  margin: -12px 0;
+  z-index: 10;
+  position: relative;
+}
+
+.indicator::after {
+  content: '';
+  display: block;
   height: 3px;
   background: var(--color-accent);
   box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 50%, transparent);
-  margin: -2px 0;
-  pointer-events: none;
-  z-index: 10;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.indicator[data-position='first'] {
+  height: 32px;
+  margin: -12px 0;
+}
+
+.indicator[data-position='first']::before {
+  content: '';
+  position: absolute;
+  top: -130px;
+  left: 0;
+  right: 0;
+  height: 130px;
+  background: transparent;
+}
+
+.indicator[data-position='last'] {
+  height: 32px;
+  margin: -12px 0;
+}
+
+.indicator[data-position='last']::before {
+  content: '';
+  position: absolute;
+  bottom: -130px;
+  left: 0;
+  right: 0;
+  height: 130px;
+  background: transparent;
 }

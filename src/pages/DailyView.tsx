@@ -123,17 +123,23 @@ function DailyViewInner() {
 
   const handleReorder = (sourceHabitId: string, targetHabitId: string, insertBefore: boolean) => {
     const sourceHabit = habits.find(h => h.id === sourceHabitId);
-    const targetHabit = habits.find(h => h.id === targetHabitId);
-    if (!sourceHabit || !targetHabit) return;
+    if (!sourceHabit) return;
+
+    let targetIndex: number;
+    if (targetHabitId.startsWith('__gap_')) {
+      targetIndex = Number(targetHabitId.replace('__gap_', ''));
+    } else {
+      const targetIdx = standaloneHabits.findIndex(h => h.id === targetHabitId);
+      if (targetIdx === -1) return;
+      targetIndex = insertBefore ? targetIdx : targetIdx + 1;
+    }
 
     const sourceIdx = standaloneHabits.findIndex(h => h.id === sourceHabitId);
-    const targetIdx = standaloneHabits.findIndex(h => h.id === targetHabitId);
-    if (sourceIdx === -1 || targetIdx === -1) return;
+    if (sourceIdx === -1) return;
 
     const reordered = [...standaloneHabits];
     const [moved] = reordered.splice(sourceIdx, 1);
-    const finalIdx = insertBefore ? targetIdx : targetIdx + 1;
-    const adjustedIdx = sourceIdx < targetIdx ? finalIdx - 1 : finalIdx;
+    const adjustedIdx = sourceIdx < targetIndex ? targetIndex - 1 : targetIndex;
     reordered.splice(adjustedIdx, 0, moved);
 
     const visibleIds = new Set(standaloneHabits.map(h => h.id));
@@ -222,10 +228,12 @@ function DailyViewInner() {
           />
           <UngroupHandler onUngroup={handleUngroup} />
 
-          <div className={styles.habitList}>
+          <div className={styles.habitList} data-drop-zone='standalone'>
             {standaloneHabits.map((habit, index) => (
               <>
-                {reorderInsertIndex === index && <ReorderIndicator insertBefore={true} />}
+                {reorderInsertIndex === index && (
+                  <ReorderIndicator index={index} isLast={index === standaloneHabits.length} />
+                )}
                 <HabitCard
                   key={habit.id}
                   index={index}
@@ -236,7 +244,7 @@ function DailyViewInner() {
               </>
             ))}
             {reorderInsertIndex === standaloneHabits.length && (
-              <ReorderIndicator insertBefore={true} />
+              <ReorderIndicator index={standaloneHabits.length} isLast />
             )}
           </div>
 

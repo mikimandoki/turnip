@@ -13,6 +13,13 @@ import {
   type UngroupHandler,
 } from './useDragDropContext';
 
+interface CardElement extends HTMLElement {
+  dataset: {
+    habitIndex?: string;
+    habitId?: string;
+  };
+}
+
 export type { DragSourceData, DropHandler, DropInfo, UngroupHandler };
 
 export interface DropInfoWithPosition extends DropInfo {
@@ -56,25 +63,32 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
           if (!innermost) {
             setGroupTargetId(null);
             setGroupCreateTargetId(null);
-            // Keep the last reorderInsertIndex when between cards
+            setReorderInsertIndex(null);
             return;
           }
 
           const innermostData = innermost.data as DragSourceData;
           if (innermostData.type === 'habit') {
-            const rect = innermost.element.getBoundingClientRect();
-            const cursorY = location.current.input.clientY;
-            const relativeY = (cursorY - rect.top) / rect.height;
-            const dropType: 'between' | 'on-top' =
-              relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
-
-            if (dropType === 'on-top') {
-              setGroupCreateTargetId(innermostData.habitId);
-              setReorderInsertIndex(null);
-            } else {
+            const habitId = innermostData.habitId;
+            if (habitId?.startsWith('__gap_')) {
+              const gapIndex = Number(habitId.replace('__gap_', ''));
               setGroupCreateTargetId(null);
-              const habitIndex = Number((innermost.element as HTMLElement).dataset.habitIndex);
-              setReorderInsertIndex(relativeY < 0.5 ? habitIndex : habitIndex + 1);
+              setReorderInsertIndex(gapIndex);
+            } else {
+              const rect = innermost.element.getBoundingClientRect();
+              const cursorY = location.current.input.clientY;
+              const relativeY = (cursorY - rect.top) / rect.height;
+              const dropType: 'between' | 'on-top' =
+                relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
+
+              if (dropType === 'on-top') {
+                setGroupCreateTargetId(habitId);
+                setReorderInsertIndex(null);
+              } else {
+                setGroupCreateTargetId(null);
+                const habitIndex = Number((innermost.element as CardElement).dataset.habitIndex);
+                setReorderInsertIndex(relativeY < 0.5 ? habitIndex : habitIndex + 1);
+              }
             }
           } else if (innermostData.type === 'group') {
             setGroupCreateTargetId(null);
@@ -93,23 +107,45 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
 
           if (innermost) {
             const innermostData = innermost.data as DragSourceData;
-            const rect = innermost.element.getBoundingClientRect();
-            const cursorY = location.current.input.clientY;
-            const relativeY = (cursorY - rect.top) / rect.height;
 
-            const dropType: 'between' | 'on-top' =
-              relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
-            const insertBefore = relativeY < 0.5;
+            if (innermostData.type === 'habit' && innermostData.habitId?.startsWith('__gap_')) {
+              const info: DropInfoWithPosition = {
+                sourceData: dragDataRef.current!,
+                targetData: innermostData,
+                targetElement: innermost.element as HTMLElement,
+                isOverGroup: false,
+                dropType: 'between',
+                insertBefore: true,
+              };
+              pendingDropRef.current = info;
+            } else if (innermostData.type === 'habit') {
+              const rect = innermost.element.getBoundingClientRect();
+              const cursorY = location.current.input.clientY;
+              const relativeY = (cursorY - rect.top) / rect.height;
 
-            const info: DropInfoWithPosition = {
-              sourceData: dragDataRef.current!,
-              targetData: innermostData,
-              targetElement: innermost.element as HTMLElement,
-              isOverGroup: innermostData.type === 'group',
-              dropType,
-              insertBefore: dropType === 'between' ? insertBefore : undefined,
-            };
-            pendingDropRef.current = info;
+              const dropType: 'between' | 'on-top' =
+                relativeY > 0.25 && relativeY < 0.75 ? 'on-top' : 'between';
+              const insertBefore = relativeY < 0.5;
+
+              const info: DropInfoWithPosition = {
+                sourceData: dragDataRef.current!,
+                targetData: innermostData,
+                targetElement: innermost.element as HTMLElement,
+                isOverGroup: false,
+                dropType,
+                insertBefore: dropType === 'between' ? insertBefore : undefined,
+              };
+              pendingDropRef.current = info;
+            } else if (innermostData.type === 'group') {
+              const info: DropInfoWithPosition = {
+                sourceData: dragDataRef.current!,
+                targetData: innermostData,
+                targetElement: innermost.element as HTMLElement,
+                isOverGroup: true,
+                dropType: 'between',
+              };
+              pendingDropRef.current = info;
+            }
           }
 
           const handler = dropHandlerRef.current;
@@ -142,6 +178,9 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
         getData: () => data,
         canDrop: ({ source }) => {
           const d = source.data as DragSourceData;
+          if (data.type === 'habit' && data.habitId?.startsWith('__gap_')) {
+            return d.type === 'habit' && !d.habitId?.startsWith('__gap_');
+          }
           if (d.type === 'habit' && data.type === 'habit') {
             return d.habitId !== data.habitId;
           }
