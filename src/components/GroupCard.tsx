@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 import type { Completion, Habit, HabitGroup } from '../types';
 
@@ -8,6 +8,7 @@ import { useDragDropContext } from '../hooks/useDragDropContext';
 import { getCompletionsInPeriod } from '../utils/habits';
 import styles from './GroupCard.module.css';
 import HabitCard from './HabitCard';
+import indicatorStyles from './ReorderIndicator.module.css';
 
 const EMPTY_COMPLETIONS: Completion[] = [];
 
@@ -16,15 +17,18 @@ export default function GroupCard({
   habits,
   completionsByHabitId,
   isGroupTarget,
+  index,
 }: {
   group: HabitGroup;
   habits: Habit[];
   completionsByHabitId: Map<string, Completion[]>;
   isGroupTarget?: boolean;
+  index?: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const { completions, displayDate } = useHabitContext();
-  const { registerCard, groupTargetId } = useDragDropContext();
+  const { registerCard, groupTargetId, groupReorderGroupId, groupReorderIndex, dragState } =
+    useDragDropContext();
 
   useEffect(() => {
     const el = document.querySelector<HTMLElement>(`[data-group-card="${group.id}"]`);
@@ -42,11 +46,16 @@ export default function GroupCard({
   const progressPercent = totalTarget > 0 ? Math.min(100, (totalCompleted / totalTarget) * 100) : 0;
   const allDone = totalTarget > 0 && totalCompleted >= totalTarget;
 
+  const isGroupReorderActive =
+    dragState.isActive &&
+    dragState.source?.type === 'habit' &&
+    dragState.source.groupId === group.id;
   return (
     <div
       className={`${styles.groupCard} ${isGroupTarget || groupTargetId === group.id ? styles.groupTarget : ''}`}
       data-group-id={group.id}
       data-group-card={group.id}
+      data-habit-index={index}
     >
       <button
         className={styles.groupHeader}
@@ -73,15 +82,24 @@ export default function GroupCard({
 
       {expanded && (
         <div className={styles.groupHabits}>
-          {sortedHabits.map((habit, index) => (
-            <HabitCard
-              key={habit.id}
-              habit={habit}
-              index={index}
-              completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
-              habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
-            />
+          {sortedHabits.map((habit, idx) => (
+            <Fragment key={habit.id}>
+              {isGroupReorderActive &&
+                groupReorderGroupId === group.id &&
+                groupReorderIndex === idx &&
+                dragState.isActive && <div className={indicatorStyles.groupLine} />}
+              <HabitCard
+                habit={habit}
+                index={idx}
+                completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
+                habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
+              />
+            </Fragment>
           ))}
+          {isGroupReorderActive &&
+            groupReorderGroupId === group.id &&
+            (groupReorderIndex === sortedHabits.length || groupReorderIndex === 999) &&
+            dragState.isActive && <div className={indicatorStyles.groupLine} />}
         </div>
       )}
     </div>

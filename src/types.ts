@@ -21,6 +21,7 @@ export const HabitGroupSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
   createdAt: z.string(),
+  sortOrder: z.number().optional().default(0),
 });
 
 export type HabitGroup = z.infer<typeof HabitGroupSchema>;

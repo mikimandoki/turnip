@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
 import { useToast } from '../components/useToast';
+import { HabitContext, type SectionItem } from '../contexts/useHabitContext';
 import { useBackButton } from '../hooks/useBackButton';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useNotificationPermission } from '../hooks/useNotificationPermission';
@@ -48,7 +49,6 @@ import {
   syncOnSignIn,
 } from '../utils/syncService';
 import { isNative } from '../utils/utils';
-import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -277,7 +277,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 4. Fetch groups
       const groupResult = await db.query(
-        `SELECT id, name, createdAt FROM habit_groups ORDER BY createdAt ASC;`
+        `SELECT id, name, createdAt, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
       );
       const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
 
@@ -505,37 +505,178 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function ungroupAndReorder(habitId: string, targetGapId: string, insertBefore: boolean): void {
-    // 1. Read current state snapshot synchronously
-    const currentHabits = habits; // from useState closure
+  async function reorderItems(
+    items: SectionItem[],
+    sourceId: string,
+    targetGapIndex: number
+  ): Promise<void> {
+    const sourceIdx = items.findIndex(item =>
+      item.type === 'habit' ? item.habit.id === sourceId : item.group.id === sourceId
+    );
+    if (sourceIdx === -1) return;
 
+    const reordered = [...items];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    const adjustedTarget = sourceIdx < targetGapIndex ? targetGapIndex - 1 : targetGapIndex;
+    reordered.splice(adjustedTarget, 0, moved);
+
+    const habitUpdates: { id: string; sortOrder: number }[] = [];
+    const groupUpdates: { id: string; sortOrder: number }[] = [];
+    for (let i = 0; i < reordered.length; i++) {
+      const item = reordered[i];
+      if (item.type === 'habit') {
+        habitUpdates.push({ id: item.habit.id, sortOrder: i });
+      } else {
+        groupUpdates.push({ id: item.group.id, sortOrder: i });
+      }
+    }
+
+    setHabits(prev =>
+      prev.map(h => {
+        const update = habitUpdates.find(u => u.id === h.id);
+        return update ? { ...h, sortOrder: update.sortOrder } : h;
+      })
+    );
+    setGroups(prev =>
+      prev.map(g => {
+        const update = groupUpdates.find(u => u.id === g.id);
+        return update ? { ...g, sortOrder: update.sortOrder } : g;
+      })
+    );
+
+    try {
+      const db = await getDB();
+      const now = new Date().toISOString();
+      const statements: { statement: string; values: unknown[] }[] = [];
+
+      for (const u of habitUpdates) {
+        statements.push({
+          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+          values: [u.sortOrder, now, u.id],
+        });
+      }
+      for (const u of groupUpdates) {
+        statements.push({
+          statement: `UPDATE habit_groups SET sortOrder = ? WHERE id = ?`,
+          values: [u.sortOrder, u.id],
+        });
+      }
+
+      if (statements.length > 0) {
+        await db.executeSet(statements, true);
+        await syncDB();
+      }
+      void hapticsLight();
+    } catch (e) {
+      logger.error('db', 'Reorder items failed', e);
+      const fresh = await loadDataFromDB();
+      setHabits(fresh.habits);
+      setGroups(fresh.groups);
+    }
+  }
+
+  function reorderWithinGroup(habitId: string, targetHabitId: string, insertBefore: boolean): void {
+    const currentHabits = habits;
     const habit = currentHabits.find(h => h.id === habitId);
     const groupId = habit?.groupId;
     if (!groupId) return;
 
-    const ungroupedHabit = { ...habit, groupId: undefined };
+    const groupHabits = currentHabits
+      .filter(h => h.groupId === groupId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    const sourceIdx = groupHabits.findIndex(h => h.id === habitId);
+    if (sourceIdx === -1) return;
+
+    let targetIdx = groupHabits.findIndex(h => h.id === targetHabitId);
+    if (targetIdx === -1) return;
+    if (!insertBefore) targetIdx += 1;
+
+    const reordered = [...groupHabits];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    const adjustedIdx = sourceIdx < targetIdx ? targetIdx - 1 : targetIdx;
+    reordered.splice(adjustedIdx, 0, moved);
+
+    const updatedHabits = currentHabits.map(h => {
+      if (h.groupId === groupId) {
+        const update = reordered.find(r => r.id === h.id);
+        if (update) return { ...h, sortOrder: reordered.indexOf(update) };
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+    void hapticsMedium();
+
+    setTimeout(() => {
+      void (async () => {
+        const db = await getDB();
+        const now = new Date().toISOString();
+        const statements = reordered.map((h, i) => ({
+          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+          values: [i, now, h.id],
+        }));
+        await db.executeSet(statements, true);
+        await syncDB();
+      })().catch(e => logger.error('db', 'reorderWithinGroup failed', e));
+    }, 0);
+  }
+
+  function ungroupAndReorder(habitId: string, targetGapId: string, insertBefore: boolean): void {
+    const currentHabits = habits;
+    const habit = currentHabits.find(h => h.id === habitId);
+    const groupId = habit?.groupId;
+    if (!groupId) return;
+
     const standaloneHabits = currentHabits
       .filter(h => !h.groupId)
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
+    const currentGroups = groups;
+    const visibleHabits = currentHabits.filter(h => h.createdAt <= toDateString(displayDate));
+
+    const items: SectionItem[] = [];
+    for (const h of standaloneHabits) {
+      items.push({ type: 'habit' as const, habit: h });
+    }
+    for (const g of currentGroups) {
+      if (visibleHabits.some(h => h.groupId === g.id)) {
+        items.push({ type: 'group' as const, group: g });
+      }
+    }
+    items.sort((a, b) => {
+      const aOrder = a.type === 'habit' ? (a.habit.sortOrder ?? 0) : (a.group.sortOrder ?? 0);
+      const bOrder = b.type === 'habit' ? (b.habit.sortOrder ?? 0) : (b.group.sortOrder ?? 0);
+      return aOrder - bOrder;
+    });
+
     let targetIndex = Number(targetGapId.replace('__gap_', ''));
     if (!insertBefore) targetIndex += 1;
+    const clampedTarget = Math.max(0, Math.min(targetIndex, items.length));
 
-    const sourceIdx = standaloneHabits.findIndex(h => h.id === habitId);
-    const adjustedSourceIdx = sourceIdx === -1 ? standaloneHabits.length : sourceIdx;
+    const reordered = [...items];
+    reordered.splice(clampedTarget, 0, {
+      type: 'habit' as const,
+      habit: { ...habit, groupId: undefined },
+    });
 
-    const reordered = [...standaloneHabits];
-    if (sourceIdx !== -1) reordered.splice(sourceIdx, 1);
-    const adjustedIdx = adjustedSourceIdx < targetIndex ? targetIndex - 1 : targetIndex;
-    reordered.splice(adjustedIdx, 0, ungroupedHabit);
+    const habitUpdates: { id: string; sortOrder: number }[] = [];
+    const groupUpdates: { id: string; sortOrder: number }[] = [];
+    for (let i = 0; i < reordered.length; i++) {
+      const item = reordered[i];
+      if (item.type === 'habit') {
+        habitUpdates.push({ id: item.habit.id, sortOrder: i });
+      } else {
+        groupUpdates.push({ id: item.group.id, sortOrder: i });
+      }
+    }
 
-    const newSortOrders = reordered.map((h, i) => ({ id: h.id, sortOrder: i }));
-    const updated = currentHabits.map(h => {
-      const newOrder = newSortOrders.find(n => n.id === h.id);
-      if (newOrder) {
+    const updatedHabits = currentHabits.map(h => {
+      const update = habitUpdates.find(u => u.id === h.id);
+      if (update) {
         return {
           ...h,
-          sortOrder: newOrder.sortOrder,
+          sortOrder: update.sortOrder,
           groupId: h.id === habitId ? undefined : h.groupId,
         };
       }
@@ -545,8 +686,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const remainingInGroup = currentHabits.filter(h => h.groupId === groupId && h.id !== habitId);
     const deleteGroup = remainingInGroup.length === 0;
 
-    // 2. All side effects outside the updater
-    setHabits(updated);
+    setHabits(updatedHabits);
     if (deleteGroup) setGroups(prev => prev.filter(g => g.id !== groupId));
     void hapticsMedium();
 
@@ -556,21 +696,27 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const now = new Date().toISOString();
         const statements: { statement: string; values: unknown[] }[] = [];
 
+        // Ungroup the habit and update its sortOrder
+        const habitUpdate = habitUpdates.find(u => u.id === habitId);
         statements.push({
           statement: `UPDATE habits SET groupId = NULL, sortOrder = ?, updated_at = ? WHERE id = ?`,
-          values: [newSortOrders.find(n => n.id === habitId)?.sortOrder ?? 0, now, habitId],
+          values: [habitUpdate?.sortOrder ?? 0, now, habitId],
         });
 
-        for (const h of updated) {
-          if (h.id !== habitId) {
-            const so = newSortOrders.find(n => n.id === h.id);
-            if (so) {
-              statements.push({
-                statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
-                values: [so.sortOrder, now, h.id],
-              });
-            }
+        // Update sortOrders for all other standalone habits
+        for (const u of habitUpdates) {
+          if (u.id !== habitId) {
+            statements.push({
+              statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+              values: [u.sortOrder, now, u.id],
+            });
           }
+        }
+        for (const u of groupUpdates) {
+          statements.push({
+            statement: `UPDATE habit_groups SET sortOrder = ? WHERE id = ?`,
+            values: [u.sortOrder, u.id],
+          });
         }
 
         if (deleteGroup) {
@@ -589,11 +735,16 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   async function createGroup(name: string, habitIdA: string, habitIdB: string): Promise<void> {
     const db = await getDB();
     const now = new Date().toISOString();
-    const group: HabitGroup = { id: nanoid(), name, createdAt: now };
+    const sortResult = await db.query(
+      `SELECT COALESCE(MAX(sortOrder), -1) as maxSort FROM habit_groups`
+    );
+    const maxSort =
+      (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
+    const group: HabitGroup = { id: nanoid(), name, createdAt: now, sortOrder: maxSort + 1 };
     await db.executeSet([
       {
-        statement: `INSERT INTO habit_groups (id, name, createdAt) VALUES (?, ?, ?)`,
-        values: [group.id, group.name, group.createdAt],
+        statement: `INSERT INTO habit_groups (id, name, createdAt, sortOrder) VALUES (?, ?, ?, ?)`,
+        values: [group.id, group.name, group.createdAt, group.sortOrder],
       },
       {
         statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
@@ -809,6 +960,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadDemoData,
         applyImport,
         reorderHabits,
+        reorderItems,
+        reorderWithinGroup,
         ungroupAndReorder,
         createGroup,
         addToGroup,

@@ -2,19 +2,19 @@ import { ChevronLeft, ChevronRight, Moon, Settings, Sun } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import type { Completion } from '../types';
+import type { Completion, Habit } from '../types';
 
 import GroupCard from '../components/GroupCard';
 import GroupDialog from '../components/GroupDialog';
 import HabitCard from '../components/HabitCard';
 import ReorderIndicator from '../components/ReorderIndicator';
-import { useHabitContext } from '../contexts/useHabitContext';
+import { type SectionItem, useHabitContext } from '../contexts/useHabitContext';
 import DevButtons from '../dev/DevButtons';
 import { DragDropProvider } from '../hooks/useDragDrop';
 import { type DropInfo, useDragDropContext } from '../hooks/useDragDropContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { isDevUI } from '../utils/dev';
-import { calculateReorder, getCompletionsInPeriod } from '../utils/habits';
+import { getCompletionsInPeriod } from '../utils/habits';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
 
@@ -30,7 +30,8 @@ function DailyViewInner() {
     groups,
     displayDate,
     hasOnboarded,
-    reorderHabits,
+    reorderItems,
+    reorderWithinGroup,
     createGroup,
     addToGroup,
     removeFromGroup,
@@ -67,20 +68,6 @@ function DailyViewInner() {
 
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  const handleReorder = useCallback(
-    (sourceHabitId: string, targetHabitId: string, insertBefore: boolean) => {
-      const final = calculateReorder({
-        standaloneHabits,
-        habits,
-        sourceHabitId,
-        targetHabitId,
-        insertBefore,
-      });
-      void reorderHabits(final);
-    },
-    [habits, reorderHabits, standaloneHabits]
-  );
-
   const handleAddToGroup = useCallback(
     (habitId: string, groupId: string) => {
       void addToGroup(habitId, groupId);
@@ -104,42 +91,128 @@ function DailyViewInner() {
     [groups, visibleHabits]
   );
 
+  const sections = useMemo(() => {
+    const items: SectionItem[] = [];
+    for (const h of standaloneHabits) {
+      items.push({ type: 'habit', habit: h });
+    }
+    for (const g of visibleGroups) {
+      items.push({ type: 'group', group: g });
+    }
+    items.sort((a, b) => {
+      const aOrder = a.type === 'habit' ? (a.habit.sortOrder ?? 0) : (a.group.sortOrder ?? 0);
+      const bOrder = b.type === 'habit' ? (b.habit.sortOrder ?? 0) : (b.group.sortOrder ?? 0);
+      return aOrder - bOrder;
+    });
+    return items;
+  }, [standaloneHabits, visibleGroups]);
+
+  const groupHabitsMap = useMemo(() => {
+    const map = new Map<string, Habit[]>();
+    for (const g of visibleGroups) {
+      map.set(
+        g.id,
+        visibleHabits.filter(h => h.groupId === g.id)
+      );
+    }
+    return map;
+  }, [visibleGroups, visibleHabits]);
+
   useEffect(() => {
     const handler = (info: DropInfo) => {
       const sourceData = info.sourceData;
+      const targetData = info.targetData as { habitId?: string; groupId?: string };
 
       if (info.isOverGroup) {
         if (sourceData.type !== 'habit') return;
+        if (sourceData.groupId === targetData.groupId) {
+          return;
+        }
         if (sourceData.groupId) {
           handleUngroup(sourceData.habitId);
         } else {
-          const targetGroupId = (info.targetData as { groupId: string }).groupId;
-          handleAddToGroup(sourceData.habitId, targetGroupId);
+          handleAddToGroup(sourceData.habitId, targetData.groupId!);
         }
         return;
       }
 
-      if (sourceData.type !== 'habit' || info.targetData.type !== 'habit') return;
-
-      const targetData = info.targetData as { habitId?: string; groupId?: string };
       const isGapTarget = targetData.habitId?.startsWith('__gap_');
 
-      if (sourceData.groupId) {
-        const sameGroup = sourceData.groupId === targetData.groupId;
-        if (isGapTarget) {
-          void ungroupAndReorder(
-            sourceData.habitId,
-            targetData.habitId!,
-            info.insertBefore ?? true
-          );
-        } else if (!sameGroup) {
-          handleUngroup(sourceData.habitId);
+      if (isGapTarget) {
+        const gapIndex = Number(targetData.habitId!.replace('__gap_', ''));
+        if (sourceData.type === 'group') {
+          void reorderItems(sections, sourceData.groupId, gapIndex);
+        } else if (sourceData.type === 'habit') {
+          if (sourceData.groupId) {
+            void ungroupAndReorder(
+              sourceData.habitId,
+              targetData.habitId!,
+              info.insertBefore ?? true
+            );
+          } else {
+            void reorderItems(sections, sourceData.habitId, gapIndex);
+          }
         }
         return;
       }
 
-      if (isGapTarget) {
-        handleReorder(sourceData.habitId, targetData.habitId!, info.insertBefore ?? true);
+      // Source is group dropped on non-gap item
+      if (sourceData.type === 'group') {
+        const targetIndex = sections.findIndex(s => {
+          if (targetData.habitId) return s.type === 'habit' && s.habit.id === targetData.habitId;
+          if (targetData.groupId) return s.type === 'group' && s.group.id === targetData.groupId;
+          return false;
+        });
+        if (targetIndex === -1) return;
+        const gapIndex = targetIndex + (info.insertBefore ? 0 : 1);
+        void reorderItems(sections, sourceData.groupId, gapIndex);
+        return;
+      }
+
+      // Source is habit
+      if (sourceData.type !== 'habit') return;
+
+      if (sourceData.groupId) {
+        if (
+          sourceData.groupId === targetData.groupId &&
+          info.dropType === 'between' &&
+          info.targetData.type === 'group'
+        ) {
+          const targetIndex = sections.findIndex(
+            s => s.type === 'group' && s.group.id === targetData.groupId
+          );
+          if (targetIndex !== -1) {
+            const gapIndex = targetIndex + (info.insertBefore ? 0 : 1);
+            void ungroupAndReorder(sourceData.habitId, `__gap_${gapIndex}`, true);
+          }
+        } else if (targetData.groupId && sourceData.groupId === targetData.groupId) {
+          if (info.dropType === 'between') {
+            reorderWithinGroup(sourceData.habitId, targetData.habitId!, info.insertBefore ?? true);
+          }
+        } else if (targetData.groupId && sourceData.groupId !== targetData.groupId) {
+          handleAddToGroup(sourceData.habitId, targetData.groupId);
+        } else if (!targetData.groupId) {
+          const targetIndex = sections.findIndex(
+            s => s.type === 'habit' && s.habit.id === targetData.habitId
+          );
+          if (targetIndex !== -1) {
+            const gapIndex = targetIndex + (info.insertBefore ? 0 : 1);
+            void ungroupAndReorder(sourceData.habitId, `__gap_${gapIndex}`, true);
+          } else {
+            handleUngroup(sourceData.habitId);
+          }
+        }
+        return;
+      }
+
+      if (targetData.groupId && info.dropType === 'between') {
+        const targetIndex = sections.findIndex(
+          s => s.type === 'group' && s.group.id === targetData.groupId
+        );
+        if (targetIndex !== -1) {
+          const gapIndex = targetIndex + (info.insertBefore ? 0 : 1);
+          void reorderItems(sections, sourceData.habitId, gapIndex);
+        }
         return;
       }
 
@@ -151,7 +224,12 @@ function DailyViewInner() {
       if (info.dropType === 'on-top') {
         handleCreateGroup(sourceData.habitId, targetData.habitId!);
       } else {
-        handleReorder(sourceData.habitId, targetData.habitId!, info.insertBefore ?? true);
+        const targetIndex = sections.findIndex(
+          s => s.type === 'habit' && s.habit.id === targetData.habitId
+        );
+        if (targetIndex === -1) return;
+        const gapIndex = targetIndex + (info.insertBefore ? 0 : 1);
+        void reorderItems(sections, sourceData.habitId, gapIndex);
       }
     };
     setDropHandler(handler);
@@ -159,9 +237,11 @@ function DailyViewInner() {
     setDropHandler,
     handleAddToGroup,
     handleCreateGroup,
-    handleReorder,
     handleUngroup,
     ungroupAndReorder,
+    reorderItems,
+    reorderWithinGroup,
+    sections,
   ]);
 
   useEffect(() => {
@@ -224,32 +304,30 @@ function DailyViewInner() {
       {habits.length > 0 && (
         <>
           <div className={styles.habitList}>
-            {reorderInsertIndex === 0 && <ReorderIndicator index={0} />}
-            {standaloneHabits.map((habit, index) => (
-              <Fragment key={habit.id}>
-                <HabitCard
-                  index={index}
-                  habit={habit}
-                  completedCount={getCompletionsInPeriod(habit, completions, displayDate)}
-                  habitCompletions={completionsByHabitId.get(habit.id) ?? EMPTY_COMPLETIONS}
-                />
-                {reorderInsertIndex === index + 1 && <ReorderIndicator index={index + 1} />}
+            {sections.map((item, index) => (
+              <Fragment key={item.type === 'habit' ? item.habit.id : item.group.id}>
+                {reorderInsertIndex === index && <ReorderIndicator index={index} />}
+                {item.type === 'habit' ? (
+                  <HabitCard
+                    index={index}
+                    habit={item.habit}
+                    completedCount={getCompletionsInPeriod(item.habit, completions, displayDate)}
+                    habitCompletions={completionsByHabitId.get(item.habit.id) ?? EMPTY_COMPLETIONS}
+                  />
+                ) : (
+                  <GroupCard
+                    group={item.group}
+                    index={index}
+                    habits={groupHabitsMap.get(item.group.id) ?? []}
+                    completionsByHabitId={completionsByHabitId}
+                    isGroupTarget={item.group.id === groupTargetId}
+                  />
+                )}
               </Fragment>
             ))}
-            {visibleGroups.map((group, groupIndex) => {
-              const gapIndex = standaloneHabits.length + groupIndex + 1;
-              return (
-                <Fragment key={group.id}>
-                  <GroupCard
-                    group={group}
-                    habits={visibleHabits.filter(h => h.groupId === group.id)}
-                    completionsByHabitId={completionsByHabitId}
-                    isGroupTarget={group.id === groupTargetId}
-                  />
-                  {reorderInsertIndex === gapIndex + 1 && <ReorderIndicator index={gapIndex + 1} />}
-                </Fragment>
-              );
-            })}
+            {reorderInsertIndex === sections.length && (
+              <ReorderIndicator index={sections.length} isLast />
+            )}
           </div>
         </>
       )}

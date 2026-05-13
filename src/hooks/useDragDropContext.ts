@@ -26,6 +26,8 @@ interface DragDropContextValue {
   groupTargetId: string | null;
   groupCreateTargetId: string | null;
   reorderInsertIndex: number | null;
+  groupReorderGroupId: string | null;
+  groupReorderIndex: number | null;
   registerCard: (element: HTMLElement, data: DragSourceData) => () => void;
   setDropHandler: (handler: DropHandler | null) => void;
   setUngroupHandler: (handler: UngroupHandler | null) => void;

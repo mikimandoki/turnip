@@ -2,6 +2,8 @@ import { createContext, useContext } from 'react';
 
 import type { Completion, Habit, HabitGroup } from '../types';
 
+export type SectionItem = { type: 'group'; group: HabitGroup } | { type: 'habit'; habit: Habit };
+
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
@@ -25,6 +27,8 @@ export interface HabitContextType {
   loadDemoData: () => Promise<void>;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
   reorderHabits: (habits: Habit[]) => Promise<void>;
+  reorderItems: (items: SectionItem[], sourceId: string, targetGapIndex: number) => Promise<void>;
+  reorderWithinGroup: (habitId: string, targetHabitId: string, insertBefore: boolean) => void;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;
