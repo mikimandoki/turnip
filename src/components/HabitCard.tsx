@@ -1,12 +1,12 @@
-import { useSortable } from '@dnd-kit/react/sortable';
 import clsx from 'clsx';
 import { BellOff, BellRing, Check, Minus, Plus } from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import type { AriaLabel, Completion, Habit } from '../types';
 
 import { useHabitContext } from '../contexts/useHabitContext';
+import { useDragDropContext } from '../hooks/useDragDropContext';
 import { startDatePeriod, toDateString } from '../utils/date';
 import { calculateHabitStats, describeFrequency, parseHabitEmoji } from '../utils/habits';
 import { isNative, simpleHash } from '../utils/utils';
@@ -42,6 +42,14 @@ function HabitCard({
   const [showTick, setShowTick] = useState(false);
   const navigate = useNavigate();
   const { displayDate, isFutureDate, osNotificationsGranted, updateCompletion } = useHabitContext();
+  const { dragState, registerCard, groupCreateTargetId } = useDragDropContext();
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    return registerCard(el, { type: 'habit', habitId: habit.id, groupId: habit.groupId });
+  }, [habit.id, habit.groupId, registerCard]);
 
   const handleClick = useCallback(() => void navigate(`/habit/${habit.id}`), [habit.id, navigate]);
   const handleLog = useCallback(
@@ -52,7 +60,8 @@ function HabitCard({
   const loggedToday = habitCompletions.some(
     c => c.date === toDateString(displayDate) && c.count > 0
   );
-  const { ref, isDragging } = useSortable({ id: habit.id, index });
+  const isDragging = dragState.source?.type === 'habit' && dragState.source.habitId === habit.id;
+  const isGroupCreateTarget = groupCreateTargetId === habit.id;
   const habitStats = useMemo(
     () => calculateHabitStats(habit, habitCompletions, displayDate),
     [habit, habitCompletions, displayDate]
@@ -71,11 +80,19 @@ function HabitCard({
   };
   return (
     <div
-      ref={ref}
+      ref={cardRef}
       role='button'
       onClick={handleClick}
-      className={clsx('card', isDragging && styles.dragging, loggedToday && styles.loggedToday)}
+      className={clsx(
+        'card',
+        isDragging && styles.dragging,
+        loggedToday && styles.loggedToday,
+        isGroupCreateTarget && styles.groupTarget
+      )}
       aria-label={cleanName as AriaLabel}
+      data-testid='habit-card'
+      data-habit-id={habit.id}
+      data-habit-index={String(index)}
     >
       <div className={styles.habitCardContent}>
         <HabitEmoji emoji={emoji} />

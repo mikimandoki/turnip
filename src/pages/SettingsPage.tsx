@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const {
     habits,
     completions,
+    groups,
     applyImport,
     darkMode,
     toggleDarkMode,
@@ -291,7 +292,7 @@ export default function SettingsPage() {
                   className='btn-base btn-ghost'
                   disabled={habitCount === 0}
                   onClick={() => {
-                    void exportData(habits, completions).then(result => {
+                    void exportData(habits, completions, groups).then(result => {
                       if (result.error) setStatus({ message: result.error, state: 'error' });
                     });
                   }}

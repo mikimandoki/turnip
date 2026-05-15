@@ -1,8 +1,10 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
+import { nanoid } from 'nanoid';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
 import { useToast } from '../components/useToast';
+import { HabitContext, type SectionItem } from '../contexts/useHabitContext';
 import { useBackButton } from '../hooks/useBackButton';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useNotificationPermission } from '../hooks/useNotificationPermission';
@@ -10,6 +12,8 @@ import {
   type Completion,
   CompletionSchema,
   type Habit,
+  type HabitGroup,
+  HabitGroupSchema,
   type HabitRowFromDB,
   HabitSchema,
 } from '../types';
@@ -40,20 +44,23 @@ import {
   deleteSupabaseAccount,
   pullAll,
   pushAllCompletions,
+  pushAllGroups,
   pushAllHabits,
   pushCompletion,
+  pushGroup,
   pushHabit,
   softDeleteAllHabits,
   softDeleteCompletion,
+  softDeleteGroup,
   softDeleteHabit,
   syncOnSignIn,
 } from '../utils/syncService';
 import { isNative } from '../utils/utils';
-import { HabitContext } from './useHabitContext';
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
+  const [groups, setGroups] = useState<HabitGroup[]>([]);
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
@@ -217,6 +224,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 3. Reload state from DB
       const updatedData = await loadDataFromDB();
       setHabits(updatedData.habits);
+      setGroups(updatedData.groups);
 
       // 4. Push to Supabase (fire-and-forget)
       const sortRes = await db.query(`SELECT sortOrder FROM habits WHERE id = ?`, [habit.id]);
@@ -238,7 +246,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Fetch habits (notif settings are columns on the habit row now)
       const habitResult = await db.query(
-        `SELECT id, name, note, createdAt, times, periodLength, periodUnit, sortOrder,
+        `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
                 notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
                 notif_customMessage, notif_intervalN, notif_intervalUnit
          FROM habits
@@ -250,8 +258,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         id: row.id,
         name: row.name,
         note: row.note ?? undefined,
-        createdAt: row.createdAt,
+        groupId: row.groupId ?? undefined,
         sortOrder: row.sortOrder,
+        createdAt: row.createdAt,
         frequency: {
           times: row.times,
           periodLength: row.periodLength,
@@ -277,16 +286,23 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const compResult = await db.query(`SELECT * FROM completions`);
       const completions = compResult.values || [];
 
-      // 4. Final Zod Validation
+      // 4. Fetch groups
+      const groupResult = await db.query(
+        `SELECT id, name, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
+      );
+      const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
+
+      // 5. Final Zod Validation
       return {
         habits: z.array(HabitSchema).parse(habits),
         completions: z.array(CompletionSchema).parse(completions),
+        groups,
       };
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       logger.error('db', 'Database hydration failed', { message: errorMsg });
       showToast('DB Error: ' + errorMsg, 'error');
-      return { habits: [], completions: [] };
+      return { habits: [], completions: [], groups: [] };
     }
   }, [showToast]);
 
@@ -339,6 +355,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           const synced = await loadDataFromDB();
           setHabits(synced.habits);
           setCompletions(synced.completions);
+          setGroups(synced.groups);
         })(),
       ]);
     };
@@ -360,9 +377,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const synced = await loadDataFromDB();
         setHabits(synced.habits);
         setCompletions(synced.completions);
+        setGroups(synced.groups);
       } else {
         setHabits(dbData.habits);
         setCompletions(dbData.completions);
+        setGroups(dbData.groups);
       }
 
       setHasOnboarded(onboarded || dbData.habits.length > 0);
@@ -383,6 +402,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             const synced = await loadDataFromDB();
             setHabits(synced.habits);
             setCompletions(synced.completions);
+            setGroups(synced.groups);
           } catch (e) {
             logger.error('sync', 'syncOnSignIn failed', e);
           } finally {
@@ -497,6 +517,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     const fresh = await loadDataFromDB();
     setHabits(fresh.habits);
     setCompletions(fresh.completions);
+    setGroups(fresh.groups);
     setHasOnboarded(true);
   }
 
@@ -507,18 +528,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       const db = await getDB();
 
-      // 2. Perform all sortOrder updates atomically
+      // 2. Perform all sortOrder updates atomically using executeSet
       const reorderNow = new Date().toISOString();
-      await db.executeSet(
-        newOrderedHabits.map((h, i) => ({
-          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?;`,
-          values: [i, reorderNow, h.id],
-        })),
-        true
-      );
+      const statements = newOrderedHabits.map(h => ({
+        statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+        values: [h.sortOrder ?? 0, reorderNow, h.id],
+      }));
+
+      await db.executeSet(statements, true);
 
       // 3. Persist to IndexedDB (Web only)
       await syncDB();
+
       void pushAllHabits(newOrderedHabits).catch(e =>
         logger.error('sync', 'pushAllHabits failed', e)
       );
@@ -528,6 +549,370 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
     }
+  }
+
+  async function reorderItems(
+    items: SectionItem[],
+    sourceId: string,
+    targetGapIndex: number
+  ): Promise<void> {
+    const sourceIdx = items.findIndex(item =>
+      item.type === 'habit' ? item.habit.id === sourceId : item.group.id === sourceId
+    );
+    if (sourceIdx === -1) return;
+
+    const reordered = [...items];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    const adjustedTarget = sourceIdx < targetGapIndex ? targetGapIndex - 1 : targetGapIndex;
+    reordered.splice(adjustedTarget, 0, moved);
+
+    const habitUpdates: { id: string; sortOrder: number }[] = [];
+    const groupUpdates: { id: string; sortOrder: number }[] = [];
+    for (let i = 0; i < reordered.length; i++) {
+      const item = reordered[i];
+      if (item.type === 'habit') {
+        habitUpdates.push({ id: item.habit.id, sortOrder: i });
+      } else {
+        groupUpdates.push({ id: item.group.id, sortOrder: i });
+      }
+    }
+
+    setHabits(prev =>
+      prev.map(h => {
+        const update = habitUpdates.find(u => u.id === h.id);
+        return update ? { ...h, sortOrder: update.sortOrder } : h;
+      })
+    );
+    setGroups(prev =>
+      prev.map(g => {
+        const update = groupUpdates.find(u => u.id === g.id);
+        return update ? { ...g, sortOrder: update.sortOrder } : g;
+      })
+    );
+
+    try {
+      const db = await getDB();
+      const now = new Date().toISOString();
+      const statements: { statement: string; values: unknown[] }[] = [];
+
+      for (const u of habitUpdates) {
+        statements.push({
+          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+          values: [u.sortOrder, now, u.id],
+        });
+      }
+      for (const u of groupUpdates) {
+        statements.push({
+          statement: `UPDATE habit_groups SET sortOrder = ? WHERE id = ?`,
+          values: [u.sortOrder, u.id],
+        });
+      }
+
+      if (statements.length > 0) {
+        await db.executeSet(statements, true);
+        await syncDB();
+      }
+      void hapticsLight();
+    } catch (e) {
+      logger.error('db', 'Reorder items failed', e);
+      const fresh = await loadDataFromDB();
+      setHabits(fresh.habits);
+      setGroups(fresh.groups);
+    }
+  }
+
+  function reorderWithinGroup(habitId: string, targetHabitId: string, insertBefore: boolean): void {
+    const currentHabits = habits;
+    const habit = currentHabits.find(h => h.id === habitId);
+    const groupId = habit?.groupId;
+    if (!groupId) return;
+
+    const groupHabits = currentHabits
+      .filter(h => h.groupId === groupId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    const sourceIdx = groupHabits.findIndex(h => h.id === habitId);
+    if (sourceIdx === -1) return;
+
+    let targetIdx = groupHabits.findIndex(h => h.id === targetHabitId);
+    if (targetIdx === -1) return;
+    if (!insertBefore) targetIdx += 1;
+
+    const reordered = [...groupHabits];
+    const [moved] = reordered.splice(sourceIdx, 1);
+    const adjustedIdx = sourceIdx < targetIdx ? targetIdx - 1 : targetIdx;
+    reordered.splice(adjustedIdx, 0, moved);
+
+    const updatedHabits = currentHabits.map(h => {
+      if (h.groupId === groupId) {
+        const update = reordered.find(r => r.id === h.id);
+        if (update) return { ...h, sortOrder: reordered.indexOf(update) };
+      }
+      return h;
+    });
+
+    setHabits(updatedHabits);
+    void hapticsMedium();
+
+    setTimeout(() => {
+      void (async () => {
+        const db = await getDB();
+        const now = new Date().toISOString();
+        const statements = reordered.map((h, i) => ({
+          statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+          values: [i, now, h.id],
+        }));
+        await db.executeSet(statements, true);
+        await syncDB();
+      })().catch(e => logger.error('db', 'reorderWithinGroup failed', e));
+    }, 0);
+  }
+
+  async function editGroup(groupId: string, updates: { name: string }): Promise<void> {
+    const db = await getDB();
+    await db.run(`UPDATE habit_groups SET name = ? WHERE id = ?`, [updates.name, groupId]);
+    await syncDB();
+    setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, name: updates.name } : g)));
+    const updatedGroup = groups.find(g => g.id === groupId);
+    if (updatedGroup) {
+      void pushGroup({ ...updatedGroup, name: updates.name }).catch(e =>
+        logger.error('sync', 'pushGroup failed', e)
+      );
+    }
+  }
+
+  async function deleteGroup(groupId: string): Promise<void> {
+    const db = await getDB();
+    await db.executeSet(
+      [
+        {
+          statement: `UPDATE habits SET groupId = NULL, updated_at = ? WHERE groupId = ?`,
+          values: [new Date().toISOString(), groupId],
+        },
+        { statement: `DELETE FROM habit_groups WHERE id = ?`, values: [groupId] },
+      ],
+      true
+    );
+    await syncDB();
+    setHabits(prev => prev.map(h => (h.groupId === groupId ? { ...h, groupId: undefined } : h)));
+    setGroups(prev => prev.filter(g => g.id !== groupId));
+    void softDeleteGroup(groupId).catch(e => logger.error('sync', 'softDeleteGroup failed', e));
+    void hapticsMedium();
+  }
+
+  function ungroupAndReorder(habitId: string, targetGapId: string, insertBefore: boolean): void {
+    const currentHabits = habits;
+    const habit = currentHabits.find(h => h.id === habitId);
+    const groupId = habit?.groupId;
+    if (!groupId) return;
+
+    const standaloneHabits = currentHabits
+      .filter(h => !h.groupId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+    const currentGroups = groups;
+    const visibleHabits = currentHabits.filter(h => h.createdAt <= toDateString(displayDate));
+
+    const items: SectionItem[] = [];
+    for (const h of standaloneHabits) {
+      items.push({ type: 'habit' as const, habit: h });
+    }
+    for (const g of currentGroups) {
+      if (visibleHabits.some(h => h.groupId === g.id)) {
+        items.push({ type: 'group' as const, group: g });
+      }
+    }
+    items.sort((a, b) => {
+      const aOrder = a.type === 'habit' ? (a.habit.sortOrder ?? 0) : (a.group.sortOrder ?? 0);
+      const bOrder = b.type === 'habit' ? (b.habit.sortOrder ?? 0) : (b.group.sortOrder ?? 0);
+      return aOrder - bOrder;
+    });
+
+    let targetIndex = Number(targetGapId.replace('__gap_', ''));
+    if (!insertBefore) targetIndex += 1;
+    const clampedTarget = Math.max(0, Math.min(targetIndex, items.length));
+
+    const reordered = [...items];
+    reordered.splice(clampedTarget, 0, {
+      type: 'habit' as const,
+      habit: { ...habit, groupId: undefined },
+    });
+
+    const habitUpdates: { id: string; sortOrder: number }[] = [];
+    const groupUpdates: { id: string; sortOrder: number }[] = [];
+    for (let i = 0; i < reordered.length; i++) {
+      const item = reordered[i];
+      if (item.type === 'habit') {
+        habitUpdates.push({ id: item.habit.id, sortOrder: i });
+      } else {
+        groupUpdates.push({ id: item.group.id, sortOrder: i });
+      }
+    }
+
+    const updatedHabits = currentHabits.map(h => {
+      const update = habitUpdates.find(u => u.id === h.id);
+      if (update) {
+        return {
+          ...h,
+          sortOrder: update.sortOrder,
+          groupId: h.id === habitId ? undefined : h.groupId,
+        };
+      }
+      return h;
+    });
+
+    const remainingInGroup = currentHabits.filter(h => h.groupId === groupId && h.id !== habitId);
+    const deleteGroup = remainingInGroup.length === 0;
+
+    setHabits(updatedHabits);
+    if (deleteGroup) setGroups(prev => prev.filter(g => g.id !== groupId));
+    void hapticsMedium();
+
+    setTimeout(() => {
+      void (async () => {
+        const db = await getDB();
+        const now = new Date().toISOString();
+        const statements: { statement: string; values: unknown[] }[] = [];
+
+        // Ungroup the habit and update its sortOrder
+        const habitUpdate = habitUpdates.find(u => u.id === habitId);
+        statements.push({
+          statement: `UPDATE habits SET groupId = NULL, sortOrder = ?, updated_at = ? WHERE id = ?`,
+          values: [habitUpdate?.sortOrder ?? 0, now, habitId],
+        });
+
+        // Update sortOrders for all other standalone habits
+        for (const u of habitUpdates) {
+          if (u.id !== habitId) {
+            statements.push({
+              statement: `UPDATE habits SET sortOrder = ?, updated_at = ? WHERE id = ?`,
+              values: [u.sortOrder, now, u.id],
+            });
+          }
+        }
+        for (const u of groupUpdates) {
+          statements.push({
+            statement: `UPDATE habit_groups SET sortOrder = ? WHERE id = ?`,
+            values: [u.sortOrder, u.id],
+          });
+        }
+
+        if (deleteGroup) {
+          statements.push({
+            statement: `DELETE FROM habit_groups WHERE id = ?`,
+            values: [groupId],
+          });
+        }
+
+        await db.executeSet(statements, true);
+        await syncDB();
+      })().catch(e => logger.error('db', 'ungroupAndReorder failed', e));
+    }, 0);
+  }
+
+  async function createGroup(name: string, habitIdA: string, habitIdB: string): Promise<void> {
+    const db = await getDB();
+    const now = new Date().toISOString();
+    const sortResult = await db.query(
+      `SELECT COALESCE(MAX(sortOrder), -1) as maxSort FROM habit_groups`
+    );
+    const maxSort =
+      (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
+    const group: HabitGroup = { id: nanoid(), name, sortOrder: maxSort + 1 };
+    await db.executeSet([
+      {
+        statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+        values: [group.id, group.name, group.sortOrder],
+      },
+      {
+        statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+        values: [group.id, now, habitIdA],
+      },
+      {
+        statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+        values: [group.id, now, habitIdB],
+      },
+    ]);
+    setGroups(prev => [...prev, group]);
+    setHabits(prev =>
+      prev.map(h => (h.id === habitIdA || h.id === habitIdB ? { ...h, groupId: group.id } : h))
+    );
+    void pushGroup(group).catch(e => logger.error('sync', 'pushGroup failed', e));
+    void hapticsMedium();
+  }
+
+  async function addToGroup(habitId: string, groupId: string): Promise<void> {
+    const db = await getDB();
+    const now = new Date().toISOString();
+    await db.executeSet([
+      {
+        statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
+        values: [groupId, now, habitId],
+      },
+    ]);
+    setHabits(prev => prev.map(h => (h.id === habitId ? { ...h, groupId } : h)));
+    const pushedHabit = habits.find(h => h.id === habitId);
+    if (pushedHabit) {
+      void pushHabit({ ...pushedHabit, groupId }, pushedHabit.sortOrder ?? 0).catch(e =>
+        logger.error('sync', 'pushHabit failed', e)
+      );
+    }
+    void hapticsMedium();
+  }
+
+  function removeFromGroup(habitId: string): void {
+    const currentHabits = habits;
+    const habit = currentHabits.find(h => h.id === habitId);
+    const groupId = habit?.groupId;
+    if (!groupId) return;
+
+    console.log(
+      'removeFromGroup called',
+      habitId,
+      'groupId:',
+      habit?.groupId,
+      'habits count:',
+      currentHabits.length
+    );
+
+    const updated = currentHabits.map(h => (h.id === habitId ? { ...h, groupId: undefined } : h));
+    const remainingInGroup = currentHabits.filter(h => h.groupId === groupId && h.id !== habitId);
+    const deleteGroup = remainingInGroup.length === 0;
+
+    setHabits(updated);
+    if (deleteGroup) setGroups(prev => prev.filter(g => g.id !== groupId));
+
+    setTimeout(() => {
+      console.log('removeFromGroup DB write firing for', habitId);
+      void (async () => {
+        const db = await getDB();
+        const now = new Date().toISOString();
+        const statements: { statement: string; values: unknown[] }[] = [
+          {
+            statement: `UPDATE habits SET groupId = NULL, updated_at = ? WHERE id = ?`,
+            values: [now, habitId],
+          },
+        ];
+        if (deleteGroup) {
+          statements.push({
+            statement: `DELETE FROM habit_groups WHERE id = ?`,
+            values: [groupId],
+          });
+        }
+        await db.executeSet(statements, true);
+        await syncDB();
+        void pushHabit(
+          { ...currentHabits.find(h => h.id === habitId)!, groupId: undefined },
+          habit.sortOrder ?? 0
+        ).catch(e => logger.error('sync', 'pushHabit failed', e));
+        if (deleteGroup) {
+          void softDeleteGroup(groupId).catch(e =>
+            logger.error('sync', 'softDeleteGroup failed', e)
+          );
+        }
+        void hapticsMedium();
+      })().catch(e => logger.error('db', 'removeFromGroup failed', e));
+    }, 0);
   }
 
   async function applyImport(
@@ -543,11 +928,16 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await cancelAllHabitNotifications();
       await db.executeSet(
         [
+          { statement: `DELETE FROM habit_groups`, values: [] },
           { statement: `DELETE FROM habits`, values: [] },
+          ...(parsed.groups ?? []).map(g => ({
+            statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+            values: [g.id, g.name, g.sortOrder ?? 0],
+          })),
           ...parsed.habits.map((h, i) => ({
-            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at,
+            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays, notif_customMessage, notif_intervalN, notif_intervalUnit)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             values: [
               h.id,
               h.name,
@@ -556,6 +946,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               h.frequency.times,
               h.frequency.periodLength,
               h.frequency.periodUnit,
+              h.groupId ?? null,
               i,
               new Date().toISOString(),
               h.notification?.enabled ? 1 : 0,
@@ -608,6 +999,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await saveToStorage('hasOnboarded', true);
 
       void pushAllHabits(parsed.habits).catch(e => logger.error('sync', 'pushAllHabits failed', e));
+      void pushAllGroups(groups).catch(e => logger.error('sync', 'pushAllGroups failed', e));
       void pushAllCompletions(parsed.completions).catch(e =>
         logger.error('sync', 'pushAllCompletions failed', e)
       );
@@ -615,6 +1007,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const fresh = await loadDataFromDB();
       setHabits(fresh.habits);
       setCompletions(fresh.completions);
+      setGroups(fresh.groups);
       setHasOnboarded(true);
 
       return { success: true };
@@ -652,6 +1045,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       value={{
         habits,
         completions,
+        groups,
         displayDate,
         isFutureDate,
         hasOnboarded,
@@ -667,6 +1061,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadDemoData,
         applyImport,
         reorderHabits,
+        reorderItems,
+        reorderWithinGroup,
+        editGroup,
+        deleteGroup,
+        ungroupAndReorder,
+        createGroup,
+        addToGroup,
+        removeFromGroup,
         toggleDarkMode,
         osNotificationsGranted,
         recheckNotificationPermission,

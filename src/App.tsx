@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast';
 import { HabitProvider } from './contexts/habitContext';
 import AddHabitPage from './pages/AddHabitPage';
 import DailyView from './pages/DailyView';
+import GroupDetail from './pages/GroupDetail';
 import HabitDetail from './pages/HabitDetail';
 import LicencesPage from './pages/LicencesPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -20,6 +21,7 @@ export default function App() {
             <Routes>
               <Route path='/' element={<DailyView />} />
               <Route path='/habit/:id' element={<HabitDetail />} />
+              <Route path='/group/:id' element={<GroupDetail />} />
               <Route path='/add' element={<AddHabitPage />} />
               <Route path='/settings' element={<SettingsPage />} />
               <Route path='/privacy' element={<PrivacyPage />} />

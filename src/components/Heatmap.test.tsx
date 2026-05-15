@@ -8,6 +8,7 @@ import Heatmap from './Heatmap';
 const dailyHabit: Habit = {
   id: 'h1',
   name: 'Test',
+  sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-03-01',
 };
@@ -15,6 +16,7 @@ const dailyHabit: Habit = {
 const multiDailyHabit: Habit = {
   id: 'h4',
   name: 'MultiTest',
+  sortOrder: 1,
   frequency: { times: 4, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-03-01',
 };
@@ -22,6 +24,7 @@ const multiDailyHabit: Habit = {
 const weeklyHabit: Habit = {
   id: 'h2',
   name: 'Test',
+  sortOrder: 2,
   frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
   createdAt: '2026-03-02',
 };
@@ -29,6 +32,7 @@ const weeklyHabit: Habit = {
 const monthlyHabit: Habit = {
   id: 'h3',
   name: 'Test',
+  sortOrder: 3,
   frequency: { times: 2, periodLength: 1, periodUnit: 'month' },
   createdAt: '2026-03-01',
 };

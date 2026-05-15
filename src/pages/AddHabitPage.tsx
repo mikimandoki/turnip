@@ -74,6 +74,7 @@ export default function AddHabitPage() {
       id: nanoid(),
       name: trimmedName,
       note: note.trim() || undefined,
+      sortOrder: 0,
       frequency,
       createdAt: toDateString(displayDate),
       notification: notif.enabled ? notif : undefined,

@@ -55,6 +55,7 @@ vi.mock('../utils/habits', async importOriginal => {
 const habit: Habit = {
   id: 'h1',
   name: 'Exercise',
+  sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-01-01',
 };

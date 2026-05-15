@@ -1,10 +1,17 @@
 import { createContext, useContext } from 'react';
 
-import type { Completion, Habit } from '../types';
+import type { Completion, Habit, HabitGroup } from '../types';
+
+export type SectionItem = { type: 'group'; group: HabitGroup } | { type: 'habit'; habit: Habit };
 
 export interface HabitContextType {
   habits: Habit[];
   completions: Completion[];
+  groups: HabitGroup[];
+  createGroup: (name: string, habitIdA: string, habitIdB: string) => Promise<void>;
+  addToGroup: (habitId: string, groupId: string) => Promise<void>;
+  removeFromGroup: (habitId: string) => void;
+  ungroupAndReorder: (habitId: string, targetGapId: string, insertBefore: boolean) => void;
   displayDate: Date;
   isFutureDate: boolean;
   hasOnboarded: boolean;
@@ -20,6 +27,10 @@ export interface HabitContextType {
   loadDemoData: () => Promise<void>;
   applyImport: (json: string) => Promise<{ success: boolean; error?: string }>;
   reorderHabits: (habits: Habit[]) => Promise<void>;
+  reorderItems: (items: SectionItem[], sourceId: string, targetGapIndex: number) => Promise<void>;
+  reorderWithinGroup: (habitId: string, targetHabitId: string, insertBefore: boolean) => void;
+  editGroup: (groupId: string, updates: { name: string }) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;
