@@ -292,7 +292,7 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
             }
           }
         },
-      }) as unknown as () => void
+      })
     );
 
     cleanupFns.push(
@@ -334,7 +334,7 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
           }
         },
         onDrop: () => {},
-      }) as unknown as () => void
+      })
     );
 
     const cleanup = () => {
