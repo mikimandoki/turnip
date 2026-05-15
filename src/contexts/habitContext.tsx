@@ -285,7 +285,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 4. Fetch groups
       const groupResult = await db.query(
-        `SELECT id, name, createdAt, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
+        `SELECT id, name, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
       );
       const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
 
@@ -665,6 +665,31 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   }
 
+  async function editGroup(groupId: string, updates: { name: string }): Promise<void> {
+    const db = await getDB();
+    await db.run(`UPDATE habit_groups SET name = ? WHERE id = ?`, [updates.name, groupId]);
+    await syncDB();
+    setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, name: updates.name } : g)));
+  }
+
+  async function deleteGroup(groupId: string): Promise<void> {
+    const db = await getDB();
+    await db.executeSet(
+      [
+        {
+          statement: `UPDATE habits SET groupId = NULL, updated_at = ? WHERE groupId = ?`,
+          values: [new Date().toISOString(), groupId],
+        },
+        { statement: `DELETE FROM habit_groups WHERE id = ?`, values: [groupId] },
+      ],
+      true
+    );
+    await syncDB();
+    setHabits(prev => prev.map(h => (h.groupId === groupId ? { ...h, groupId: undefined } : h)));
+    setGroups(prev => prev.filter(g => g.id !== groupId));
+    void hapticsMedium();
+  }
+
   function ungroupAndReorder(habitId: string, targetGapId: string, insertBefore: boolean): void {
     const currentHabits = habits;
     const habit = currentHabits.find(h => h.id === habitId);
@@ -783,11 +808,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     );
     const maxSort =
       (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
-    const group: HabitGroup = { id: nanoid(), name, createdAt: now, sortOrder: maxSort + 1 };
+    const group: HabitGroup = { id: nanoid(), name, sortOrder: maxSort + 1 };
     await db.executeSet([
       {
-        statement: `INSERT INTO habit_groups (id, name, createdAt, sortOrder) VALUES (?, ?, ?, ?)`,
-        values: [group.id, group.name, group.createdAt, group.sortOrder],
+        statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+        values: [group.id, group.name, group.sortOrder],
       },
       {
         statement: `UPDATE habits SET groupId = ?, updated_at = ? WHERE id = ?`,
@@ -1005,6 +1030,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         reorderHabits,
         reorderItems,
         reorderWithinGroup,
+        editGroup,
+        deleteGroup,
         ungroupAndReorder,
         createGroup,
         addToGroup,

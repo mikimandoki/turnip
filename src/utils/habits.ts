@@ -1,7 +1,7 @@
 import { parseISO, subDays } from 'date-fns';
 import emojiRegex from 'emoji-regex-xs';
 
-import type { Completion, Frequency, Habit, HabitStats } from '../types';
+import type { Completion, Frequency, Habit, HabitGroup, HabitStats } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from './date';
 
@@ -151,6 +151,47 @@ export function calculateHabitStats(
     totalPeriods,
     completedPeriods,
     streakContinuable,
+  };
+}
+
+export function validateGroupName(name: string): string[] {
+  const errors: string[] = [];
+  const { cleanName } = parseHabitEmoji(name);
+  if (!name.trim()) {
+    errors.push('Name is required');
+  } else if (!cleanName.trim()) {
+    errors.push('Group name needs more than just an emoji');
+  }
+  if (cleanName.length > 50) {
+    errors.push('Group name too long');
+  }
+  return errors;
+}
+
+export function calculateGroupStats(
+  group: HabitGroup,
+  habits: Habit[],
+  completions: Completion[],
+  date: Date
+): HabitStats | null {
+  const memberHabits = habits.filter(h => h.groupId === group.id);
+  if (memberHabits.length === 0) return null;
+
+  const stats = memberHabits.map(h => calculateHabitStats(h, completions, date));
+
+  return {
+    currentStreak: Math.max(...stats.map(s => s.currentStreak)),
+    previousStreak: Math.max(...stats.map(s => s.previousStreak)),
+    maxStreak: Math.max(...stats.map(s => s.maxStreak)),
+    completionRate:
+      stats.reduce((sum, s) => sum + s.completedPeriods, 0) /
+      Math.max(
+        1,
+        stats.reduce((sum, s) => sum + s.totalPeriods, 0)
+      ),
+    totalPeriods: stats.reduce((sum, s) => sum + s.totalPeriods, 0),
+    completedPeriods: stats.reduce((sum, s) => sum + s.completedPeriods, 0),
+    streakContinuable: stats.some(s => s.streakContinuable),
   };
 }
 

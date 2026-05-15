@@ -29,6 +29,8 @@ export interface HabitContextType {
   reorderHabits: (habits: Habit[]) => Promise<void>;
   reorderItems: (items: SectionItem[], sourceId: string, targetGapIndex: number) => Promise<void>;
   reorderWithinGroup: (habitId: string, targetHabitId: string, insertBefore: boolean) => void;
+  editGroup: (groupId: string, updates: { name: string }) => Promise<void>;
+  deleteGroup: (groupId: string) => Promise<void>;
   toggleDarkMode: () => void;
   osNotificationsGranted: boolean;
   recheckNotificationPermission: () => Promise<void>;

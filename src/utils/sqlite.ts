@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 6;
+const CURRENT_VERSION = 5;
 
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
@@ -150,7 +150,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       CREATE TABLE IF NOT EXISTS habit_groups (
         id TEXT PRIMARY KEY NOT NULL,
         name TEXT NOT NULL,
-        createdAt TEXT NOT NULL
+        sortOrder INTEGER NOT NULL DEFAULT 0
       );
     `);
     const h5 = await db.query(`PRAGMA table_info(habits)`);
@@ -159,19 +159,6 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       await db.execute(`ALTER TABLE habits ADD COLUMN groupId TEXT REFERENCES habit_groups(id)`);
     }
     await db.run(`PRAGMA user_version = 5`);
-  }
-
-  if (currentVersion < 6) {
-    await db.execute(`ALTER TABLE habit_groups ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0`);
-    await db.execute(`
-      UPDATE habit_groups
-      SET sortOrder = (
-        SELECT COALESCE(MAX(h.sortOrder) + 1, 0) FROM habits h WHERE h.groupId IS NULL
-      ) + (
-        SELECT COUNT(*) FROM habit_groups g2 WHERE g2.createdAt < habit_groups.createdAt
-      )
-    `);
-    await db.run(`PRAGMA user_version = 6`);
   }
 }
 

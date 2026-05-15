@@ -4,6 +4,17 @@ import { useRef, useState } from 'react';
 import styles from './Alert.module.css';
 import inputStyles from './GroupDialog.module.css';
 
+const groupPlaceholders = [
+  '📁 Health habits',
+  '🏃 Fitness',
+  '📚 Learning',
+  '🧘 Mindfulness',
+  '💼 Work',
+  '🎨 Creative',
+  '🌿 Self care',
+  '🏠 Home',
+];
+
 export default function GroupDialog({
   open,
   onConfirm,
@@ -14,6 +25,9 @@ export default function GroupDialog({
   onCancel: () => void;
 }) {
   const [name, setName] = useState('');
+  const [placeholder] = useState(
+    () => groupPlaceholders[Math.floor(Math.random() * groupPlaceholders.length)]
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleConfirm() {
@@ -44,7 +58,7 @@ export default function GroupDialog({
           <input
             ref={inputRef}
             className={inputStyles.groupNameInput}
-            placeholder='Group name'
+            placeholder={placeholder}
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => {

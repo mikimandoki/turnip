@@ -20,7 +20,6 @@ export type Frequency = z.infer<typeof FrequencySchema>;
 export const HabitGroupSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
-  createdAt: z.string(),
   sortOrder: z.number().optional().default(0),
 });
 
@@ -121,18 +120,23 @@ export type AriaLabel =
   | 'Add habit'
   | 'Add new habit'
   | 'Cancel edits'
+  | 'Collapse group'
   | 'Custom notification message'
   | 'Dark mode'
   | 'Decrease count'
   | 'Decrease interval'
   | 'Decrease period'
   | 'Decrease times'
+  | 'Delete group'
   | 'Delete habit'
+  | 'Edit group'
   | 'Edit habit'
   | 'Email address'
   | 'Email verification code'
+  | 'Expand group'
   | 'Frequency unit'
   | 'Go back'
+  | 'Group name input'
   | 'Habit icon'
   | 'Habit name'
   | 'Habit name input'
@@ -146,6 +150,7 @@ export type AriaLabel =
   | 'Next month'
   | 'Note'
   | 'Notification time'
+  | 'Open group'
   | 'Open settings'
   | 'Period length'
   | 'Previous day'

@@ -1,0 +1,46 @@
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.memberCard {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-md);
+}
+
+.memberEmoji {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.memberName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.memberStats {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.memberStat {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: right;
+  min-width: 48px;
+}
+
+.memberStatWarning {
+  color: var(--color-text-warning);
+}
+
+.memberStatMuted {
+  color: var(--color-text-secondary);
+}
