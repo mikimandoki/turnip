@@ -44,11 +44,14 @@ import {
   deleteSupabaseAccount,
   pullAll,
   pushAllCompletions,
+  pushAllGroups,
   pushAllHabits,
   pushCompletion,
+  pushGroup,
   pushHabit,
   softDeleteAllHabits,
   softDeleteCompletion,
+  softDeleteGroup,
   softDeleteHabit,
   syncOnSignIn,
 } from '../utils/syncService';
@@ -670,6 +673,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     await db.run(`UPDATE habit_groups SET name = ? WHERE id = ?`, [updates.name, groupId]);
     await syncDB();
     setGroups(prev => prev.map(g => (g.id === groupId ? { ...g, name: updates.name } : g)));
+    const updatedGroup = groups.find(g => g.id === groupId);
+    if (updatedGroup) {
+      void pushGroup({ ...updatedGroup, name: updates.name }).catch(e =>
+        logger.error('sync', 'pushGroup failed', e)
+      );
+    }
   }
 
   async function deleteGroup(groupId: string): Promise<void> {
@@ -687,6 +696,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     await syncDB();
     setHabits(prev => prev.map(h => (h.groupId === groupId ? { ...h, groupId: undefined } : h)));
     setGroups(prev => prev.filter(g => g.id !== groupId));
+    void softDeleteGroup(groupId).catch(e => logger.error('sync', 'softDeleteGroup failed', e));
     void hapticsMedium();
   }
 
@@ -827,6 +837,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setHabits(prev =>
       prev.map(h => (h.id === habitIdA || h.id === habitIdB ? { ...h, groupId: group.id } : h))
     );
+    void pushGroup(group).catch(e => logger.error('sync', 'pushGroup failed', e));
     void hapticsMedium();
   }
 
@@ -840,6 +851,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       },
     ]);
     setHabits(prev => prev.map(h => (h.id === habitId ? { ...h, groupId } : h)));
+    const pushedHabit = habits.find(h => h.id === habitId);
+    if (pushedHabit) {
+      void pushHabit({ ...pushedHabit, groupId }, pushedHabit.sortOrder ?? 0).catch(e =>
+        logger.error('sync', 'pushHabit failed', e)
+      );
+    }
     void hapticsMedium();
   }
 
@@ -884,6 +901,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         }
         await db.executeSet(statements, true);
         await syncDB();
+        void pushHabit(
+          { ...currentHabits.find(h => h.id === habitId)!, groupId: undefined },
+          habit.sortOrder ?? 0
+        ).catch(e => logger.error('sync', 'pushHabit failed', e));
+        if (deleteGroup) {
+          void softDeleteGroup(groupId).catch(e =>
+            logger.error('sync', 'softDeleteGroup failed', e)
+          );
+        }
         void hapticsMedium();
       })().catch(e => logger.error('db', 'removeFromGroup failed', e));
     }, 0);
@@ -902,11 +928,16 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await cancelAllHabitNotifications();
       await db.executeSet(
         [
+          { statement: `DELETE FROM habit_groups`, values: [] },
           { statement: `DELETE FROM habits`, values: [] },
+          ...(parsed.groups ?? []).map(g => ({
+            statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+            values: [g.id, g.name, g.sortOrder ?? 0],
+          })),
           ...parsed.habits.map((h, i) => ({
-            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at,
+            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays, notif_customMessage, notif_intervalN, notif_intervalUnit)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             values: [
               h.id,
               h.name,
@@ -915,6 +946,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               h.frequency.times,
               h.frequency.periodLength,
               h.frequency.periodUnit,
+              h.groupId ?? null,
               i,
               new Date().toISOString(),
               h.notification?.enabled ? 1 : 0,
@@ -967,6 +999,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       await saveToStorage('hasOnboarded', true);
 
       void pushAllHabits(parsed.habits).catch(e => logger.error('sync', 'pushAllHabits failed', e));
+      void pushAllGroups(groups).catch(e => logger.error('sync', 'pushAllGroups failed', e));
       void pushAllCompletions(parsed.completions).catch(e =>
         logger.error('sync', 'pushAllCompletions failed', e)
       );

@@ -28,6 +28,7 @@ describe('toRemoteHabit', () => {
       period_length: 1,
       period_unit: 'day',
       sort_order: 2,
+      group_id: null,
       updated_at: NOW,
       deleted_at: null,
     });

@@ -1,25 +1,40 @@
 import { z } from 'zod';
 
-import { type Completion, CompletionSchema, type Habit, HabitSchema } from '../types';
+import {
+  type Completion,
+  CompletionSchema,
+  type Habit,
+  type HabitGroup,
+  HabitGroupSchema,
+  HabitSchema,
+} from '../types';
 import { shareFile } from './share';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const ImportSchema = z.object({
   version: z.number().optional(),
   habits: z.array(HabitSchema),
   completions: z.array(CompletionSchema),
+  groups: z.array(HabitGroupSchema).optional().default([]),
 });
 
 export type ImportResult =
   | { success: false; error: string }
-  | { success: true; habits: Habit[]; completions: Completion[]; warning?: string };
+  | {
+      success: true;
+      habits: Habit[];
+      completions: Completion[];
+      groups: HabitGroup[];
+      warning?: string;
+    };
 
 export async function exportData(
   habits: Habit[],
-  completions: Completion[]
+  completions: Completion[],
+  groups: HabitGroup[]
 ): Promise<{ success: boolean; error?: string }> {
-  const json = JSON.stringify({ version: SCHEMA_VERSION, habits, completions }, null, 2);
+  const json = JSON.stringify({ version: SCHEMA_VERSION, habits, completions, groups }, null, 2);
   return shareFile(json, 'turnip-backup.json', 'application/json', 'Turnip Backup');
 }
 
@@ -29,7 +44,12 @@ export function importData(json: string): ImportResult {
     const raw: unknown = JSON.parse(json);
     const result = ImportSchema.safeParse(raw);
     if (!result.success) return { success: false, error: 'Invalid data format' };
-    return { success: true, habits: result.data.habits, completions: result.data.completions };
+    return {
+      success: true,
+      habits: result.data.habits,
+      completions: result.data.completions,
+      groups: result.data.groups,
+    };
   } catch {
     return { success: false, error: 'Failed to parse JSON' };
   }
