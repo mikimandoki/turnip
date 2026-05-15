@@ -1,9 +1,9 @@
 import { addDays, isFuture, parseISO } from 'date-fns';
 import { nanoid } from 'nanoid';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
-import { useToast } from '../components/useToast';
+import { type ToastType, useToast } from '../components/useToast';
 import { HabitContext, type SectionItem } from '../contexts/useHabitContext';
 import { useBackButton } from '../hooks/useBackButton';
 import { useDarkMode } from '../hooks/useDarkMode';
@@ -57,6 +57,66 @@ import {
 } from '../utils/syncService';
 import { isNative } from '../utils/utils';
 
+async function loadDataFromDB(showToast: (message: string, type?: ToastType) => void) {
+  const db = await getDB();
+
+  try {
+    const habitResult = await db.query(
+      `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
+              notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
+              notif_customMessage, notif_intervalN, notif_intervalUnit
+       FROM habits
+       ORDER BY sortOrder ASC;`
+    );
+
+    const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => ({
+      id: row.id,
+      name: row.name,
+      note: row.note ?? undefined,
+      groupId: row.groupId ?? undefined,
+      sortOrder: row.sortOrder,
+      createdAt: row.createdAt,
+      frequency: {
+        times: row.times,
+        periodLength: row.periodLength,
+        periodUnit: row.periodUnit,
+      },
+      notification:
+        row.notif_mode !== null
+          ? {
+              enabled: Boolean(row.notif_enabled),
+              mode: row.notif_mode,
+              time: row.notif_time!,
+              days: JSON.parse(row.notif_days || '[]') as number[],
+              monthDays: JSON.parse(row.notif_monthDays || '[]') as number[],
+              customMessage: row.notif_customMessage ?? '',
+              intervalN: row.notif_intervalN ?? 1,
+              intervalUnit: row.notif_intervalUnit ?? 'days',
+            }
+          : undefined,
+    }));
+
+    const compResult = await db.query(`SELECT * FROM completions`);
+    const completions = compResult.values || [];
+
+    const groupResult = await db.query(
+      `SELECT id, name, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
+    );
+    const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
+
+    return {
+      habits: z.array(HabitSchema).parse(habits),
+      completions: z.array(CompletionSchema).parse(completions),
+      groups,
+    };
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    logger.error('db', 'Database hydration failed', { message: errorMsg });
+    showToast('DB Error: ' + errorMsg, 'error');
+    return { habits: [], completions: [], groups: [] };
+  }
+}
+
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
@@ -67,9 +127,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
   const syncOnSignInInFlight = useRef(false);
   const habitsRef = useRef(habits);
-  habitsRef.current = habits;
   const completionsRef = useRef(completions);
-  completionsRef.current = completions;
+
+  useEffect(() => {
+    habitsRef.current = habits;
+  }, [habits]);
+
+  useEffect(() => {
+    completionsRef.current = completions;
+  }, [completions]);
 
   const { showToast } = useToast();
 
@@ -222,7 +288,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 3. Reload state from DB
-      const updatedData = await loadDataFromDB();
+      const updatedData = await loadDataFromDB(showToast);
       setHabits(updatedData.habits);
       setGroups(updatedData.groups);
 
@@ -239,72 +305,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       showToast(`Update failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
     }
   }
-
-  const loadDataFromDB = useCallback(async () => {
-    const db = await getDB();
-
-    try {
-      // 1. Fetch habits (notif settings are columns on the habit row now)
-      const habitResult = await db.query(
-        `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
-                notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
-                notif_customMessage, notif_intervalN, notif_intervalUnit
-         FROM habits
-         ORDER BY sortOrder ASC;`
-      );
-
-      // 2. Map rows to TypeScript objects
-      const habits: Habit[] = (habitResult.values as HabitRowFromDB[]).map(row => ({
-        id: row.id,
-        name: row.name,
-        note: row.note ?? undefined,
-        groupId: row.groupId ?? undefined,
-        sortOrder: row.sortOrder,
-        createdAt: row.createdAt,
-        frequency: {
-          times: row.times,
-          periodLength: row.periodLength,
-          periodUnit: row.periodUnit,
-        },
-        notification:
-          row.notif_mode !== null
-            ? {
-                enabled: Boolean(row.notif_enabled),
-                mode: row.notif_mode,
-                time: row.notif_time!,
-                days: JSON.parse(row.notif_days || '[]') as number[],
-                monthDays: JSON.parse(row.notif_monthDays || '[]') as number[],
-                customMessage: row.notif_customMessage ?? '',
-                intervalN: row.notif_intervalN ?? 1,
-                intervalUnit: row.notif_intervalUnit ?? 'days',
-              }
-            : undefined,
-      }));
-
-      // 3. Fetch Completions
-      // TODO: filter by date range (e.g. last 90 days) once completion history grows large
-      const compResult = await db.query(`SELECT * FROM completions`);
-      const completions = compResult.values || [];
-
-      // 4. Fetch groups
-      const groupResult = await db.query(
-        `SELECT id, name, sortOrder FROM habit_groups ORDER BY sortOrder ASC;`
-      );
-      const groups = z.array(HabitGroupSchema).parse(groupResult.values ?? []);
-
-      // 5. Final Zod Validation
-      return {
-        habits: z.array(HabitSchema).parse(habits),
-        completions: z.array(CompletionSchema).parse(completions),
-        groups,
-      };
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : String(e);
-      logger.error('db', 'Database hydration failed', { message: errorMsg });
-      showToast('DB Error: ' + errorMsg, 'error');
-      return { habits: [], completions: [], groups: [] };
-    }
-  }, [showToast]);
 
   // Listen for Supabase availability changes
   // On restoration, flush any local changes that were skipped during backoff.
@@ -326,7 +326,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               await pushAllCompletions(completionsRef.current);
               const db = await getDB();
               await pullAll(db);
-              const synced = await loadDataFromDB();
+              const synced = await loadDataFromDB(showToast);
               setHabits(synced.habits);
               setCompletions(synced.completions);
             } catch (e) {
@@ -339,7 +339,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
       prev.current = status;
     });
-  }, [showToast, loadDataFromDB]);
+  }, [showToast]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -352,7 +352,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           if (!data.session) return;
           const db = await getDB();
           await pullAll(db);
-          const synced = await loadDataFromDB();
+          const synced = await loadDataFromDB(showToast);
           setHabits(synced.habits);
           setCompletions(synced.completions);
           setGroups(synced.groups);
@@ -361,20 +361,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [habits, loadDataFromDB, onNotifVisible]);
+  }, [habits, onNotifVisible, showToast]);
 
   useEffect(() => {
     void (async () => {
       const db = await getDB();
       const [dbData, onboarded] = await Promise.all([
-        loadDataFromDB(),
+        loadDataFromDB(showToast),
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
       ]);
 
       const { data } = await supabase.auth.getSession();
       if (data.session && supabaseShouldAttempt()) {
         await pullAll(db);
-        const synced = await loadDataFromDB();
+        const synced = await loadDataFromDB(showToast);
         setHabits(synced.habits);
         setCompletions(synced.completions);
         setGroups(synced.groups);
@@ -388,7 +388,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       void pruneLogs();
     })();
-  }, [loadDataFromDB]);
+  }, [showToast]);
 
   // On sign-in: push local data up, then pull remote down, then refresh UI
   useEffect(() => {
@@ -399,7 +399,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           try {
             const db = await getDB();
             await syncOnSignIn(db);
-            const synced = await loadDataFromDB();
+            const synced = await loadDataFromDB(showToast);
             setHabits(synced.habits);
             setCompletions(synced.completions);
             setGroups(synced.groups);
@@ -412,7 +412,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
     });
     return () => listener.subscription.unsubscribe();
-  }, [loadDataFromDB, syncOnSignInInFlight]);
+  }, [showToast, syncOnSignInInFlight]);
 
   async function deleteHabit(habit: Habit) {
     const db = await getDB();
@@ -514,7 +514,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     await syncDB();
     await saveToStorage('hasOnboarded', true);
 
-    const fresh = await loadDataFromDB();
+    const fresh = await loadDataFromDB(showToast);
     setHabits(fresh.habits);
     setCompletions(fresh.completions);
     setGroups(fresh.groups);
@@ -546,7 +546,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       void hapticsLight();
     } catch (e) {
       logger.error('db', 'Reorder failed', e);
-      const fresh = await loadDataFromDB();
+      const fresh = await loadDataFromDB(showToast);
       setHabits(fresh.habits);
     }
   }
@@ -615,7 +615,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       void hapticsLight();
     } catch (e) {
       logger.error('db', 'Reorder items failed', e);
-      const fresh = await loadDataFromDB();
+      const fresh = await loadDataFromDB(showToast);
       setHabits(fresh.habits);
       setGroups(fresh.groups);
     }
@@ -1004,7 +1004,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         logger.error('sync', 'pushAllCompletions failed', e)
       );
 
-      const fresh = await loadDataFromDB();
+      const fresh = await loadDataFromDB(showToast);
       setHabits(fresh.habits);
       setCompletions(fresh.completions);
       setGroups(fresh.groups);
