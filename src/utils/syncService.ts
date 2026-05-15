@@ -19,6 +19,21 @@ const SyncHabitRowSchema = z.object({
 });
 import { logger } from './logger';
 import { supabase } from './supabase';
+import {
+  isSupabasePausedError,
+  reportFailure,
+  reportSuccess,
+  shouldAttempt,
+} from './supabaseMonitor';
+
+function handleSyncResult(op: string, error: unknown): void {
+  if (error) {
+    logger.error('sync', `${op} failed`, error);
+    if (isSupabasePausedError(error)) reportFailure();
+  } else {
+    reportSuccess();
+  }
+}
 
 async function getUser() {
   const { data } = await supabase.auth.getSession();
@@ -42,15 +57,17 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
 }
 
 export async function pushHabit(habit: Habit, sortOrder: number): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
   const { error } = await supabase
     .from('habits')
     .upsert(toRemoteHabit(habit, user.id, sortOrder, new Date().toISOString()));
-  if (error) logger.error('sync', 'pushHabit failed', error.message);
+  handleSyncResult('pushHabit', error);
 }
 
 export async function softDeleteHabit(habitId: string): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
   const now = new Date().toISOString();
@@ -62,18 +79,31 @@ export async function softDeleteHabit(habitId: string): Promise<void> {
       .eq('habit_id', habitId)
       .eq('user_id', user.id),
   ]);
-  if (habitRes.error) logger.error('sync', 'softDeleteHabit failed', habitRes.error.message);
-  if (compRes.error)
-    logger.error('sync', 'softDeleteHabit completions failed', compRes.error.message);
+  const habitErr = habitRes.error;
+  const compErr = compRes.error;
+  if (habitErr) {
+    logger.error('sync', 'softDeleteHabit failed', habitErr.message);
+    if (isSupabasePausedError(habitErr)) reportFailure();
+  }
+  if (compErr) {
+    logger.error('sync', 'softDeleteHabit completions failed', compErr.message);
+    if (isSupabasePausedError(compErr)) reportFailure();
+  }
+  if (!habitErr && !compErr) reportSuccess();
 }
 
 export async function deleteSupabaseAccount(): Promise<{ error?: string }> {
   const { error } = (await supabase.functions.invoke('delete-account')) as { error: unknown };
-  if (error) return { error: error instanceof Error ? error.message : 'Failed to delete account' };
+  if (error) {
+    if (isSupabasePausedError(error)) reportFailure();
+    return { error: error instanceof Error ? error.message : 'Failed to delete account' };
+  }
+  reportSuccess();
   return {};
 }
 
 export async function softDeleteAllHabits(): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
   const { error } = await supabase
@@ -81,20 +111,22 @@ export async function softDeleteAllHabits(): Promise<void> {
     .update({ deleted_at: new Date().toISOString() })
     .eq('user_id', user.id)
     .is('deleted_at', null);
-  if (error) logger.error('sync', 'softDeleteAllHabits failed', error.message);
+  handleSyncResult('softDeleteAllHabits', error);
 }
 
 export async function pushAllHabits(habits: Habit[]): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user || habits.length === 0) return;
   const now = new Date().toISOString();
   const { error } = await supabase
     .from('habits')
     .upsert(habits.map((h, i) => toRemoteHabit(h, user.id, i, now)));
-  if (error) logger.error('sync', 'pushAllHabits failed', error.message);
+  handleSyncResult('pushAllHabits', error);
 }
 
 export async function pushCompletion(habitId: string, date: string, count: number): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
   const { error } = await supabase.from('completions').upsert({
@@ -105,10 +137,11 @@ export async function pushCompletion(habitId: string, date: string, count: numbe
     updated_at: new Date().toISOString(),
     deleted_at: null,
   });
-  if (error) logger.error('sync', 'pushCompletion failed', error.message);
+  handleSyncResult('pushCompletion', error);
 }
 
 export async function softDeleteCompletion(habitId: string, date: string): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
   const now = new Date().toISOString();
@@ -120,10 +153,11 @@ export async function softDeleteCompletion(habitId: string, date: string): Promi
     updated_at: now,
     deleted_at: now,
   });
-  if (error) logger.error('sync', 'softDeleteCompletion failed', error.message);
+  handleSyncResult('softDeleteCompletion', error);
 }
 
 export async function pushAllCompletions(completions: Completion[]): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user || completions.length === 0) return;
   const now = new Date().toISOString();
@@ -137,7 +171,7 @@ export async function pushAllCompletions(completions: Completion[]): Promise<voi
       deleted_at: null,
     }))
   );
-  if (error) logger.error('sync', 'pushAllCompletions failed', error.message);
+  handleSyncResult('pushAllCompletions', error);
 }
 
 type RemoteHabitRow = {
@@ -168,6 +202,7 @@ type RemoteCompletionRow = {
  * Net result: union of both sides, with remote winning on conflict.
  */
 export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
 
@@ -203,7 +238,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     const { error } = await supabase
       .from('habits')
       .upsert(remoteHabits, { onConflict: 'id', ignoreDuplicates: true });
-    if (error) logger.error('sync', 'syncOnSignIn habits failed', error.message);
+    handleSyncResult('syncOnSignIn habits', error);
   }
 
   // Read completions with their actual updated_at from SQLite
@@ -237,7 +272,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     const { error } = await supabase
       .from('completions')
       .upsert(remoteCompletions, { onConflict: 'user_id,habit_id,date', ignoreDuplicates: true });
-    if (error) logger.error('sync', 'syncOnSignIn completions failed', error.message);
+    handleSyncResult('syncOnSignIn completions', error);
   }
 
   await pullAll(db);
@@ -250,6 +285,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
  * Caller should reload from DB and update React state after this resolves.
  */
 export async function pullAll(db: SQLiteDBConnection): Promise<void> {
+  if (!shouldAttempt()) return;
   const user = await getUser();
   if (!user) return;
 
@@ -260,6 +296,7 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
     .eq('user_id', user.id);
   if (habitsError) {
     logger.error('sync', 'pullAll habits failed', habitsError.message);
+    if (isSupabasePausedError(habitsError)) reportFailure();
     return;
   }
 
@@ -301,6 +338,7 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
     .eq('user_id', user.id);
   if (completionsError) {
     logger.error('sync', 'pullAll completions failed', completionsError.message);
+    if (isSupabasePausedError(completionsError)) reportFailure();
     return;
   }
 
@@ -331,4 +369,6 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
       );
     }
   }
+
+  reportSuccess();
 }

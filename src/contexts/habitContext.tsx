@@ -37,6 +37,10 @@ import { getDB, syncDB } from '../utils/sqlite';
 import { APP_NAME } from '../utils/strings';
 import { supabase } from '../utils/supabase';
 import {
+  onStatusChange as onSupabaseStatusChange,
+  shouldAttempt as supabaseShouldAttempt,
+} from '../utils/supabaseMonitor';
+import {
   deleteSupabaseAccount,
   pullAll,
   pushAllCompletions,
@@ -59,6 +63,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
   const syncOnSignInInFlight = useRef(false);
+  const habitsRef = useRef(habits);
+  habitsRef.current = habits;
+  const completionsRef = useRef(completions);
+  completionsRef.current = completions;
 
   const { showToast } = useToast();
 
@@ -295,12 +303,48 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }, [showToast]);
 
+  // Listen for Supabase availability changes
+  // On restoration, flush any local changes that were skipped during backoff.
+  useEffect(() => {
+    const prev = { current: 'available' as 'available' | 'unavailable' };
+    const flushing = { current: false };
+    return onSupabaseStatusChange(status => {
+      if (prev.current === 'available' && status === 'unavailable') {
+        logger.warn('sync', 'Supabase unavailable — cloud sync paused');
+        showToast('Cloud sync paused. Will retry automatically.', 'warning');
+      } else if (prev.current === 'unavailable' && status === 'available') {
+        logger.info('sync', 'Supabase available — cloud sync restored');
+        showToast('Cloud sync restored', 'success');
+        if (!flushing.current) {
+          flushing.current = true;
+          void (async () => {
+            try {
+              await pushAllHabits(habitsRef.current);
+              await pushAllCompletions(completionsRef.current);
+              const db = await getDB();
+              await pullAll(db);
+              const synced = await loadDataFromDB();
+              setHabits(synced.habits);
+              setCompletions(synced.completions);
+            } catch (e) {
+              logger.error('sync', 'Reconnect flush failed', e);
+            } finally {
+              flushing.current = false;
+            }
+          })();
+        }
+      }
+      prev.current = status;
+    });
+  }, [showToast, loadDataFromDB]);
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
       void Promise.allSettled([
         onNotifVisible(habits),
         (async () => {
+          if (!supabaseShouldAttempt()) return;
           const { data } = await supabase.auth.getSession();
           if (!data.session) return;
           const db = await getDB();
@@ -324,9 +368,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
       ]);
 
-      // Pull from Supabase if signed in, then reload local state
       const { data } = await supabase.auth.getSession();
-      if (data.session) {
+      if (data.session && supabaseShouldAttempt()) {
         await pullAll(db);
         const synced = await loadDataFromDB();
         setHabits(synced.habits);
