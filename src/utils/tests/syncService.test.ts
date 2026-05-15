@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import type { Habit } from '../../types';
+import type { Habit, HabitGroup } from '../../types';
 
-import { toRemoteHabit } from '../syncService';
+import { toRemoteGroup, toRemoteHabit } from '../syncService';
 
 const NOW = '2026-01-01T00:00:00.000Z';
 const USER_ID = 'user-123';
@@ -66,5 +66,21 @@ describe('toRemoteHabit', () => {
   it('uses the sortOrder argument, not the habit sortOrder', () => {
     const result = toRemoteHabit(baseHabit, USER_ID, 4, NOW);
     expect(result.sort_order).toBe(4);
+  });
+});
+
+describe('toRemoteGroup', () => {
+  const group: HabitGroup = { id: 'g1', name: '📁 Health', sortOrder: 2 };
+
+  it('maps group fields to snake_case', () => {
+    const result = toRemoteGroup(group, USER_ID, NOW);
+    expect(result).toEqual({
+      id: 'g1',
+      user_id: USER_ID,
+      name: '📁 Health',
+      sort_order: 2,
+      updated_at: NOW,
+      deleted_at: null,
+    });
   });
 });
