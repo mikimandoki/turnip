@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { Fragment, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -56,6 +56,9 @@ export default function GroupCard({
       data-habit-index={index}
     >
       <button className={styles.groupHeader} onClick={() => setExpanded(x => !x)}>
+        <span className={styles.groupChevron}>
+          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </span>
         <div className={habitCardStyles.habitCardContent} style={{ flex: 1 }}>
           <HabitEmoji emoji={emoji} />
           <div className={habitCardStyles.habitCardInfo}>

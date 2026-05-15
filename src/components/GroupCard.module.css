@@ -10,11 +10,19 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
   width: 100%;
   padding: 14px var(--spacing-xl);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.groupChevron {
+  position: absolute;
+  left: 1.5px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
 }
 
 .groupHeader:active {

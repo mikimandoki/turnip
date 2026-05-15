@@ -142,7 +142,9 @@ describe('getCompletionsInPeriod', () => {
       frequency: { times: 5, periodLength: 1, periodUnit: 'day' },
       createdAt: '2026-03-24',
     };
-    expect(getCompletionsInPeriod(habit, [c('h1', '2026-03-25', 5)], parseISO('2026-03-25'))).toBe(5);
+    expect(getCompletionsInPeriod(habit, [c('h1', '2026-03-25', 5)], parseISO('2026-03-25'))).toBe(
+      5
+    );
   });
 });
 
@@ -285,7 +287,12 @@ describe('calculateHabitStats', () => {
         createdAt: '2026-03-09', // Monday
       };
       // week of 03-16: 3 completions (done). week of 03-23: only 1 (not done)
-      const completions = [c('h1', '2026-03-16'), c('h1', '2026-03-17'), c('h1', '2026-03-18'), c('h1', '2026-03-23')];
+      const completions = [
+        c('h1', '2026-03-16'),
+        c('h1', '2026-03-17'),
+        c('h1', '2026-03-18'),
+        c('h1', '2026-03-23'),
+      ];
       const stats = calculateHabitStats(habit, completions, parseISO('2026-03-25'));
       expect(stats.streakContinuable).toBe(true);
     });
@@ -472,7 +479,12 @@ describe('calculateGroupStats', () => {
       c('h1', '2026-01-02'),
       c('h2', '2026-01-01'),
     ];
-    const stats = calculateGroupStats(group, [habitWithGroup('h1'), habitWithGroup('h2')], completions, today);
+    const stats = calculateGroupStats(
+      group,
+      [habitWithGroup('h1'), habitWithGroup('h2')],
+      completions,
+      today
+    );
     expect(stats).not.toBeNull();
     expect(stats!.completedPeriods).toBe(3);
     expect(stats!.totalPeriods).toBe(4);
@@ -499,11 +511,19 @@ describe('calculateGroupStats', () => {
     const today = parseISO('2026-02-02');
 
     const completions: Completion[] = [
-      c('h1', '2026-01-05'), c('h1', '2026-01-07'), c('h1', '2026-01-09'),
-      c('h1', '2026-01-12'), c('h1', '2026-01-14'), c('h1', '2026-01-16'),
-      c('h1', '2026-01-19'), c('h1', '2026-01-21'), c('h1', '2026-01-23'),
-      c('h1', '2026-01-26'), c('h1', '2026-01-28'),
-      c('h2', '2026-01-10'), c('h2', '2026-01-25'),
+      c('h1', '2026-01-05'),
+      c('h1', '2026-01-07'),
+      c('h1', '2026-01-09'),
+      c('h1', '2026-01-12'),
+      c('h1', '2026-01-14'),
+      c('h1', '2026-01-16'),
+      c('h1', '2026-01-19'),
+      c('h1', '2026-01-21'),
+      c('h1', '2026-01-23'),
+      c('h1', '2026-01-26'),
+      c('h1', '2026-01-28'),
+      c('h2', '2026-01-10'),
+      c('h2', '2026-01-25'),
     ];
 
     const stats = calculateGroupStats(group, [threeTimesWeek, onceTwoWeeks], completions, today);
