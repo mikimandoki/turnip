@@ -173,11 +173,9 @@ export function DragDropProvider({ children }: { children: React.ReactNode }) {
               setGroupTargetId(null);
             } else if (ownGroupHabit) {
               if (relativeY < HIT_ZONE_THRESHOLD) {
-                setGroupReorderIndex(0);
-                setReorderInsertIndex(null);
+                setReorderInsertIndex(groupIndex);
               } else if (relativeY > 1 - HIT_ZONE_THRESHOLD) {
-                setGroupReorderIndex(999);
-                setReorderInsertIndex(null);
+                setReorderInsertIndex(groupIndex + 1);
               } else {
                 setReorderInsertIndex(null);
               }
