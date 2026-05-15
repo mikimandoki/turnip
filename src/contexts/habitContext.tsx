@@ -15,6 +15,7 @@ import {
   CompletionSchema,
   type Habit,
   type HabitGroup,
+  HabitGroupSchema,
   type HabitRowFromDB,
   HabitSchema,
 } from '../types';
