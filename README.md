@@ -45,3 +45,8 @@ The QA app name comes from a string resource overlay at `android/app/src/qa/res/
 `jeep-sqlite` requires the `sql-wasm.wasm` binary in `public/assets/` to run the SQLite engine in the browser.
 
 It is necessary to use `pnpm` overrides to pin `sql.js` to the version expected by `jeep-sqlite` (currently **1.11.0**) to avoid `LinkError` instantiation failures.
+
+## Ideas/Feature Requests
+
+- [x] Group habits
+- [ ] Archive habits
