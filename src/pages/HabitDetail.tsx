@@ -1,6 +1,6 @@
 import { parseISO } from 'date-fns';
-import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
-import { useMemo, useReducer } from 'react';
+import { Archive, Check, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
+import { useMemo, useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import type { Frequency } from '../types';
@@ -10,10 +10,11 @@ import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
-import { namedDayOrDate } from '../utils/date';
+import { namedDayOrDate, toDateString } from '../utils/date';
 import {
   calculateHabitStats,
   describeFrequency,
+  getArchiveRuns,
   getTotalCompletions,
   parseHabitEmoji,
 } from '../utils/habits';
@@ -42,14 +43,17 @@ type EditState = {
   errors: string[];
   notifValidated: boolean;
   deleteOpen: boolean;
+  archiveOpen: boolean;
   notifBlockedOpen: boolean;
 };
 
 type EditAction =
   | { type: 'CANCEL_EDIT'; habitName: string; habitNote: string; defaultNotif: NotificationValue }
   | { type: 'CLEAR_NOTIF_VALIDATED' }
+  | { type: 'CLOSE_ARCHIVE_MODAL' }
   | { type: 'CLOSE_DELETE_MODAL' }
   | { type: 'CLOSE_NOTIF_BLOCKED_MODAL' }
+  | { type: 'OPEN_ARCHIVE_MODAL' }
   | { type: 'OPEN_DELETE_MODAL' }
   | { type: 'OPEN_NOTIF_BLOCKED_MODAL' }
   | { type: 'SAVE_SUCCESS'; name: string; note: string }
@@ -103,6 +107,10 @@ function editReducer(state: EditState, action: EditAction): EditState {
       return { ...state, deleteOpen: true };
     case 'CLOSE_DELETE_MODAL':
       return { ...state, deleteOpen: false };
+    case 'OPEN_ARCHIVE_MODAL':
+      return { ...state, archiveOpen: true };
+    case 'CLOSE_ARCHIVE_MODAL':
+      return { ...state, archiveOpen: false };
     case 'OPEN_NOTIF_BLOCKED_MODAL':
       return { ...state, notifBlockedOpen: true };
     case 'CLOSE_NOTIF_BLOCKED_MODAL':
@@ -124,13 +132,30 @@ function editReducer(state: EditState, action: EditAction): EditState {
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, completions, deleteHabit, editHabit, recheckNotificationPermission } =
-    useHabitContext();
+  const {
+    habits,
+    completions,
+    groups,
+    deleteHabit,
+    archiveHabit,
+    restoreHabit,
+    isHabitArchived,
+    editHabit,
+    recheckNotificationPermission,
+  } = useHabitContext();
   const habit = habits.find(h => h.id === id);
-  const habitStats = useMemo(
-    () => (habit ? calculateHabitStats(habit, completions, new Date()) : undefined),
-    [habit, completions]
-  );
+  const [prevRunsOpen, setPrevRunsOpen] = useState(false);
+
+  const archived = habit ? isHabitArchived(habit) : false;
+  const groupRef = habit?.groupId ? groups.find(g => g.id === habit.groupId) : null;
+  const archiveRuns = habit ? getArchiveRuns(habit.createdAt, habit.archiveRuns) : [];
+
+  const habitStats = useMemo(() => {
+    if (!habit) return undefined;
+    const lastArchivedAt = habit.archiveRuns?.[habit.archiveRuns.length - 1]?.archivedAt;
+    const refDate = archived && lastArchivedAt ? lastArchivedAt : toDateString(new Date());
+    return calculateHabitStats(habit, completions, parseISO(refDate), habit.archiveRuns);
+  }, [habit, completions, archived]);
 
   const [
     {
@@ -141,6 +166,7 @@ export default function HabitDetail() {
       errors,
       notifValidated,
       deleteOpen,
+      archiveOpen,
       notifBlockedOpen,
     },
     dispatch,
@@ -152,6 +178,7 @@ export default function HabitDetail() {
     errors: [],
     notifValidated: false,
     deleteOpen: false,
+    archiveOpen: false,
     notifBlockedOpen: false,
   });
 
@@ -160,7 +187,9 @@ export default function HabitDetail() {
   if (!habit) return <div>Habit not found</div>;
 
   const isNonSimpleDaily = habit.frequency.times > 1 || habit.frequency.periodUnit !== 'day';
-  const timesLogged = isNonSimpleDaily ? getTotalCompletions(habit, completions, new Date()) : null;
+  const timesLogged = isNonSimpleDaily
+    ? getTotalCompletions(habit, completions, new Date())
+    : null;
   const avgPerPeriod =
     timesLogged !== null && habitStats && habitStats.totalPeriods > 0
       ? Math.round((timesLogged / habitStats.totalPeriods) * 10) / 10
@@ -286,20 +315,52 @@ export default function HabitDetail() {
                 </>
               ) : (
                 <>
-                  <button
-                    className='btn-action'
-                    onClick={() => dispatch({ type: 'START_EDIT' })}
-                    aria-label='Edit habit'
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    className='btn-action delete'
-                    onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
-                    aria-label='Delete habit'
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {archived ? (
+                    <button
+                      className='btn-base btn-primary'
+                      onClick={() => {
+                        void restoreHabit(habit);
+                        void navigate('/');
+                      }}
+                      aria-label='Restore habit'
+                    >
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      className='btn-action'
+                      onClick={() => dispatch({ type: 'START_EDIT' })}
+                      aria-label='Edit habit'
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  )}
+                  {archived ? (
+                    <button
+                      className='btn-action delete'
+                      onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
+                      aria-label='Delete habit'
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      className='btn-action'
+                      onClick={() => dispatch({ type: 'OPEN_ARCHIVE_MODAL' })}
+                      aria-label='Archive habit'
+                    >
+                      <Archive size={16} />
+                    </button>
+                  )}
+                  {!archived && (
+                    <button
+                      className='btn-action delete'
+                      onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
+                      aria-label='Delete habit'
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -391,12 +452,69 @@ export default function HabitDetail() {
             )}
           </div>
         </div>
+        {archiveRuns.length > 0 && (
+          <div className='card'>
+            <button
+              className={styles.prevRunsToggle}
+              onClick={() => setPrevRunsOpen(!prevRunsOpen)}
+            >
+              <span>Previous runs</span>
+              {prevRunsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+            {prevRunsOpen && (
+              <div className={styles.prevRunsList}>
+                {archiveRuns.map((run, i) => {
+                  const runStats = calculateHabitStats(
+                    habit,
+                    completions,
+                    parseISO(run.end),
+                    undefined
+                  );
+                  return (
+                    <div key={i} className={styles.prevRunEntry}>
+                      <div className={styles.prevRunDates}>
+                        {run.start} → {run.end}
+                      </div>
+                      <div className={styles.prevRunStats}>
+                        <span>{runStats.completedPeriods} completions</span>
+                        <span>·</span>
+                        <span>best {runStats.maxStreak}</span>
+                        <span>·</span>
+                        <span>{Math.round(runStats.completionRate * 100)}% rate</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
         <div className='card'>
           <Heatmap habit={habit} completions={completions} />
         </div>
       </main>
       <Alert
-        title={`Delete "${parseHabitEmoji(habit.name).cleanName}"?`}
+        title={`Archive "${cleanName}"?`}
+        description={
+          'This habit will be hidden from your daily view. Your history is preserved and you can restore it any time.' +
+          (groupRef ? `\n\nIt will also be removed from ${groupRef.name}.` : '')
+        }
+        confirm='Archive'
+        cancel='Cancel'
+        open={archiveOpen}
+        variant='primary'
+        onOpenChange={open =>
+          dispatch({ type: open ? 'OPEN_ARCHIVE_MODAL' : 'CLOSE_ARCHIVE_MODAL' })
+        }
+        onConfirm={() => {
+          void (async () => {
+            await archiveHabit(habit);
+            void navigate('/');
+          })();
+        }}
+      />
+      <Alert
+        title={`Delete "${cleanName}"?`}
         description={
           'Are you sure you want to delete this habit?\n\nThis will remove all your progress. This cannot be undone.'
         }

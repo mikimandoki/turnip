@@ -76,3 +76,54 @@
 .heatmapPad {
   background: transparent;
 }
+
+.heatmapArchived {
+  background: var(--color-background-secondary);
+  opacity: 0.5;
+}
+
+.heatmapArchived .heatmapDayNumber {
+  color: var(--color-text-tertiary);
+}
+
+.heatmapInactiveLabel {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-sm);
+  font-style: italic;
+}
+
+.heatmapLegend {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-md);
+}
+
+.heatmapLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legendSwatchActive {
+  background: var(--color-accent);
+}
+
+.legendSwatchArchived {
+  background: var(--color-background-secondary);
+  opacity: 0.5;
+}
+
+.legendSwatchEmpty {
+  background: var(--color-background-tertiary);
+}

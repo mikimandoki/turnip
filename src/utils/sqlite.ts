@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 6;
 
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
@@ -159,6 +159,15 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       await db.execute(`ALTER TABLE habits ADD COLUMN groupId TEXT REFERENCES habit_groups(id)`);
     }
     await db.run(`PRAGMA user_version = 5`);
+  }
+
+  if (currentVersion < 6) {
+    const h6 = await db.query(`PRAGMA table_info(habits)`);
+    const hCols6 = new Set((h6.values ?? []).map((r: { name: string }) => r.name));
+    if (!hCols6.has('archive_runs')) {
+      await db.execute(`ALTER TABLE habits ADD COLUMN archive_runs TEXT DEFAULT '[]'`);
+    }
+    await db.run(`PRAGMA user_version = 6`);
   }
 }
 

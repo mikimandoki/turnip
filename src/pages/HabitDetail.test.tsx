@@ -69,8 +69,12 @@ function mockContext(overrides: Partial<HabitContextType> = {}) {
   vi.mocked(useHabitContext).mockReturnValue({
     habits: [habit],
     completions: [],
+    groups: [],
     deleteHabit,
     editHabit,
+    archiveHabit: vi.fn(),
+    restoreHabit: vi.fn(),
+    isHabitArchived: vi.fn(() => false),
     recheckNotificationPermission: vi.fn(),
     ...overrides,
   } as unknown as HabitContextType);

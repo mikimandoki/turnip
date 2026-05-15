@@ -25,6 +25,13 @@ export const HabitGroupSchema = z.object({
 
 export type HabitGroup = z.infer<typeof HabitGroupSchema>;
 
+export const ArchiveRunSchema = z.object({
+  archivedAt: z.string(),
+  restoredAt: z.string().optional(),
+});
+
+export type ArchiveRun = z.infer<typeof ArchiveRunSchema>;
+
 export const HabitSchema = z.object({
   id: z.string(),
   name: z.string().min(1),
@@ -45,6 +52,7 @@ export const HabitSchema = z.object({
       monthDays: z.array(z.number().min(1).max(31)).default([]),
     })
     .optional(),
+  archiveRuns: z.array(ArchiveRunSchema).optional(),
 });
 
 // A habit the user wants to track
@@ -70,6 +78,7 @@ export const HabitRowSchema = z.object({
   notif_customMessage: z.string().nullable(),
   notif_intervalN: z.number().nullable(),
   notif_intervalUnit: z.enum(['days', 'weeks']).nullable(),
+  archive_runs: z.string().nullable(),
 });
 
 export type HabitRowFromDB = z.infer<typeof HabitRowSchema>;
@@ -119,6 +128,8 @@ export type DataTestId =
 export type AriaLabel =
   | 'Add habit'
   | 'Add new habit'
+  | 'Archived habits'
+  | 'Archive habit'
   | 'Cancel edits'
   | 'Collapse group'
   | 'Custom notification message'

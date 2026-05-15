@@ -150,3 +150,45 @@
   color: var(--color-text-secondary);
   margin-top: var(--spacing-sm);
 }
+
+.prevRunsToggle {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--spacing-sm) 0;
+}
+
+.prevRunsToggle:hover {
+  opacity: 0.7;
+}
+
+.prevRunsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border-top: 0.5px solid var(--color-border-secondary);
+  padding-top: var(--spacing-md);
+}
+
+.prevRunEntry {
+  font-size: 13px;
+}
+
+.prevRunDates {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.prevRunStats {
+  display: flex;
+  gap: 6px;
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
