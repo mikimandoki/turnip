@@ -15,6 +15,7 @@ import { isDevUI } from '../utils/dev';
 import { openAppSettings } from '../utils/localNotifications';
 import { clearAllLogs, exportLogsToFile, getLogCount } from '../utils/logger';
 import { supabase } from '../utils/supabase';
+import { isSupabasePausedError } from '../utils/supabaseMonitor';
 import { isNative } from '../utils/utils';
 import styles from './SettingsPage.module.css';
 
@@ -61,6 +62,14 @@ export default function SettingsPage() {
     state: 'error' | 'ok' | 'warning';
   } | null>(null);
   const [logCount, setLogCount] = useState<number | null>(null);
+
+  function toUserFriendlyAuthError(error: unknown): string {
+    if (isSupabasePausedError(error)) {
+      return 'Could not connect to cloud backup — the service is temporarily unavailable. Try again later.';
+    }
+    if (error instanceof Error) return error.message;
+    return String(error);
+  }
 
   // --- Auth state ---
   const [user, setUser] = useState<User | null>(null);
@@ -112,7 +121,7 @@ export default function SettingsPage() {
     });
     setAuthLoading(false);
     if (newError) {
-      setAuthError(newError.message);
+      setAuthError(toUserFriendlyAuthError(newError));
       return;
     }
     setAuthStep('check-inbox');
@@ -124,7 +133,7 @@ export default function SettingsPage() {
     const { error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
     setAuthLoading(false);
     if (error) {
-      setAuthError(error.message);
+      setAuthError(toUserFriendlyAuthError(error));
       return;
     }
     setAuthStep('idle');
@@ -147,7 +156,7 @@ export default function SettingsPage() {
       setAuthLoading(false);
 
       if (error) {
-        setAuthError(error.message);
+        setAuthError(toUserFriendlyAuthError(error));
         return;
       }
 
