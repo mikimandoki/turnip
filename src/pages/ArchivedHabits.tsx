@@ -41,10 +41,16 @@ export default function ArchivedHabits() {
   return (
     <main className='app'>
       <header className='header'>
-        <button className='btn-action' onClick={() => void navigate('/')} aria-label='Go back'>
+        <button
+          className='btn-action'
+          onClick={() => void navigate('/')}
+          aria-label='Navigate back'
+        >
           <ChevronLeft size={16} />
         </button>
-        <h1 className='header-title'>Archived</h1>
+        <div className='header-title header-title-centered'>
+          <h1>Archive</h1>
+        </div>
       </header>
 
       {archivedHabits.length === 0 ? (

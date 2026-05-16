@@ -384,7 +384,6 @@ function DailyViewInner() {
         }}
         onCancel={() => setPendingGroup(null)}
       />
-
     </main>
   );
 }
