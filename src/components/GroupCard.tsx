@@ -55,7 +55,12 @@ export default function GroupCard({
       data-group-card={group.id}
       data-habit-index={index}
     >
-      <button className={styles.groupHeader} onClick={() => setExpanded(x => !x)}>
+      <div
+        className={styles.groupHeader}
+        onClick={() => setExpanded(x => !x)}
+        role='button'
+        tabIndex={0}
+      >
         <span className={styles.groupChevron}>
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </span>
@@ -78,7 +83,7 @@ export default function GroupCard({
         >
           <Info size={16} />
         </button>
-      </button>
+      </div>
 
       {expanded && (
         <div className={styles.groupHabits}>
