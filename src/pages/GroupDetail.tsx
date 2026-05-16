@@ -33,7 +33,7 @@ export default function GroupDetail() {
   const group = groups.find(g => g.id === id);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(group ? parseHabitEmoji(group.name).cleanName : '');
+  const [editName, setEditName] = useState(group?.name ?? '');
   const [errors, setErrors] = useState<string[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [placeholder] = useState(
@@ -104,15 +104,13 @@ export default function GroupDetail() {
                     className='btn-action'
                     onClick={() => {
                       void (async () => {
-                        const fullName = editName.trim();
-                        const withEmoji = emoji !== '🌱' ? `${emoji} ${fullName}` : fullName;
-                        const inputErrors = validateGroupName(withEmoji);
+                        const inputErrors = validateGroupName(editName);
                         if (inputErrors.length > 0) {
                           setErrors(inputErrors);
                           return;
                         }
                         setErrors([]);
-                        await editGroup(grp.id, { name: withEmoji });
+                        await editGroup(grp.id, { name: editName.trim() });
                         setIsEditing(false);
                       })();
                     }}
@@ -124,7 +122,7 @@ export default function GroupDetail() {
                     className='btn-action'
                     aria-label='Cancel edits'
                     onClick={() => {
-                      setEditName(cleanName);
+                      setEditName(group.name);
                       setErrors([]);
                       setIsEditing(false);
                     }}
@@ -137,7 +135,7 @@ export default function GroupDetail() {
                   <button
                     className='btn-action'
                     onClick={() => {
-                      setEditName(cleanName);
+                      setEditName(group.name);
                       setIsEditing(true);
                     }}
                     aria-label='Edit group'
