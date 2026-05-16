@@ -147,20 +147,6 @@ export default function Heatmap({
           );
         })}
       </div>
-      <div className={styles.heatmapLegend}>
-        <div className={styles.heatmapLegendItem}>
-          <div className={`${styles.legendSwatch} ${styles.legendSwatchActive}`} />
-          <span>Active</span>
-        </div>
-        <div className={styles.heatmapLegendItem}>
-          <div className={`${styles.legendSwatch} ${styles.legendSwatchArchived}`} />
-          <span>Archived</span>
-        </div>
-        <div className={styles.heatmapLegendItem}>
-          <div className={`${styles.legendSwatch} ${styles.legendSwatchEmpty}`} />
-          <span>Not logged</span>
-        </div>
-      </div>
     </>
   );
 }

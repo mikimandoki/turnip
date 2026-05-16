@@ -4,11 +4,9 @@ import { useNavigate } from 'react-router';
 
 import type { Completion, Habit } from '../types';
 
-import Alert from '../components/Alert';
 import GroupCard from '../components/GroupCard';
 import GroupDialog from '../components/GroupDialog';
 import HabitCard from '../components/HabitCard';
-import { HabitEmoji } from '../components/HabitEmoji';
 import ReorderIndicator from '../components/ReorderIndicator';
 import { type SectionItem, useHabitContext } from '../contexts/useHabitContext';
 import DevButtons from '../dev/DevButtons';
@@ -16,7 +14,7 @@ import { DragDropProvider } from '../hooks/useDragDrop';
 import { type DropInfo, useDragDropContext } from '../hooks/useDragDropContext';
 import { namedDayOrDate, toDateString } from '../utils/date';
 import { isDevUI } from '../utils/dev';
-import { calculateHabitStats, getArchiveRuns, getCompletionsInPeriod, parseHabitEmoji } from '../utils/habits';
+import { getCompletionsInPeriod } from '../utils/habits';
 import { getDB } from '../utils/sqlite';
 import styles from './DailyView.module.css';
 
@@ -32,9 +30,6 @@ function DailyViewInner() {
     groups,
     displayDate,
     hasOnboarded,
-    deleteHabit,
-    restoreHabit,
-    isHabitArchived,
     reorderItems,
     reorderWithinGroup,
     createGroup,
@@ -52,13 +47,8 @@ function DailyViewInner() {
   const [pendingGroup, setPendingGroup] = useState<{ sourceId: string; targetId: string } | null>(
     null
   );
-  const [showArchived, setShowArchived] = useState(false);
-  const [restoreConfirmId, setRestoreConfirmId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const visibleHabits = habits.filter(
-    h => h.createdAt <= toDateString(displayDate) && !isHabitArchived(h)
-  );
+  const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
   const standaloneHabits = [...visibleHabits.filter(h => !h.groupId)].sort(
     (a, b) => a.sortOrder - b.sortOrder
   );
@@ -116,12 +106,6 @@ function DailyViewInner() {
     });
     return items;
   }, [standaloneHabits, visibleGroups]);
-
-  const archivedHabits = useMemo(
-    () =>
-      habits.filter(h => h.createdAt <= toDateString(displayDate) && isHabitArchived(h)),
-    [habits, displayDate, isHabitArchived]
-  );
 
   const groupHabitsMap = useMemo(() => {
     const map = new Map<string, Habit[]>();
@@ -317,7 +301,7 @@ function DailyViewInner() {
         </div>
       )}
 
-      {habits.length > 0 && !showArchived && (
+      {habits.length > 0 && (
         <>
           <div className={styles.habitList}>
             {sections.map((item, index) => (
@@ -348,60 +332,6 @@ function DailyViewInner() {
         </>
       )}
 
-      {showArchived && (
-        <div className={styles.habitList}>
-          {archivedHabits.length === 0 ? (
-            <div className='card'>
-              <p className={styles.onboarding}>No archived habits.</p>
-            </div>
-          ) : (
-            archivedHabits.map(archived => {
-              const runs = getArchiveRuns(archived.createdAt, archived.archiveRuns);
-              const lastRunData = runs[runs.length - 1];
-              const runEnd = lastRunData?.end ?? archived.createdAt;
-              const runStart = lastRunData?.start ?? archived.createdAt;
-              const stats = calculateHabitStats(archived, completions, new Date(runEnd), archived.archiveRuns);
-              const { emoji, cleanName } = parseHabitEmoji(archived.name);
-              return (
-                <div key={archived.id} className='card'>
-                  <div className={styles.archivedCard}>
-                    <HabitEmoji emoji={emoji} />
-                    <div className={styles.archivedInfo}>
-                      <div className={styles.archivedName}>{cleanName}</div>
-                      <div className={styles.archivedStats}>
-                        {stats.currentStreak > 0 && `${stats.currentStreak} streak`}
-                        {stats.currentStreak > 0 && stats.completedPeriods > 0 && ' · '}
-                        {stats.completedPeriods > 0 && `${stats.completedPeriods} completions`}
-                        {stats.completedPeriods === 0 && 'No completions'}
-                      </div>
-                      <div className={styles.archivedDates}>
-                        {runStart} – {runEnd}
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.archivedActions}>
-                    <button
-                      className='btn-base btn-primary btn-sm'
-                      onClick={() => setRestoreConfirmId(archived.id)}
-                      aria-label={`Restore ${cleanName}`}
-                    >
-                      Restore
-                    </button>
-                    <button
-                      className='btn-base btn-ghost btn-sm'
-                      onClick={() => setDeleteConfirmId(archived.id)}
-                      aria-label={`Delete ${cleanName}`}
-                    >
-                      Delete Permanently
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
       <div className='btn-row'>
         <button
           className={styles.btnAddHabit}
@@ -410,16 +340,14 @@ function DailyViewInner() {
         >
           Add new habit
         </button>
-        {archivedHabits.length > 0 && (
-          <button
-            className={styles.btnArchived}
-            onClick={() => setShowArchived(!showArchived)}
-            aria-label='Archived habits'
-          >
-            <Archive size={14} />
-            {showArchived ? 'Active' : 'Archived'}
-          </button>
-        )}
+        <button
+          className={styles.btnArchived}
+          onClick={() => void navigate('/archived')}
+          aria-label='Archived habits'
+        >
+          <Archive size={14} />
+          Archived
+        </button>
         <button
           className='btn-action'
           onClick={toggleDarkMode}
@@ -454,39 +382,6 @@ function DailyViewInner() {
         onCancel={() => setPendingGroup(null)}
       />
 
-      <Alert
-        title='Restore habit?'
-        description='Your previous history is preserved but stats will restart from today.'
-        confirm='Restore'
-        cancel='Cancel'
-        open={restoreConfirmId !== null}
-        variant='primary'
-        onOpenChange={open => {
-          if (!open) setRestoreConfirmId(null);
-        }}
-        onConfirm={() => {
-          const h = habits.find(hh => hh.id === restoreConfirmId);
-          if (h) void restoreHabit(h);
-          setRestoreConfirmId(null);
-          setShowArchived(false);
-        }}
-      />
-
-      <Alert
-        title='Delete permanently?'
-        description='This will remove all progress for this habit. This cannot be undone.'
-        confirm='Delete'
-        cancel='Cancel'
-        open={deleteConfirmId !== null}
-        onOpenChange={open => {
-          if (!open) setDeleteConfirmId(null);
-        }}
-        onConfirm={() => {
-          const h = habits.find(hh => hh.id === deleteConfirmId);
-          if (h) void deleteHabit(h);
-          setDeleteConfirmId(null);
-        }}
-      />
     </main>
   );
 }
