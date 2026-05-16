@@ -570,7 +570,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       [
         { statement: `DELETE FROM habits`, values: [] },
         ...demoHabits.map((h, i) => ({
-          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           values: [
             h.id,
             h.name,
@@ -579,6 +579,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             h.frequency.periodLength,
             h.frequency.periodUnit,
             i,
+            h.archiveRuns ? JSON.stringify(h.archiveRuns) : '[]',
           ],
         })),
         ...demoCompletions.map(c => ({
