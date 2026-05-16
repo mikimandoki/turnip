@@ -117,9 +117,7 @@ export default function Heatmap({
           <ChevronRight size={16} />
         </button>
       </div>
-      {allDaysArchived && (
-        <div className={styles.heatmapInactiveLabel}>Inactive period</div>
-      )}
+      {allDaysArchived && <div className={styles.heatmapInactiveLabel}>Inactive period</div>}
       <div className={styles.heatmap}>
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
           <div key={i} className={styles.heatmapDow}>
@@ -133,7 +131,8 @@ export default function Heatmap({
           const dateStr = toDateString(day);
           const count = completionMap.get(dateStr) ?? 0;
           const periodComplete = completedPeriods.has(startDatePeriod(habit, day));
-          const archived = dateStr >= habit.createdAt && isInArchivedInterval(dateStr, habit.archiveRuns);
+          const archived =
+            dateStr >= habit.createdAt && isInArchivedInterval(dateStr, habit.archiveRuns);
           const label =
             `${format(day, 'MMMM d')}: ${count} of ${habit.frequency.times} completion${habit.frequency.times === 1 ? '' : 's'}` as AriaLabel;
           return (
