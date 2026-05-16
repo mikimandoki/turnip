@@ -86,3 +86,8 @@ export function isTimeInPast(hh: number, mm: number, date: Date): boolean {
   inputDate.setHours(hh, mm, 0, 0);
   return isPast(inputDate);
 }
+
+export function formatDate(dateStr: string): string {
+  const d = parseISO(dateStr);
+  return isThisYear(d) ? format(d, 'MMM d') : format(d, 'MMM d, yyyy');
+}

@@ -29,10 +29,7 @@ export function getActiveIntervals(
   return intervals;
 }
 
-export function isInArchivedInterval(
-  dateStr: string,
-  archiveRuns?: ArchiveRun[]
-): boolean {
+export function isInArchivedInterval(dateStr: string, archiveRuns?: ArchiveRun[]): boolean {
   if (!archiveRuns || archiveRuns.length === 0) return false;
   for (const run of archiveRuns) {
     if (dateStr > run.archivedAt && (!run.restoredAt || dateStr < run.restoredAt)) {

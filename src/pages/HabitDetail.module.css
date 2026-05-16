@@ -177,18 +177,26 @@
 }
 
 .prevRunEntry {
-  font-size: 13px;
 }
 
 .prevRunDates {
-  color: var(--color-text-secondary);
   font-size: 12px;
-  margin-bottom: 2px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
 }
 
 .prevRunStats {
-  display: flex;
-  gap: 6px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.prevRunStats strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.prevRunDot {
+  margin: 0 6px;
   color: var(--color-text-tertiary);
-  font-size: 12px;
 }

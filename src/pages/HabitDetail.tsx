@@ -1,6 +1,15 @@
 import { parseISO } from 'date-fns';
-import { Archive, Check, ChevronDown, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
-import { useMemo, useReducer, useState } from 'react';
+import {
+  Archive,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import type { Frequency } from '../types';
@@ -10,7 +19,7 @@ import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
-import { namedDayOrDate, toDateString } from '../utils/date';
+import { formatDate, namedDayOrDate, toDateString } from '../utils/date';
 import {
   calculateHabitStats,
   describeFrequency,
@@ -150,12 +159,13 @@ export default function HabitDetail() {
   const groupRef = habit?.groupId ? groups.find(g => g.id === habit.groupId) : null;
   const archiveRuns = habit ? getArchiveRuns(habit.createdAt, habit.archiveRuns) : [];
 
-  const habitStats = useMemo(() => {
-    if (!habit) return undefined;
-    const lastArchivedAt = habit.archiveRuns?.[habit.archiveRuns.length - 1]?.archivedAt;
-    const refDate = archived && lastArchivedAt ? lastArchivedAt : toDateString(new Date());
-    return calculateHabitStats(habit, completions, parseISO(refDate), habit.archiveRuns);
-  }, [habit, completions, archived]);
+  const habitStats = habit
+    ? (() => {
+        const lastArchivedAt = habit.archiveRuns?.[habit.archiveRuns.length - 1]?.archivedAt;
+        const refDate = archived && lastArchivedAt ? lastArchivedAt : toDateString(new Date());
+        return calculateHabitStats(habit, completions, parseISO(refDate), habit.archiveRuns);
+      })()
+    : undefined;
 
   const [
     {
@@ -187,9 +197,7 @@ export default function HabitDetail() {
   if (!habit) return <div>Habit not found</div>;
 
   const isNonSimpleDaily = habit.frequency.times > 1 || habit.frequency.periodUnit !== 'day';
-  const timesLogged = isNonSimpleDaily
-    ? getTotalCompletions(habit, completions, new Date())
-    : null;
+  const timesLogged = isNonSimpleDaily ? getTotalCompletions(habit, completions, new Date()) : null;
   const avgPerPeriod =
     timesLogged !== null && habitStats && habitStats.totalPeriods > 0
       ? Math.round((timesLogged / habitStats.totalPeriods) * 10) / 10
@@ -468,19 +476,25 @@ export default function HabitDetail() {
                     habit,
                     completions,
                     parseISO(run.end),
-                    undefined
+                    habit.archiveRuns
                   );
                   return (
                     <div key={i} className={styles.prevRunEntry}>
                       <div className={styles.prevRunDates}>
-                        {run.start} → {run.end}
+                        {formatDate(run.start)} – {formatDate(run.end)}
                       </div>
                       <div className={styles.prevRunStats}>
-                        <span>{runStats.completedPeriods} completions</span>
-                        <span>·</span>
-                        <span>best {runStats.maxStreak}</span>
-                        <span>·</span>
-                        <span>{Math.round(runStats.completionRate * 100)}% rate</span>
+                        <span>
+                          Completions: <strong>{runStats.completedPeriods}</strong>
+                        </span>
+                        <span className={styles.prevRunDot}>·</span>
+                        <span>
+                          Best streak: <strong>{runStats.maxStreak}</strong>
+                        </span>
+                        <span className={styles.prevRunDot}>·</span>
+                        <span>
+                          Rate: <strong>{Math.round(runStats.completionRate * 100)}%</strong>
+                        </span>
                       </div>
                     </div>
                   );

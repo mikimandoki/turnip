@@ -176,4 +176,6 @@ export type AriaLabel =
   | `${number} of ${number} completions`
   | `${string}, remove`
   | `${string}: ${number} of ${number} completion`
-  | `${string}: ${number} of ${number} completions`;
+  | `${string}: ${number} of ${number} completions`
+  | `Delete ${string}`
+  | `Restore ${string}`;
