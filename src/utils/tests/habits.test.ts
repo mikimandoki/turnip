@@ -588,52 +588,38 @@ describe('isInArchivedInterval', () => {
   });
 
   it('returns false for dates before archive date', () => {
-    expect(
-      isInArchivedInterval('2026-01-15', [{ archivedAt: '2026-02-01' }])
-    ).toBe(false);
+    expect(isInArchivedInterval('2026-01-15', [{ archivedAt: '2026-02-01' }])).toBe(false);
   });
 
   it('returns false for archive date itself (still active)', () => {
-    expect(
-      isInArchivedInterval('2026-02-01', [{ archivedAt: '2026-02-01' }])
-    ).toBe(false);
+    expect(isInArchivedInterval('2026-02-01', [{ archivedAt: '2026-02-01' }])).toBe(false);
   });
 
   it('returns true for dates after archive date (no restore)', () => {
-    expect(
-      isInArchivedInterval('2026-02-15', [{ archivedAt: '2026-02-01' }])
-    ).toBe(true);
+    expect(isInArchivedInterval('2026-02-15', [{ archivedAt: '2026-02-01' }])).toBe(true);
   });
 
   it('returns false for dates after restore date', () => {
     expect(
-      isInArchivedInterval('2026-03-15', [
-        { archivedAt: '2026-02-01', restoredAt: '2026-03-01' },
-      ])
+      isInArchivedInterval('2026-03-15', [{ archivedAt: '2026-02-01', restoredAt: '2026-03-01' }])
     ).toBe(false);
   });
 
   it('returns true for dates between archive and restore', () => {
     expect(
-      isInArchivedInterval('2026-02-15', [
-        { archivedAt: '2026-02-01', restoredAt: '2026-03-01' },
-      ])
+      isInArchivedInterval('2026-02-15', [{ archivedAt: '2026-02-01', restoredAt: '2026-03-01' }])
     ).toBe(true);
   });
 
   it('returns false for archive date itself (multiple cycles)', () => {
     expect(
-      isInArchivedInterval('2026-02-01', [
-        { archivedAt: '2026-02-01', restoredAt: '2026-03-01' },
-      ])
+      isInArchivedInterval('2026-02-01', [{ archivedAt: '2026-02-01', restoredAt: '2026-03-01' }])
     ).toBe(false);
   });
 
   it('returns false for restore date (active from that day)', () => {
     expect(
-      isInArchivedInterval('2026-03-01', [
-        { archivedAt: '2026-02-01', restoredAt: '2026-03-01' },
-      ])
+      isInArchivedInterval('2026-03-01', [{ archivedAt: '2026-02-01', restoredAt: '2026-03-01' }])
     ).toBe(false);
   });
 });
@@ -651,12 +637,8 @@ describe('getArchiveRuns', () => {
 
   it('returns one past run after one archive-restore cycle', () => {
     expect(
-      getArchiveRuns('2026-01-01', [
-        { archivedAt: '2026-02-01', restoredAt: '2026-03-01' },
-      ])
-    ).toEqual([
-      { start: '2026-01-01', end: '2026-02-01' },
-    ]);
+      getArchiveRuns('2026-01-01', [{ archivedAt: '2026-02-01', restoredAt: '2026-03-01' }])
+    ).toEqual([{ start: '2026-01-01', end: '2026-02-01' }]);
   });
 
   it('stops after the last archive when currently archived', () => {
@@ -752,10 +734,16 @@ describe('calculateHabitStats with archiveRuns', () => {
     // archived 01-14, restored 01-20
     // third run (current): 2-day streak (01-20 to 01-21), 01-22 not done
     const completions = [
-      c('h1', '2026-01-01'), c('h1', '2026-01-02'), c('h1', '2026-01-03'),
-      c('h1', '2026-01-04'), c('h1', '2026-01-05'),
-      c('h1', '2026-01-10'), c('h1', '2026-01-11'), c('h1', '2026-01-12'),
-      c('h1', '2026-01-20'), c('h1', '2026-01-21'),
+      c('h1', '2026-01-01'),
+      c('h1', '2026-01-02'),
+      c('h1', '2026-01-03'),
+      c('h1', '2026-01-04'),
+      c('h1', '2026-01-05'),
+      c('h1', '2026-01-10'),
+      c('h1', '2026-01-11'),
+      c('h1', '2026-01-12'),
+      c('h1', '2026-01-20'),
+      c('h1', '2026-01-21'),
     ];
     const archiveRuns = [
       { archivedAt: '2026-01-06', restoredAt: '2026-01-10' },
@@ -781,8 +769,10 @@ describe('calculateHabitStats with archiveRuns', () => {
     // week of 03-09 (complete), week of 03-16 (archived, no completions), week of 03-23 (current, complete)
     // archive on 03-17 (Tuesday) so 03-16 week counts toward first run, not current run
     const completions = [
-      c('h1', '2026-03-09'), c('h1', '2026-03-10'),
-      c('h1', '2026-03-23'), c('h1', '2026-03-24'),
+      c('h1', '2026-03-09'),
+      c('h1', '2026-03-10'),
+      c('h1', '2026-03-23'),
+      c('h1', '2026-03-24'),
     ];
     const archiveRuns = [{ archivedAt: '2026-03-17', restoredAt: '2026-03-23' }];
     const stats = calculateHabitStats(habit, completions, parseISO('2026-03-27'), archiveRuns);

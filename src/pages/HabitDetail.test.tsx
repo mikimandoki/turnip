@@ -62,6 +62,8 @@ const habit: Habit = {
 
 const habitWithNote: Habit = { ...habit, note: 'My private note' };
 
+const emojiHabit: Habit = { ...habit, name: '💪 Workout' };
+
 let editHabit: ReturnType<typeof vi.fn>;
 let deleteHabit: ReturnType<typeof vi.fn>;
 
@@ -293,6 +295,45 @@ describe('HabitDetail', () => {
       setup();
       const label = screen.getByText('current streak');
       expect(label.parentElement).toHaveTextContent('5');
+    });
+  });
+
+  describe('emoji name', () => {
+    it('displays the emoji in the habit header', () => {
+      mockContext({ habits: [emojiHabit] });
+      setup();
+      expect(screen.getByText('Workout')).toBeInTheDocument();
+    });
+
+    it('pre-fills the name input with the full emoji + name in edit mode', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('💪 Workout');
+    });
+
+    it('saves the edited name including the new emoji', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
+      await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), '🏋️ Lift');
+      await user.click(screen.getByRole('button', { name: 'Save edits' }));
+      expect(editHabit).toHaveBeenCalledWith(
+        emojiHabit,
+        expect.objectContaining({ name: '🏋️ Lift' })
+      );
+    });
+
+    it('restores the original emoji name in the input after cancel', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
+      await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), '🏋️ Lift');
+      await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
+      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('💪 Workout');
     });
   });
 });
