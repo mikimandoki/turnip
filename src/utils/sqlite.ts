@@ -1,7 +1,6 @@
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { defineCustomElements as defineJeepSqlite } from 'jeep-sqlite/loader';
 
-import { logger } from './logger';
 import { isNative } from './utils';
 
 const sqlite = new SQLiteConnection(CapacitorSQLite);
@@ -27,12 +26,26 @@ export async function syncDB() {
  */
 const CURRENT_VERSION = 6;
 
+async function writeMigrationLog(
+  db: SQLiteDBConnection,
+  level: string,
+  tag: string,
+  message: string
+): Promise<void> {
+  try {
+    await db.run(
+      `INSERT INTO app_logs (level, tag, message, data, created_at) VALUES (?, ?, ?, ?, ?)`,
+      [level, tag, message, null, new Date().toISOString()]
+    );
+  } catch {
+    // Migration logger is best-effort — don't let logging failures break the migration.
+  }
+}
+
 async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const versionResult = await db.query(`PRAGMA user_version`);
   const currentVersion =
     (versionResult.values?.[0] as { user_version: number } | undefined)?.user_version ?? 0;
-
-  logger.info('db', `Migration start: v${currentVersion} → v${CURRENT_VERSION}`);
 
   try {
     if (currentVersion < CURRENT_VERSION) {
@@ -94,7 +107,6 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       ];
       for (const [col, def] of additions) {
         if (!existingCols.has(col)) {
-          logger.info('db', `Migration v1: adding column ${col}`);
           await db.execute(`ALTER TABLE habits ADD COLUMN ${col} ${def}`);
         }
       }
@@ -103,7 +115,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 2) {
-      logger.info('db', 'Migration v2: adding updated_at / deleted_at columns');
+      await writeMigrationLog(db, 'info', 'db', 'Migration v2: adding updated_at / deleted_at columns');
       // Add updated_at and deleted_at for sync conflict resolution.
       const h2 = await db.query(`PRAGMA table_info(habits)`);
       const hCols = new Set((h2.values ?? []).map((r: { name: string }) => r.name));
@@ -126,7 +138,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 3) {
-      logger.info('db', 'Migration v3: creating app_logs table');
+      await writeMigrationLog(db, 'info', 'db', 'Migration v3: creating app_logs table');
       await db.execute(`
         CREATE TABLE IF NOT EXISTS app_logs (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,7 +156,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 4) {
-      logger.info('db', 'Migration v4: adding note column');
+      await writeMigrationLog(db, 'info', 'db', 'Migration v4: adding note column');
       const h4 = await db.query(`PRAGMA table_info(habits)`);
       const hCols4 = new Set((h4.values ?? []).map((r: { name: string }) => r.name));
       if (!hCols4.has('note')) {
@@ -154,7 +166,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 5) {
-      logger.info('db', 'Migration v5: creating habit_groups table');
+      await writeMigrationLog(db, 'info', 'db', 'Migration v5: creating habit_groups table');
       await db.execute(`
         CREATE TABLE IF NOT EXISTS habit_groups (
           id TEXT PRIMARY KEY NOT NULL,
@@ -171,7 +183,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 6) {
-      logger.info('db', 'Migration v6: adding archive_runs column');
+      await writeMigrationLog(db, 'info', 'db', 'Migration v6: adding archive_runs column');
       const h6 = await db.query(`PRAGMA table_info(habits)`);
       const hCols6 = new Set((h6.values ?? []).map((r: { name: string }) => r.name));
       if (!hCols6.has('archive_runs')) {
@@ -181,9 +193,14 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       await db.run(`PRAGMA user_version = 6`);
     }
 
-    logger.info('db', 'Migration complete');
+    await writeMigrationLog(db, 'info', 'db', `Migration complete (v${CURRENT_VERSION})`);
   } catch (e) {
-    logger.error('db', 'Migration failed', e);
+    await writeMigrationLog(
+      db,
+      'error',
+      'db',
+      `Migration failed: ${e instanceof Error ? e.message : String(e)}`
+    );
     throw e;
   }
 
@@ -194,7 +211,6 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
   const postCols = new Set((postCheck.values ?? []).map((r: { name: string }) => r.name));
   for (const [col, def] of expectedCols) {
     if (!postCols.has(col)) {
-      logger.warn('db', `Consistency: missing column ${col}, adding now`);
       await db.run(`ALTER TABLE habits ADD COLUMN ${col} ${def}`, []);
     }
   }

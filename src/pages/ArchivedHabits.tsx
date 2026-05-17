@@ -43,7 +43,7 @@ export default function ArchivedHabits() {
       <header className='header'>
         <button
           className='btn-action'
-          onClick={() => void navigate('/')}
+          onClick={() => void navigate('/settings')}
           aria-label='Navigate back'
         >
           <ChevronLeft size={16} />
