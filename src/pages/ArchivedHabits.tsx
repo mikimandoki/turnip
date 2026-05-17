@@ -25,9 +25,7 @@ export default function ArchivedHabits() {
       void restoreHabit(h);
     }
     setRestoreConfirmId(null);
-    if (archivedHabits.length <= 1) {
-      void navigate('/');
-    }
+    void navigate('/');
   }
 
   function handleDelete() {

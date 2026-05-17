@@ -115,7 +115,12 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
     }
 
     if (currentVersion < 2) {
-      await writeMigrationLog(db, 'info', 'db', 'Migration v2: adding updated_at / deleted_at columns');
+      await writeMigrationLog(
+        db,
+        'info',
+        'db',
+        'Migration v2: adding updated_at / deleted_at columns'
+      );
       // Add updated_at and deleted_at for sync conflict resolution.
       const h2 = await db.query(`PRAGMA table_info(habits)`);
       const hCols = new Set((h2.values ?? []).map((r: { name: string }) => r.name));
@@ -187,10 +192,10 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       const h6 = await db.query(`PRAGMA table_info(habits)`);
       const hCols6 = new Set((h6.values ?? []).map((r: { name: string }) => r.name));
       if (!hCols6.has('archive_runs')) {
-        await db.run(`ALTER TABLE habits ADD COLUMN archive_runs TEXT`, []);
-        await db.run(`UPDATE habits SET archive_runs = '[]' WHERE archive_runs IS NULL`, []);
+        await db.execute(`ALTER TABLE habits ADD COLUMN archive_runs TEXT`);
+        await db.execute(`UPDATE habits SET archive_runs = '[]' WHERE archive_runs IS NULL`);
       }
-      await db.run(`PRAGMA user_version = 6`);
+      await db.execute(`PRAGMA user_version = 6`);
     }
 
     await writeMigrationLog(db, 'info', 'db', `Migration complete (v${CURRENT_VERSION})`);
