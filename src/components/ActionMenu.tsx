@@ -23,7 +23,7 @@ export default function ActionMenu({
 }) {
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger className={styles.trigger} aria-label={ariaLabel}>
+      <DropdownMenu.Trigger className={`btn-action ${styles.trigger}`} aria-label={ariaLabel}>
         <EllipsisVertical size={16} />
       </DropdownMenu.Trigger>
 

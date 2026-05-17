@@ -49,4 +49,5 @@ It is necessary to use `pnpm` overrides to pin `sql.js` to the version expected 
 ## Ideas/Feature Requests
 
 - [x] Group habits
-- [ ] Archive habits
+- [x] Archive habits
+- [ ] Custom habit start dates to calculate stats (vs. beginning of week/month etc.)

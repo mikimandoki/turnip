@@ -149,6 +149,14 @@
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }
 
 .prevRunsToggle {
@@ -183,20 +191,30 @@
   font-size: 12px;
   font-weight: 400;
   color: var(--color-text-tertiary);
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.prevRunStats {
-  font-size: 14px;
+.prevRunChips {
+  display: flex;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
-.prevRunStats strong {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.prevRunDot {
-  margin: 0 6px;
+.chip svg {
   color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }

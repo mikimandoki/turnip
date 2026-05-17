@@ -1,12 +1,17 @@
 import { parseISO } from 'date-fns';
 import {
   Archive,
+  CalendarCheck2,
   Check,
+  CheckCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Flame,
   Pencil,
+  Percent,
   Trash2,
+  Trophy,
   X,
 } from 'lucide-react';
 import { useReducer, useState } from 'react';
@@ -20,7 +25,7 @@ import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
-import { formatDate, namedDayOrDate, toDateString } from '../utils/date';
+import { formatDateRange, namedDayOrDateShort, toDateString } from '../utils/date';
 import {
   calculateHabitStats,
   describeFrequency,
@@ -284,7 +289,7 @@ export default function HabitDetail() {
               ))}
               <div className={styles.habitCardSubtitle}>{describeFrequency(habit.frequency)}</div>
               <div className={styles.habitCardSubtitle}>
-                Created {namedDayOrDate(parseISO(habit.createdAt))}
+                Created {namedDayOrDateShort(habit.createdAt)}
               </div>
               {isNative && !isEditing && habit.notification?.enabled && (
                 <div className={styles.habitCardSubtitle}>
@@ -423,31 +428,47 @@ export default function HabitDetail() {
                   ? habitStats.previousStreak
                   : habitStats?.currentStreak}
               </div>
-              <div className={styles.statLabel}>current streak</div>
+              <div className={styles.statLabel}>
+                <Flame size={12} className={styles.statIcon} />
+                current streak
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>{habitStats?.maxStreak}</div>
-              <div className={styles.statLabel}>best streak</div>
+              <div className={styles.statLabel}>
+                <Trophy size={12} className={styles.statIcon} />
+                best streak
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>{habitStats?.completedPeriods}</div>
-              <div className={styles.statLabel}>completions</div>
+              <div className={styles.statLabel}>
+                <CheckCheck size={12} className={styles.statIcon} />
+                completions
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>
                 {Math.round((habitStats?.completionRate ?? 0) * 100)}%
               </div>
-              <div className={styles.statLabel}>completion rate</div>
+              <div className={styles.statLabel}>
+                <Percent size={12} className={styles.statIcon} />
+                completion rate
+              </div>
             </div>
             {isNonSimpleDaily && (
               <>
                 <div className={styles.statBox}>
                   <div className={styles.statValue}>{formatCount(timesLogged!)}</div>
-                  <div className={styles.statLabel}>times logged</div>
+                  <div className={styles.statLabel}>
+                    <Check size={12} className={styles.statIcon} />
+                    times logged
+                  </div>
                 </div>
                 <div className={styles.statBox}>
                   <div className={styles.statValue}>{avgPerPeriod}</div>
                   <div className={styles.statLabel}>
+                    <CalendarCheck2 size={12} className={styles.statIcon} />
                     average per{' '}
                     {habit.frequency.periodLength === 1 ? habit.frequency.periodUnit : 'period'}
                   </div>
@@ -456,13 +477,16 @@ export default function HabitDetail() {
             )}
           </div>
         </div>
+        <div className='card'>
+          <Heatmap habit={habit} completions={completions} />
+        </div>
         {archiveRuns.length > 0 && (
           <div className='card'>
             <button
               className={styles.prevRunsToggle}
               onClick={() => setPrevRunsOpen(!prevRunsOpen)}
             >
-              <span>Previous runs</span>
+              <span>Logbook</span>
               {prevRunsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
             {prevRunsOpen && (
@@ -477,19 +501,20 @@ export default function HabitDetail() {
                   return (
                     <div key={i} className={styles.prevRunEntry}>
                       <div className={styles.prevRunDates}>
-                        {formatDate(run.start)} – {formatDate(run.end)}
-                      </div>
-                      <div className={styles.prevRunStats}>
-                        <span>
-                          Completions: <strong>{runStats.completedPeriods}</strong>
-                        </span>
-                        <span className={styles.prevRunDot}>·</span>
-                        <span>
-                          Best streak: <strong>{runStats.maxStreak}</strong>
-                        </span>
-                        <span className={styles.prevRunDot}>·</span>
-                        <span>
-                          Rate: <strong>{Math.round(runStats.completionRate * 100)}%</strong>
+                        <span>{formatDateRange(run.start, run.end)}</span>
+                        <span className={styles.prevRunChips}>
+                          <span className={styles.chip}>
+                            <CheckCheck size={11} />
+                            {runStats.completedPeriods}
+                          </span>
+                          <span className={styles.chip}>
+                            <Percent size={11} />
+                            {Math.round(runStats.completionRate * 100)}%
+                          </span>
+                          <span className={styles.chip}>
+                            <Trophy size={11} />
+                            {runStats.maxStreak}
+                          </span>
                         </span>
                       </div>
                     </div>
@@ -499,9 +524,6 @@ export default function HabitDetail() {
             )}
           </div>
         )}
-        <div className='card'>
-          <Heatmap habit={habit} completions={completions} />
-        </div>
       </main>
       <Alert
         title={`Archive "${cleanName}"?`}

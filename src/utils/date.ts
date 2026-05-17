@@ -87,7 +87,18 @@ export function isTimeInPast(hh: number, mm: number, date: Date): boolean {
   return isPast(inputDate);
 }
 
-export function formatDate(dateStr: string): string {
+export function namedDayOrDateShort(dateStr: string): string {
   const d = parseISO(dateStr);
-  return isThisYear(d) ? format(d, 'MMM d') : format(d, 'MMM d, yyyy');
+  if (isToday(d)) return 'Today';
+  if (isYesterday(d)) return 'Yesterday';
+  return format(d, 'MMM d, yyyy');
+}
+
+export function formatDateRange(startStr: string, endStr: string): string {
+  const start = parseISO(startStr);
+  const end = parseISO(endStr);
+  if (format(start, 'yyyy') === format(end, 'yyyy')) {
+    return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
+  }
+  return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`;
 }
