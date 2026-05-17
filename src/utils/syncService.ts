@@ -17,6 +17,7 @@ const SyncHabitRowSchema = z.object({
   groupId: z.string().nullable(),
   sortOrder: z.number(),
   updated_at: z.string().nullable(),
+  archive_runs: z.string().nullable(),
 });
 import { logger } from './logger';
 import { supabase } from './supabase';
@@ -53,6 +54,7 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
     period_unit: habit.frequency.periodUnit,
     sort_order: sortOrder,
     group_id: habit.groupId ?? null,
+    archive_runs: habit.archiveRuns ? JSON.stringify(habit.archiveRuns) : null,
     updated_at: now,
     deleted_at: null,
   };
@@ -231,6 +233,7 @@ type RemoteHabitRow = {
   period_unit: string;
   sort_order: number;
   group_id: string | null;
+  archive_runs: string | null;
   updated_at: string;
   deleted_at: string | null;
 };
@@ -265,7 +268,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
-    `SELECT id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at
+    `SELECT id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs
      FROM habits WHERE deleted_at IS NULL`
   );
   const remoteHabits: ReturnType<typeof toRemoteHabit>[] = [];
@@ -287,6 +290,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
       period_unit: row.periodUnit,
       sort_order: row.sortOrder,
       group_id: row.groupId,
+      archive_runs: row.archive_runs,
       updated_at: row.updated_at ?? new Date().toISOString(),
       deleted_at: null,
     });
@@ -428,12 +432,13 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
       ?.updated_at;
     if (!localUpdatedAt || new Date(row.updated_at) >= new Date(localUpdatedAt)) {
       await db.run(
-        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            name = excluded.name, note = excluded.note, times = excluded.times,
            periodLength = excluded.periodLength, periodUnit = excluded.periodUnit,
-           groupId = excluded.groupId, sortOrder = excluded.sortOrder, updated_at = excluded.updated_at`,
+           groupId = excluded.groupId, sortOrder = excluded.sortOrder,
+           updated_at = excluded.updated_at, archive_runs = excluded.archive_runs`,
         [
           row.id,
           row.name,
@@ -445,6 +450,7 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
           row.group_id,
           row.sort_order,
           row.updated_at,
+          row.archive_runs,
         ]
       );
     }

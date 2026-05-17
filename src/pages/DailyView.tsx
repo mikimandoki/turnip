@@ -30,6 +30,7 @@ function DailyViewInner() {
     groups,
     displayDate,
     hasOnboarded,
+    isHabitArchived,
     reorderItems,
     reorderWithinGroup,
     createGroup,
@@ -48,7 +49,9 @@ function DailyViewInner() {
     null
   );
 
-  const visibleHabits = habits.filter(h => h.createdAt <= toDateString(displayDate));
+  const visibleHabits = habits.filter(
+    h => h.createdAt <= toDateString(displayDate) && !isHabitArchived(h)
+  );
   const standaloneHabits = [...visibleHabits.filter(h => !h.groupId)].sort(
     (a, b) => a.sortOrder - b.sortOrder
   );
@@ -331,6 +334,7 @@ function DailyViewInner() {
           </div>
         </>
       )}
+
       <div className='btn-row'>
         <button
           className={styles.btnAddHabit}

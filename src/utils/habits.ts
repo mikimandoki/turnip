@@ -1,9 +1,64 @@
 import { parseISO, subDays } from 'date-fns';
 import emojiRegex from 'emoji-regex-xs';
 
-import type { Completion, Frequency, Habit, HabitGroup, HabitStats } from '../types';
+import type { ArchiveRun, Completion, Frequency, Habit, HabitGroup, HabitStats } from '../types';
 
 import { endDatePeriod, startDatePeriod, toDateString } from './date';
+
+export function getActiveIntervals(
+  createdAt: string,
+  archiveRuns?: ArchiveRun[]
+): { start: string; end: string }[] {
+  if (!archiveRuns || archiveRuns.length === 0) {
+    return [{ start: createdAt, end: '9999-12-31' }];
+  }
+
+  const intervals: { start: string; end: string }[] = [];
+  let lastStart = createdAt;
+
+  for (const run of archiveRuns) {
+    intervals.push({ start: lastStart, end: run.archivedAt });
+    if (run.restoredAt) {
+      lastStart = run.restoredAt;
+    } else {
+      return intervals;
+    }
+  }
+
+  intervals.push({ start: lastStart, end: '9999-12-31' });
+  return intervals;
+}
+
+export function isInArchivedInterval(dateStr: string, archiveRuns?: ArchiveRun[]): boolean {
+  if (!archiveRuns || archiveRuns.length === 0) return false;
+  for (const run of archiveRuns) {
+    if (dateStr > run.archivedAt && (!run.restoredAt || dateStr < run.restoredAt)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function getArchiveRuns(
+  createdAt: string,
+  archiveRuns?: ArchiveRun[]
+): { start: string; end: string }[] {
+  if (!archiveRuns || archiveRuns.length === 0) return [];
+
+  const runs: { start: string; end: string }[] = [];
+  let prevEnd = createdAt;
+
+  for (const ar of archiveRuns) {
+    runs.push({ start: prevEnd, end: ar.archivedAt });
+    if (ar.restoredAt) {
+      prevEnd = ar.restoredAt;
+    } else {
+      break;
+    }
+  }
+
+  return runs;
+}
 
 export function calculateReorder({
   standaloneHabits,
@@ -91,7 +146,8 @@ export function getTotalCompletions(habit: Habit, completions: Completion[], dat
 export function calculateHabitStats(
   habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
   completions: Completion[],
-  date: Date
+  date: Date,
+  archiveRuns?: ArchiveRun[]
 ): HabitStats {
   const runs: number[] = [];
   let currentRun = 0;
@@ -104,26 +160,50 @@ export function calculateHabitStats(
   const todayString = toDateString(date);
   let checkDate = date;
 
+  const intervals = archiveRuns ? getActiveIntervals(habit.createdAt, archiveRuns) : undefined;
+  const currentIntervalIndex = intervals
+    ? intervals.findIndex(i => toDateString(date) >= i.start && toDateString(date) <= i.end)
+    : 0;
+
   while (true) {
     const periodStart = startDatePeriod(habit, checkDate);
     const periodEnd = endDatePeriod(habit, checkDate);
 
     if (periodEnd < habit.createdAt) break;
 
+    const isActive = intervals
+      ? intervals.some(i => periodStart >= i.start && periodStart <= i.end)
+      : true;
+
+    const inCurrentInterval = intervals
+      ? currentIntervalIndex >= 0 &&
+        periodStart >= intervals[currentIntervalIndex].start &&
+        periodStart <= intervals[currentIntervalIndex].end
+      : true;
+
     const count = habitCompletions
       .filter(c => c.date >= periodStart && c.date <= periodEnd && c.date <= todayString)
       .reduce((sum, c) => sum + c.count, 0);
 
-    if (firstPeriodCompleted === null) {
-      firstPeriodCompleted = count >= habit.frequency.times;
-    } else if (secondPeriodCompleted === null) {
-      secondPeriodCompleted = count >= habit.frequency.times;
-    }
-    totalPeriods++;
+    if (isActive) {
+      if (inCurrentInterval) {
+        if (firstPeriodCompleted === null) {
+          firstPeriodCompleted = count >= habit.frequency.times;
+        } else if (secondPeriodCompleted === null) {
+          secondPeriodCompleted = count >= habit.frequency.times;
+        }
+        totalPeriods++;
+        if (count >= habit.frequency.times) {
+          completedPeriods++;
+        }
+      }
 
-    if (count >= habit.frequency.times) {
-      completedPeriods++;
-      currentRun++;
+      if (count >= habit.frequency.times) {
+        currentRun++;
+      } else {
+        if (currentRun > 0) runs.push(currentRun);
+        currentRun = 0;
+      }
     } else {
       if (currentRun > 0) runs.push(currentRun);
       currentRun = 0;

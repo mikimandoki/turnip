@@ -4,6 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ToastProvider } from './components/Toast';
 import { HabitProvider } from './contexts/habitContext';
 import AddHabitPage from './pages/AddHabitPage';
+import ArchivedHabits from './pages/ArchivedHabits';
 import DailyView from './pages/DailyView';
 import GroupDetail from './pages/GroupDetail';
 import HabitDetail from './pages/HabitDetail';
@@ -20,6 +21,7 @@ export default function App() {
           <HabitProvider>
             <Routes>
               <Route path='/' element={<DailyView />} />
+              <Route path='/archived' element={<ArchivedHabits />} />
               <Route path='/habit/:id' element={<HabitDetail />} />
               <Route path='/group/:id' element={<GroupDetail />} />
               <Route path='/add' element={<AddHabitPage />} />

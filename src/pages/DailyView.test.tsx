@@ -53,6 +53,7 @@ const baseContext = {
   displayDate: new Date('2026-04-11'),
   hasOnboarded: true,
   updateCompletion: vi.fn(),
+  isHabitArchived: vi.fn(() => false),
   reorderHabits: vi.fn(),
   createGroup: vi.fn(),
   shiftDate: mockShiftDate,

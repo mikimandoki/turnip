@@ -1,4 +1,4 @@
-import type { Completion, Habit } from '../types';
+import type { ArchiveRun, Completion, Habit } from '../types';
 
 export function generateDemoData(): { habits: Habit[]; completions: Completion[] } {
   const today = new Date();
@@ -8,6 +8,10 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
     d.setDate(d.getDate() - n);
     return d.toISOString().split('T')[0];
   }
+
+  const archivedAt = daysAgo(30);
+  const restoredAt = daysAgo(15);
+  const archiveRun: ArchiveRun = { archivedAt, restoredAt };
 
   const habits: Habit[] = [
     {
@@ -45,6 +49,14 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       frequency: { times: 1, periodLength: 2, periodUnit: 'week' },
       createdAt: daysAgo(60),
     },
+    {
+      id: 'demo-6',
+      name: '💊 Vitamins',
+      sortOrder: 5,
+      frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
+      createdAt: daysAgo(60),
+      archiveRuns: [archiveRun],
+    },
   ];
 
   const completions: Completion[] = [];
@@ -71,6 +83,18 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
     const weekNum = Math.floor(i / 7);
     const targetDow = weekNum % 4 === 0 ? 6 : weekNum % 4 === 2 ? 0 : -1;
     if (dow === targetDow) completions.push({ habitId: 'demo-5', date, count: 1 });
+
+    // Vitamins: archived for ~14 days mid-run (days 30-16 ago are archived)
+    const daysAgoFromToday = i;
+    if (daysAgoFromToday > 30 && daysAgoFromToday <= 60) {
+      if (Math.random() < 0.8) completions.push({ habitId: 'demo-6', date, count: 1 });
+    }
+    if (daysAgoFromToday >= 0 && daysAgoFromToday < 15) {
+      if (Math.random() < 0.8) completions.push({ habitId: 'demo-6', date, count: 1 });
+    }
+    if (daysAgoFromToday === 30 || daysAgoFromToday === 15) {
+      if (Math.random() < 0.8) completions.push({ habitId: 'demo-6', date, count: 1 });
+    }
   }
 
   return { habits, completions };

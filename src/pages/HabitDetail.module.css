@@ -149,4 +149,69 @@
   font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statIcon {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.prevRunsToggle {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--spacing-sm) 0;
+}
+
+.prevRunsToggle:hover {
+  opacity: 0.7;
+}
+
+.prevRunsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border-top: 0.5px solid var(--color-border-secondary);
+  padding-top: var(--spacing-md);
+}
+
+.prevRunDates {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.prevRunChips {
+  display: flex;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.chip svg {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
 }

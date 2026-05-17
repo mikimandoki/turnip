@@ -19,6 +19,9 @@ export interface HabitContextType {
   addHabit: (habit: Habit) => Promise<void>;
   updateCompletion: (habitId: string, increment: number) => Promise<void>;
   deleteHabit: (habit: Habit) => Promise<void>;
+  archiveHabit: (habit: Habit) => Promise<void>;
+  restoreHabit: (habit: Habit) => Promise<void>;
+  isHabitArchived: (habit: Habit) => boolean;
   editHabit: (habit: Habit, updates: Partial<Habit>) => Promise<void>;
   shiftDate: (days: number) => void;
   setDate: (dateString: string | null) => void;

@@ -76,3 +76,20 @@
 .heatmapPad {
   background: transparent;
 }
+
+.heatmapArchived {
+  background: var(--color-background-secondary);
+  opacity: 0.5;
+}
+
+.heatmapArchived .heatmapDayNumber {
+  color: var(--color-text-tertiary);
+}
+
+.heatmapInactiveLabel {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-sm);
+  font-style: italic;
+}

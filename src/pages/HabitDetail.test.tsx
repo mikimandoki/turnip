@@ -62,6 +62,8 @@ const habit: Habit = {
 
 const habitWithNote: Habit = { ...habit, note: 'My private note' };
 
+const emojiHabit: Habit = { ...habit, name: '💪 Workout' };
+
 let editHabit: ReturnType<typeof vi.fn>;
 let deleteHabit: ReturnType<typeof vi.fn>;
 
@@ -69,8 +71,12 @@ function mockContext(overrides: Partial<HabitContextType> = {}) {
   vi.mocked(useHabitContext).mockReturnValue({
     habits: [habit],
     completions: [],
+    groups: [],
     deleteHabit,
     editHabit,
+    archiveHabit: vi.fn(),
+    restoreHabit: vi.fn(),
+    isHabitArchived: vi.fn(() => false),
     recheckNotificationPermission: vi.fn(),
     ...overrides,
   } as unknown as HabitContextType);
@@ -80,6 +86,16 @@ function setup() {
   const user = userEvent.setup();
   render(<HabitDetail />);
   return { user };
+}
+
+async function openEdit(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Habit actions' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
+}
+
+async function openDelete(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Habit actions' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
 }
 
 beforeEach(() => {
@@ -116,13 +132,13 @@ describe('HabitDetail', () => {
   describe('edit mode', () => {
     it('pre-fills the name input with the current habit name', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('Exercise');
     });
 
     it('calls editHabit with trimmed name and exits edit mode on save', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), '  Running  ');
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
@@ -133,7 +149,7 @@ describe('HabitDetail', () => {
     it('shows validation errors and does not call editHabit', async () => {
       vi.mocked(validateInputs).mockReturnValueOnce(['Name is required']);
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
       expect(screen.getByText('Name is required')).toBeInTheDocument();
@@ -144,20 +160,20 @@ describe('HabitDetail', () => {
   describe('edit cancel', () => {
     it('restores original name when re-entering edit mode after cancel', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), 'New Name');
       await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('Exercise');
     });
 
     it('name input is not empty when re-entering edit mode after cancel', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
       await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Habit name input' })).not.toHaveValue('');
     });
   });
@@ -165,13 +181,13 @@ describe('HabitDetail', () => {
   describe('delete', () => {
     it('opens delete confirmation modal on delete button click', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete habit' }));
+      await openDelete(user);
       expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     });
 
     it('calls deleteHabit and navigates to / on confirm', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete habit' }));
+      await openDelete(user);
       await user.click(screen.getByRole('button', { name: 'Delete' }));
       await waitFor(() => expect(deleteHabit).toHaveBeenCalledWith(habit));
       expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -179,7 +195,7 @@ describe('HabitDetail', () => {
 
     it('closes modal without deleting on cancel', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete habit' }));
+      await openDelete(user);
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
       expect(deleteHabit).not.toHaveBeenCalled();
@@ -201,20 +217,20 @@ describe('HabitDetail', () => {
 
     it('shows note textarea in edit mode even when habit has no note', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Note' })).toBeInTheDocument();
     });
 
     it('pre-fills note textarea with the existing note', async () => {
       mockContext({ habits: [habitWithNote] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('My private note');
     });
 
     it('calls editHabit with the typed note', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.type(screen.getByRole('textbox', { name: 'Note' }), 'New note');
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
       expect(editHabit).toHaveBeenCalledWith(habit, expect.objectContaining({ note: 'New note' }));
@@ -223,7 +239,7 @@ describe('HabitDetail', () => {
     it('calls editHabit with undefined when note is cleared', async () => {
       mockContext({ habits: [habitWithNote] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Note' }));
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
       const updates = editHabit.mock.calls[0][1] as { note?: string };
@@ -233,17 +249,17 @@ describe('HabitDetail', () => {
     it('restores original note after cancel', async () => {
       mockContext({ habits: [habitWithNote] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Note' }));
       await user.type(screen.getByRole('textbox', { name: 'Note' }), 'Something else');
       await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Note' })).toHaveValue('My private note');
     });
 
     it('shows character counter when note exceeds 900 characters', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
         target: { value: 'a'.repeat(950) },
       });
@@ -252,7 +268,7 @@ describe('HabitDetail', () => {
 
     it('shows error at the 1000-character limit', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+      await openEdit(user);
       fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
         target: { value: 'a'.repeat(1000) },
       });
@@ -289,6 +305,45 @@ describe('HabitDetail', () => {
       setup();
       const label = screen.getByText('current streak');
       expect(label.parentElement).toHaveTextContent('5');
+    });
+  });
+
+  describe('emoji name', () => {
+    it('displays the emoji in the habit header', () => {
+      mockContext({ habits: [emojiHabit] });
+      setup();
+      expect(screen.getByText('Workout')).toBeInTheDocument();
+    });
+
+    it('pre-fills the name input with the full emoji + name in edit mode', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await openEdit(user);
+      expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('💪 Workout');
+    });
+
+    it('saves the edited name including the new emoji', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await openEdit(user);
+      await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
+      await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), '🏋️ Lift');
+      await user.click(screen.getByRole('button', { name: 'Save edits' }));
+      expect(editHabit).toHaveBeenCalledWith(
+        emojiHabit,
+        expect.objectContaining({ name: '🏋️ Lift' })
+      );
+    });
+
+    it('restores the original emoji name in the input after cancel', async () => {
+      mockContext({ habits: [emojiHabit] });
+      const { user } = setup();
+      await openEdit(user);
+      await user.clear(screen.getByRole('textbox', { name: 'Habit name input' }));
+      await user.type(screen.getByRole('textbox', { name: 'Habit name input' }), '🏋️ Lift');
+      await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
+      await openEdit(user);
+      expect(screen.getByRole('textbox', { name: 'Habit name input' })).toHaveValue('💪 Workout');
     });
   });
 });

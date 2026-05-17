@@ -2,6 +2,7 @@ import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import ActionMenu from '../components/ActionMenu';
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -33,7 +34,7 @@ export default function GroupDetail() {
   const group = groups.find(g => g.id === id);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(group ? parseHabitEmoji(group.name).cleanName : '');
+  const [editName, setEditName] = useState(group?.name ?? '');
   const [errors, setErrors] = useState<string[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [placeholder] = useState(
@@ -104,15 +105,13 @@ export default function GroupDetail() {
                     className='btn-action'
                     onClick={() => {
                       void (async () => {
-                        const fullName = editName.trim();
-                        const withEmoji = emoji !== '🌱' ? `${emoji} ${fullName}` : fullName;
-                        const inputErrors = validateGroupName(withEmoji);
+                        const inputErrors = validateGroupName(editName);
                         if (inputErrors.length > 0) {
                           setErrors(inputErrors);
                           return;
                         }
                         setErrors([]);
-                        await editGroup(grp.id, { name: withEmoji });
+                        await editGroup(grp.id, { name: editName.trim() });
                         setIsEditing(false);
                       })();
                     }}
@@ -124,7 +123,7 @@ export default function GroupDetail() {
                     className='btn-action'
                     aria-label='Cancel edits'
                     onClick={() => {
-                      setEditName(cleanName);
+                      setEditName(group.name);
                       setErrors([]);
                       setIsEditing(false);
                     }}
@@ -133,25 +132,26 @@ export default function GroupDetail() {
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    className='btn-action'
-                    onClick={() => {
-                      setEditName(cleanName);
-                      setIsEditing(true);
-                    }}
-                    aria-label='Edit group'
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    className='btn-action delete'
-                    onClick={() => setDeleteOpen(true)}
-                    aria-label='Delete group'
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </>
+                <ActionMenu
+                  ariaLabel='Group actions'
+                  items={[
+                    {
+                      icon: <Pencil size={14} />,
+                      label: 'Edit',
+                      onClick: () => {
+                        setEditName(group.name);
+                        setIsEditing(true);
+                      },
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete',
+                      onClick: () => setDeleteOpen(true),
+                      danger: true,
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>

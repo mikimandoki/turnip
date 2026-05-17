@@ -9,6 +9,8 @@ import { useBackButton } from '../hooks/useBackButton';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useNotificationPermission } from '../hooks/useNotificationPermission';
 import {
+  type ArchiveRun,
+  ArchiveRunSchema,
   type Completion,
   CompletionSchema,
   type Habit,
@@ -64,7 +66,7 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
     const habitResult = await db.query(
       `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
-              notif_customMessage, notif_intervalN, notif_intervalUnit
+              notif_customMessage, notif_intervalN, notif_intervalUnit, archive_runs
        FROM habits
        ORDER BY sortOrder ASC;`
     );
@@ -94,6 +96,9 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
               intervalUnit: row.notif_intervalUnit ?? 'days',
             }
           : undefined,
+      archiveRuns: row.archive_runs
+        ? z.array(ArchiveRunSchema).parse(JSON.parse(row.archive_runs))
+        : undefined,
     }));
 
     const compResult = await db.query(`SELECT * FROM completions`);
@@ -444,6 +449,79 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  function isHabitArchived(habit: Habit): boolean {
+    if (!habit.archiveRuns || habit.archiveRuns.length === 0) return false;
+    const last = habit.archiveRuns[habit.archiveRuns.length - 1];
+    return !last.restoredAt;
+  }
+
+  async function archiveHabit(habit: Habit) {
+    const db = await getDB();
+    const now = toDateString(new Date());
+
+    try {
+      // 1. Add archive run
+      const runs: ArchiveRun[] = [...(habit.archiveRuns || [])];
+      runs.push({ archivedAt: now });
+
+      // 2. Update DB
+      await db.run(`UPDATE habits SET archive_runs = ?, updated_at = ? WHERE id = ?`, [
+        JSON.stringify(runs),
+        new Date().toISOString(),
+        habit.id,
+      ]);
+      await syncDB();
+      void softDeleteHabit(habit.id).catch(e => logger.error('sync', 'softDeleteHabit failed', e));
+
+      // 3. Update React State
+      setHabits(prev => prev.map(h => (h.id === habit.id ? { ...h, archiveRuns: runs } : h)));
+
+      // 4. Feedback
+      logger.info('habit', 'Habit archived', { id: habit.id });
+      void hapticsMedium();
+      showToast('Habit archived', 'success');
+    } catch (e) {
+      logger.error('habit', 'Archive habit failed', e);
+      showToast('Archive failed', 'error');
+    }
+  }
+
+  async function restoreHabit(habit: Habit) {
+    const db = await getDB();
+    const now = toDateString(new Date());
+
+    try {
+      // 1. Close the last archive run
+      const runs: ArchiveRun[] = [...(habit.archiveRuns || [])];
+      const last = runs[runs.length - 1];
+      if (last && !last.restoredAt) {
+        last.restoredAt = now;
+      }
+
+      // 2. Update DB
+      await db.run(`UPDATE habits SET archive_runs = ?, updated_at = ? WHERE id = ?`, [
+        JSON.stringify(runs),
+        new Date().toISOString(),
+        habit.id,
+      ]);
+      await syncDB();
+      void pushHabit(habit, habit.sortOrder ?? 0).catch(e =>
+        logger.error('sync', 'pushHabit failed', e)
+      );
+
+      // 3. Update React State
+      setHabits(prev => prev.map(h => (h.id === habit.id ? { ...h, archiveRuns: runs } : h)));
+
+      // 4. Feedback
+      logger.info('habit', 'Habit restored', { id: habit.id });
+      void hapticsMedium();
+      showToast('Habit restored', 'success');
+    } catch (e) {
+      logger.error('habit', 'Restore habit failed', e);
+      showToast('Restore failed', 'error');
+    }
+  }
+
   function shiftDate(days: number) {
     setDisplayDate(addDays(displayDate, days));
   }
@@ -492,7 +570,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       [
         { statement: `DELETE FROM habits`, values: [] },
         ...demoHabits.map((h, i) => ({
-          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           values: [
             h.id,
             h.name,
@@ -501,6 +579,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             h.frequency.periodLength,
             h.frequency.periodUnit,
             i,
+            h.archiveRuns ? JSON.stringify(h.archiveRuns) : '[]',
           ],
         })),
         ...demoCompletions.map(c => ({
@@ -1053,6 +1132,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         addHabit,
         updateCompletion,
         deleteHabit,
+        archiveHabit,
+        restoreHabit,
+        isHabitArchived,
         editHabit,
         shiftDate,
         setDate,

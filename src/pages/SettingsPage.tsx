@@ -51,6 +51,7 @@ export default function SettingsPage() {
     applyImport,
     darkMode,
     toggleDarkMode,
+    isHabitArchived,
     deleteAccount,
     notifPermissionPrompt,
     dismissNotifPrompt,
@@ -58,6 +59,7 @@ export default function SettingsPage() {
   } = useHabitContext();
   const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
+  const hasArchivedHabits = habits.some(h => isHabitArchived(h));
   const [status, setStatus] = useState<{
     message: string;
     state: 'error' | 'ok' | 'warning';
@@ -278,6 +280,19 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+          {hasArchivedHabits && (
+            <div className='card'>
+              <div className='settings-section'>
+                <div className='settings-item'>
+                  <span className='settings-item-label'>Archived habits</span>
+                  <button className='btn-base btn-ghost' onClick={() => void navigate('/archived')}>
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className='card'>
             <div className='settings-section'>

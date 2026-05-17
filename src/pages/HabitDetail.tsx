@@ -1,19 +1,35 @@
 import { parseISO } from 'date-fns';
-import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
-import { useMemo, useReducer } from 'react';
+import {
+  Archive,
+  CalendarCheck2,
+  Check,
+  CheckCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Pencil,
+  Percent,
+  Trash2,
+  Trophy,
+  X,
+} from 'lucide-react';
+import { useReducer, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 import type { Frequency } from '../types';
 
+import ActionMenu from '../components/ActionMenu';
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
 import NotificationPicker from '../components/NotificationPicker';
 import { useHabitContext } from '../contexts/useHabitContext';
-import { namedDayOrDate } from '../utils/date';
+import { formatDateRange, namedDayOrDateShort, toDateString } from '../utils/date';
 import {
   calculateHabitStats,
   describeFrequency,
+  getArchiveRuns,
   getTotalCompletions,
   parseHabitEmoji,
 } from '../utils/habits';
@@ -42,14 +58,17 @@ type EditState = {
   errors: string[];
   notifValidated: boolean;
   deleteOpen: boolean;
+  archiveOpen: boolean;
   notifBlockedOpen: boolean;
 };
 
 type EditAction =
   | { type: 'CANCEL_EDIT'; habitName: string; habitNote: string; defaultNotif: NotificationValue }
   | { type: 'CLEAR_NOTIF_VALIDATED' }
+  | { type: 'CLOSE_ARCHIVE_MODAL' }
   | { type: 'CLOSE_DELETE_MODAL' }
   | { type: 'CLOSE_NOTIF_BLOCKED_MODAL' }
+  | { type: 'OPEN_ARCHIVE_MODAL' }
   | { type: 'OPEN_DELETE_MODAL' }
   | { type: 'OPEN_NOTIF_BLOCKED_MODAL' }
   | { type: 'SAVE_SUCCESS'; name: string; note: string }
@@ -103,6 +122,10 @@ function editReducer(state: EditState, action: EditAction): EditState {
       return { ...state, deleteOpen: true };
     case 'CLOSE_DELETE_MODAL':
       return { ...state, deleteOpen: false };
+    case 'OPEN_ARCHIVE_MODAL':
+      return { ...state, archiveOpen: true };
+    case 'CLOSE_ARCHIVE_MODAL':
+      return { ...state, archiveOpen: false };
     case 'OPEN_NOTIF_BLOCKED_MODAL':
       return { ...state, notifBlockedOpen: true };
     case 'CLOSE_NOTIF_BLOCKED_MODAL':
@@ -124,13 +147,31 @@ function editReducer(state: EditState, action: EditAction): EditState {
 export default function HabitDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { habits, completions, deleteHabit, editHabit, recheckNotificationPermission } =
-    useHabitContext();
+  const {
+    habits,
+    completions,
+    groups,
+    deleteHabit,
+    archiveHabit,
+    restoreHabit,
+    isHabitArchived,
+    editHabit,
+    recheckNotificationPermission,
+  } = useHabitContext();
   const habit = habits.find(h => h.id === id);
-  const habitStats = useMemo(
-    () => (habit ? calculateHabitStats(habit, completions, new Date()) : undefined),
-    [habit, completions]
-  );
+  const [prevRunsOpen, setPrevRunsOpen] = useState(false);
+
+  const archived = habit ? isHabitArchived(habit) : false;
+  const groupRef = habit?.groupId ? groups.find(g => g.id === habit.groupId) : null;
+  const archiveRuns = habit ? getArchiveRuns(habit.createdAt, habit.archiveRuns) : [];
+
+  const habitStats = habit
+    ? (() => {
+        const lastArchivedAt = habit.archiveRuns?.[habit.archiveRuns.length - 1]?.archivedAt;
+        const refDate = archived && lastArchivedAt ? lastArchivedAt : toDateString(new Date());
+        return calculateHabitStats(habit, completions, parseISO(refDate), habit.archiveRuns);
+      })()
+    : undefined;
 
   const [
     {
@@ -141,6 +182,7 @@ export default function HabitDetail() {
       errors,
       notifValidated,
       deleteOpen,
+      archiveOpen,
       notifBlockedOpen,
     },
     dispatch,
@@ -152,6 +194,7 @@ export default function HabitDetail() {
     errors: [],
     notifValidated: false,
     deleteOpen: false,
+    archiveOpen: false,
     notifBlockedOpen: false,
   });
 
@@ -246,7 +289,7 @@ export default function HabitDetail() {
               ))}
               <div className={styles.habitCardSubtitle}>{describeFrequency(habit.frequency)}</div>
               <div className={styles.habitCardSubtitle}>
-                Created {namedDayOrDate(parseISO(habit.createdAt))}
+                Created {namedDayOrDateShort(habit.createdAt)}
               </div>
               {isNative && !isEditing && habit.notification?.enabled && (
                 <div className={styles.habitCardSubtitle}>
@@ -284,23 +327,50 @@ export default function HabitDetail() {
                     <X size={16} />
                   </button>
                 </>
+              ) : archived ? (
+                <ActionMenu
+                  ariaLabel='Habit actions'
+                  items={[
+                    {
+                      icon: <Archive size={14} />,
+                      label: 'Restore',
+                      onClick: () => {
+                        void restoreHabit(habit);
+                        void navigate('/');
+                      },
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete permanently',
+                      onClick: () => dispatch({ type: 'OPEN_DELETE_MODAL' }),
+                      danger: true,
+                    },
+                  ]}
+                />
               ) : (
-                <>
-                  <button
-                    className='btn-action'
-                    onClick={() => dispatch({ type: 'START_EDIT' })}
-                    aria-label='Edit habit'
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    className='btn-action delete'
-                    onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
-                    aria-label='Delete habit'
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </>
+                <ActionMenu
+                  ariaLabel='Habit actions'
+                  items={[
+                    {
+                      icon: <Pencil size={14} />,
+                      label: 'Edit',
+                      onClick: () => dispatch({ type: 'START_EDIT' }),
+                    },
+                    {
+                      icon: <Archive size={14} />,
+                      label: 'Archive',
+                      onClick: () => dispatch({ type: 'OPEN_ARCHIVE_MODAL' }),
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete',
+                      onClick: () => dispatch({ type: 'OPEN_DELETE_MODAL' }),
+                      danger: true,
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>
@@ -358,31 +428,47 @@ export default function HabitDetail() {
                   ? habitStats.previousStreak
                   : habitStats?.currentStreak}
               </div>
-              <div className={styles.statLabel}>current streak</div>
+              <div className={styles.statLabel}>
+                <Flame size={12} className={styles.statIcon} />
+                current streak
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>{habitStats?.maxStreak}</div>
-              <div className={styles.statLabel}>best streak</div>
+              <div className={styles.statLabel}>
+                <Trophy size={12} className={styles.statIcon} />
+                best streak
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>{habitStats?.completedPeriods}</div>
-              <div className={styles.statLabel}>completions</div>
+              <div className={styles.statLabel}>
+                <CheckCheck size={12} className={styles.statIcon} />
+                completions
+              </div>
             </div>
             <div className={styles.statBox}>
               <div className={styles.statValue}>
                 {Math.round((habitStats?.completionRate ?? 0) * 100)}%
               </div>
-              <div className={styles.statLabel}>completion rate</div>
+              <div className={styles.statLabel}>
+                <Percent size={12} className={styles.statIcon} />
+                completion rate
+              </div>
             </div>
             {isNonSimpleDaily && (
               <>
                 <div className={styles.statBox}>
                   <div className={styles.statValue}>{formatCount(timesLogged!)}</div>
-                  <div className={styles.statLabel}>times logged</div>
+                  <div className={styles.statLabel}>
+                    <Check size={12} className={styles.statIcon} />
+                    times logged
+                  </div>
                 </div>
                 <div className={styles.statBox}>
                   <div className={styles.statValue}>{avgPerPeriod}</div>
                   <div className={styles.statLabel}>
+                    <CalendarCheck2 size={12} className={styles.statIcon} />
                     average per{' '}
                     {habit.frequency.periodLength === 1 ? habit.frequency.periodUnit : 'period'}
                   </div>
@@ -394,9 +480,73 @@ export default function HabitDetail() {
         <div className='card'>
           <Heatmap habit={habit} completions={completions} />
         </div>
+        {archiveRuns.length > 0 && (
+          <div className='card'>
+            <button
+              className={styles.prevRunsToggle}
+              onClick={() => setPrevRunsOpen(!prevRunsOpen)}
+            >
+              <span>Logbook</span>
+              {prevRunsOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </button>
+            {prevRunsOpen && (
+              <div className={styles.prevRunsList}>
+                {archiveRuns.map((run, i) => {
+                  const runStats = calculateHabitStats(
+                    habit,
+                    completions,
+                    parseISO(run.end),
+                    habit.archiveRuns
+                  );
+                  return (
+                    <div key={i} className={styles.prevRunEntry}>
+                      <div className={styles.prevRunDates}>
+                        <span>{formatDateRange(run.start, run.end)}</span>
+                        <span className={styles.prevRunChips}>
+                          <span className={styles.chip}>
+                            <CheckCheck size={11} />
+                            {runStats.completedPeriods}
+                          </span>
+                          <span className={styles.chip}>
+                            <Percent size={11} />
+                            {Math.round(runStats.completionRate * 100)}%
+                          </span>
+                          <span className={styles.chip}>
+                            <Trophy size={11} />
+                            {runStats.maxStreak}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </main>
       <Alert
-        title={`Delete "${parseHabitEmoji(habit.name).cleanName}"?`}
+        title={`Archive "${cleanName}"?`}
+        description={
+          'This habit will be hidden from your daily view. Your history is preserved and you can restore it any time.' +
+          (groupRef ? `\n\nIt will also be removed from ${groupRef.name}.` : '')
+        }
+        confirm='Archive'
+        cancel='Cancel'
+        open={archiveOpen}
+        variant='primary'
+        onOpenChange={open =>
+          dispatch({ type: open ? 'OPEN_ARCHIVE_MODAL' : 'CLOSE_ARCHIVE_MODAL' })
+        }
+        onConfirm={() => {
+          void (async () => {
+            await archiveHabit(habit);
+            void navigate('/');
+          })();
+        }}
+      />
+      <Alert
+        title={`Delete "${cleanName}"?`}
         description={
           'Are you sure you want to delete this habit?\n\nThis will remove all your progress. This cannot be undone.'
         }
