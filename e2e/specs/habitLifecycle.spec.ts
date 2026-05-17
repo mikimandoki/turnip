@@ -47,7 +47,8 @@ test('can delete habit', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, dailyHabit);
   await page.getByRole('button', { name: dailyHabit.name }).click();
-  await page.getByRole('button', { name: 'Delete habit' }).click();
+  await page.getByRole('button', { name: 'Habit actions' }).click();
+  await page.getByRole('menuitem', { name: 'Delete' }).click();
   const modalTitle = page.getByText(`Delete "${dailyHabit.name}"?`);
   const modalBody = page.getByText(
     `Are you sure you want to delete this habit?\n\nThis will remove all your progress. This cannot be undone.`
@@ -154,7 +155,8 @@ test('can add a note to an existing habit', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, dailyHabit);
   await page.getByRole('button', { name: dailyHabit.name }).click();
-  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByRole('button', { name: 'Habit actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByLabel('Note').fill('My reading notes');
   await page.getByRole('button', { name: 'Save edits' }).click();
   await expect(page.getByText('My reading notes')).toBeVisible();
@@ -164,7 +166,8 @@ test('can clear a note from a habit', async ({ page }) => {
   await page.goto('/');
   await addHabit(page, habitWithNote);
   await page.getByRole('button', { name: habitWithNote.name }).click();
-  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByRole('button', { name: 'Habit actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByLabel('Note').clear();
   await page.getByRole('button', { name: 'Save edits' }).click();
   await expect(page.getByText(habitWithNote.note!)).not.toBeVisible();
@@ -174,7 +177,8 @@ test('note character counter appears when near the 1000-char limit', async ({ pa
   await page.goto('/');
   await addHabit(page, dailyHabit);
   await page.getByRole('button', { name: dailyHabit.name }).click();
-  await page.getByRole('button', { name: 'Edit habit' }).click();
+  await page.getByRole('button', { name: 'Habit actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit' }).click();
   await page.getByLabel('Note').fill('a'.repeat(950));
   await expect(page.getByText('50 characters remaining')).toBeVisible();
 });

@@ -14,6 +14,7 @@ import { useNavigate, useParams } from 'react-router';
 
 import type { Frequency } from '../types';
 
+import ActionMenu from '../components/ActionMenu';
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
 import Heatmap from '../components/Heatmap';
@@ -321,55 +322,50 @@ export default function HabitDetail() {
                     <X size={16} />
                   </button>
                 </>
-              ) : (
-                <>
-                  {archived ? (
-                    <button
-                      className='btn-base btn-primary'
-                      onClick={() => {
+              ) : archived ? (
+                <ActionMenu
+                  ariaLabel='Habit actions'
+                  items={[
+                    {
+                      icon: <Archive size={14} />,
+                      label: 'Restore',
+                      onClick: () => {
                         void restoreHabit(habit);
                         void navigate('/');
-                      }}
-                      aria-label='Restore habit'
-                    >
-                      Restore
-                    </button>
-                  ) : (
-                    <button
-                      className='btn-action'
-                      onClick={() => dispatch({ type: 'START_EDIT' })}
-                      aria-label='Edit habit'
-                    >
-                      <Pencil size={16} />
-                    </button>
-                  )}
-                  {archived ? (
-                    <button
-                      className='btn-action delete'
-                      onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
-                      aria-label='Delete habit'
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  ) : (
-                    <button
-                      className='btn-action'
-                      onClick={() => dispatch({ type: 'OPEN_ARCHIVE_MODAL' })}
-                      aria-label='Archive habit'
-                    >
-                      <Archive size={16} />
-                    </button>
-                  )}
-                  {!archived && (
-                    <button
-                      className='btn-action delete'
-                      onClick={() => dispatch({ type: 'OPEN_DELETE_MODAL' })}
-                      aria-label='Delete habit'
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </>
+                      },
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete permanently',
+                      onClick: () => dispatch({ type: 'OPEN_DELETE_MODAL' }),
+                      danger: true,
+                    },
+                  ]}
+                />
+              ) : (
+                <ActionMenu
+                  ariaLabel='Habit actions'
+                  items={[
+                    {
+                      icon: <Pencil size={14} />,
+                      label: 'Edit',
+                      onClick: () => dispatch({ type: 'START_EDIT' }),
+                    },
+                    {
+                      icon: <Archive size={14} />,
+                      label: 'Archive',
+                      onClick: () => dispatch({ type: 'OPEN_ARCHIVE_MODAL' }),
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete',
+                      onClick: () => dispatch({ type: 'OPEN_DELETE_MODAL' }),
+                      danger: true,
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>

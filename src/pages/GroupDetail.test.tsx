@@ -54,6 +54,16 @@ function setup() {
   return { user };
 }
 
+async function openEdit(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Group actions' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Edit' }));
+}
+
+async function openDelete(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: 'Group actions' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
+}
+
 beforeEach(() => {
   editGroup = vi.fn();
   deleteGroup = vi.fn();
@@ -83,13 +93,13 @@ describe('GroupDetail', () => {
   describe('edit mode', () => {
     it('pre-fills the name input with the current group name', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Group name input' })).toHaveValue('Health');
     });
 
     it('calls editGroup with trimmed name and exits edit mode on save', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Group name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Group name input' }), '  Fitness  ');
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
@@ -99,7 +109,7 @@ describe('GroupDetail', () => {
 
     it('shows validation errors and does not call editGroup', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Group name input' }));
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
       expect(editGroup).not.toHaveBeenCalled();
@@ -109,11 +119,11 @@ describe('GroupDetail', () => {
   describe('edit cancel', () => {
     it('restores original name when re-entering edit mode after cancel', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Group name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Group name input' }), 'New Name');
       await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Group name input' })).toHaveValue('Health');
     });
   });
@@ -121,13 +131,13 @@ describe('GroupDetail', () => {
   describe('delete', () => {
     it('opens delete confirmation modal on delete button click', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete group' }));
+      await openDelete(user);
       expect(screen.getByRole('alertdialog')).toBeInTheDocument();
     });
 
     it('calls deleteGroup and navigates to / on confirm', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete group' }));
+      await openDelete(user);
       await user.click(screen.getByRole('button', { name: 'Delete' }));
       await waitFor(() => expect(deleteGroup).toHaveBeenCalledWith('g1'));
       expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -135,7 +145,7 @@ describe('GroupDetail', () => {
 
     it('closes modal without deleting on cancel', async () => {
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Delete group' }));
+      await openDelete(user);
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
       expect(deleteGroup).not.toHaveBeenCalled();
@@ -152,14 +162,14 @@ describe('GroupDetail', () => {
     it('pre-fills the name input with the full emoji + name in edit mode', async () => {
       mockContext({ groups: [emojiGroup] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Group name input' })).toHaveValue('💪 Health');
     });
 
     it('saves the edited name including the new emoji', async () => {
       mockContext({ groups: [emojiGroup] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Group name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Group name input' }), '🏋️ Fitness');
       await user.click(screen.getByRole('button', { name: 'Save edits' }));
@@ -169,11 +179,11 @@ describe('GroupDetail', () => {
     it('restores the original emoji name in the input after cancel', async () => {
       mockContext({ groups: [emojiGroup] });
       const { user } = setup();
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       await user.clear(screen.getByRole('textbox', { name: 'Group name input' }));
       await user.type(screen.getByRole('textbox', { name: 'Group name input' }), '🏋️ Fitness');
       await user.click(screen.getByRole('button', { name: 'Cancel edits' }));
-      await user.click(screen.getByRole('button', { name: 'Edit group' }));
+      await openEdit(user);
       expect(screen.getByRole('textbox', { name: 'Group name input' })).toHaveValue('💪 Health');
     });
   });

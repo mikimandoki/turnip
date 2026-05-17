@@ -2,6 +2,7 @@ import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
+import ActionMenu from '../components/ActionMenu';
 import Alert from '../components/Alert';
 import { HabitEmoji } from '../components/HabitEmoji';
 import { useHabitContext } from '../contexts/useHabitContext';
@@ -131,25 +132,26 @@ export default function GroupDetail() {
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    className='btn-action'
-                    onClick={() => {
-                      setEditName(group.name);
-                      setIsEditing(true);
-                    }}
-                    aria-label='Edit group'
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <button
-                    className='btn-action delete'
-                    onClick={() => setDeleteOpen(true)}
-                    aria-label='Delete group'
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </>
+                <ActionMenu
+                  ariaLabel='Group actions'
+                  items={[
+                    {
+                      icon: <Pencil size={14} />,
+                      label: 'Edit',
+                      onClick: () => {
+                        setEditName(group.name);
+                        setIsEditing(true);
+                      },
+                    },
+                    { separator: true },
+                    {
+                      icon: <Trash2 size={14} />,
+                      label: 'Delete',
+                      onClick: () => setDeleteOpen(true),
+                      danger: true,
+                    },
+                  ]}
+                />
               )}
             </div>
           </div>

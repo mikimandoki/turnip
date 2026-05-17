@@ -52,6 +52,11 @@ function DailyViewInner() {
   const visibleHabits = habits.filter(
     h => h.createdAt <= toDateString(displayDate) && !isHabitArchived(h)
   );
+
+  const hasArchived = useMemo(
+    () => habits.some(h => isHabitArchived(h)),
+    [habits, isHabitArchived]
+  );
   const standaloneHabits = [...visibleHabits.filter(h => !h.groupId)].sort(
     (a, b) => a.sortOrder - b.sortOrder
   );
@@ -343,14 +348,16 @@ function DailyViewInner() {
         >
           Add new habit
         </button>
-        <button
-          className={styles.btnArchived}
-          onClick={() => void navigate('/archived')}
-          aria-label='Archived habits'
-        >
-          <Archive size={14} />
-          Archived
-        </button>
+        {hasArchived && (
+          <button
+            className={styles.btnArchived}
+            onClick={() => void navigate('/archived')}
+            aria-label='Archived habits'
+          >
+            <Archive size={14} />
+            Archived
+          </button>
+        )}
         <button
           className='btn-action'
           onClick={toggleDarkMode}

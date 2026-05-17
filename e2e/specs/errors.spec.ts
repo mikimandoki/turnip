@@ -29,9 +29,10 @@ test.describe('edit habit', () => {
     await page.goto('/');
     await addHabit(page, dailyHabit);
     await page.getByRole('button', { name: dailyHabit.name }).click();
-    await page.getByRole('button').and(page.getByLabel('Edit habit')).click();
+    await page.getByRole('button', { name: 'Habit actions' }).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
     await page.getByLabel('Habit name input').fill(emptyString);
-    await page.getByRole('button').and(page.getByLabel('Save edits')).click();
+    await page.getByRole('button', { name: 'Save edits' }).click();
     await expect(page.getByRole('alert')).toHaveText('Name is required');
   });
 
@@ -40,9 +41,10 @@ test.describe('edit habit', () => {
     await page.goto('/');
     await addHabit(page, dailyHabit);
     await page.getByRole('button', { name: dailyHabit.name }).click();
-    await page.getByRole('button').and(page.getByLabel('Edit habit')).click();
+    await page.getByRole('button', { name: 'Habit actions' }).click();
+    await page.getByRole('menuitem', { name: 'Edit' }).click();
     await page.getByLabel('Habit name input').fill(emojiOnly);
-    await page.getByRole('button').and(page.getByLabel('Save edits')).click();
+    await page.getByRole('button', { name: 'Save edits' }).click();
     await expect(page.getByRole('alert')).toHaveText('Habit name needs more than just an emoji');
   });
 });
