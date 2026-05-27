@@ -1,4 +1,4 @@
-import { startOfMonth } from 'date-fns';
+import { startOfMonth, startOfWeek } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -41,7 +41,7 @@ const placeholderExamples = [
 
 export default function AddHabitPage() {
   const navigate = useNavigate();
-  const { addHabit, recheckNotificationPermission } = useHabitContext();
+  const { addHabit, recheckNotificationPermission, weekStartsOn } = useHabitContext();
   const [name, setName] = useState('');
   const [timesStr, setTimesStr] = useState('1');
   const [periodLengthStr, setPeriodLengthStr] = useState('1');
@@ -73,10 +73,11 @@ export default function AddHabitPage() {
       case 'day':
         return todayStr;
       case 'week':
+        return toDateString(startOfWeek(today, { weekStartsOn }));
       case 'month':
         return toDateString(startOfMonth(today));
     }
-  }, [isCustom, periodUnit, today, todayStr]);
+  }, [isCustom, periodUnit, today, todayStr, weekStartsOn]);
 
   function getPeriodExplainer(): string {
     if (isCustom) {

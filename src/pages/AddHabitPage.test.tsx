@@ -69,6 +69,9 @@ vi.mock('../components/NotificationPicker', () => ({
 
 vi.mock('../utils/date', () => ({
   toDateString: () => '2026-04-01',
+  startDatePeriod: () => '2026-04-01',
+  endDatePeriod: () => '2026-04-07',
+  namedDayOrDateShort: () => 'Apr 1, 2026',
 }));
 
 let addHabit: ReturnType<typeof vi.fn>;

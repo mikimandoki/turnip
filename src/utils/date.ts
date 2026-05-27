@@ -40,12 +40,12 @@ const unitOps: Record<
 export function startDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, now: Date): string {
   const ops = unitOps[habit.frequency.periodUnit];
 
-  // Daily habits reset each day
-  if (habit.frequency.periodUnit === 'day') {
+  // Daily habits with periodLength 1 reset each day
+  if (habit.frequency.periodUnit === 'day' && habit.frequency.periodLength === 1) {
     return toDateString(now);
   }
 
-  // All habits use startDate as the epoch anchor
+  // All other habits use startDate as the epoch anchor
   // Periods are calculated as exact units from the start date
   const anchor = parseISO(habit.startDate);
   const totalPeriods = ops.differenceIn(now, anchor);
