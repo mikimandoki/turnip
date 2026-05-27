@@ -43,6 +43,7 @@ const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
   sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-04-01',
+  startDate: '2026-04-01',
   ...overrides,
 });
 

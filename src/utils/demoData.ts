@@ -20,6 +20,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 0,
       frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
     },
     {
       id: 'demo-2',
@@ -27,6 +28,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 1,
       frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
     },
     {
       id: 'demo-3',
@@ -34,6 +36,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 2,
       frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
     },
     {
       id: 'demo-4',
@@ -41,6 +44,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 3,
       frequency: { times: 8, periodLength: 1, periodUnit: 'day' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
     },
     {
       id: 'demo-5',
@@ -48,6 +52,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 4,
       frequency: { times: 1, periodLength: 2, periodUnit: 'week' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
     },
     {
       id: 'demo-6',
@@ -55,6 +60,7 @@ export function generateDemoData(): { habits: Habit[]; completions: Completion[]
       sortOrder: 5,
       frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
       createdAt: daysAgo(60),
+      startDate: daysAgo(60),
       archiveRuns: [archiveRun],
     },
   ];

@@ -5,9 +5,6 @@ import {
   differenceInDays,
   differenceInMonths,
   differenceInWeeks,
-  endOfDay,
-  endOfMonth,
-  endOfWeek,
   format,
   isPast,
   isThisYear,
@@ -15,9 +12,6 @@ import {
   isTomorrow,
   isYesterday,
   parseISO,
-  startOfDay,
-  startOfMonth,
-  startOfWeek,
 } from 'date-fns';
 
 import type { Frequency, Habit } from '../types';
@@ -25,47 +19,47 @@ import type { Frequency, Habit } from '../types';
 const unitOps: Record<
   Frequency['periodUnit'],
   {
-    startOf: (d: Date) => Date;
-    endOf: (d: Date) => Date;
     add: (d: Date, n: number) => Date;
     differenceIn: (a: Date, b: Date) => number;
   }
 > = {
   day: {
-    startOf: startOfDay,
-    endOf: endOfDay,
     add: addDays,
     differenceIn: differenceInDays,
   },
   week: {
-    startOf: d => startOfWeek(d, { weekStartsOn: 1 }),
-    endOf: d => endOfWeek(d, { weekStartsOn: 1 }),
     add: addWeeks,
     differenceIn: differenceInWeeks,
   },
   month: {
-    startOf: startOfMonth,
-    endOf: endOfMonth,
     add: addMonths,
     differenceIn: differenceInMonths,
   },
 };
 
-export function startDatePeriod(habit: Pick<Habit, 'createdAt' | 'frequency'>, now: Date): string {
+export function startDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, now: Date): string {
   const ops = unitOps[habit.frequency.periodUnit];
-  if (habit.frequency.periodLength === 1) {
-    return toDateString(ops.startOf(now));
+
+  // Daily habits reset each day
+  if (habit.frequency.periodUnit === 'day') {
+    return toDateString(now);
   }
-  const anchor = ops.startOf(parseISO(habit.createdAt));
+
+  // All habits use startDate as the epoch anchor
+  // Periods are calculated as exact units from the start date
+  const anchor = parseISO(habit.startDate);
   const totalPeriods = ops.differenceIn(now, anchor);
   const elapsedPeriods = Math.floor(totalPeriods / habit.frequency.periodLength);
   return toDateString(ops.add(anchor, elapsedPeriods * habit.frequency.periodLength));
 }
 
-export function endDatePeriod(habit: Pick<Habit, 'createdAt' | 'frequency'>, date: Date): string {
-  const ops = unitOps[habit.frequency.periodUnit];
+export function endDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, date: Date): string {
   const periodStart = parseISO(startDatePeriod(habit, date));
-  return toDateString(ops.endOf(ops.add(periodStart, habit.frequency.periodLength - 1)));
+  const ops = unitOps[habit.frequency.periodUnit];
+
+  // End date is start + periodLength units, then subtract 1 day to get the last day of the period
+  const periodEnd = ops.add(periodStart, habit.frequency.periodLength);
+  return toDateString(addDays(periodEnd, -1));
 }
 
 export function toDateString(date: Date): string {

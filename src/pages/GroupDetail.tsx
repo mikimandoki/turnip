@@ -180,7 +180,7 @@ export default function GroupDetail() {
             ) : (
               memberHabits.map(h => {
                 const { emoji: hEmoji, cleanName: hCleanName } = parseHabitEmoji(h.name);
-                const s = calculateHabitStats(h, completions, new Date());
+                const s = calculateHabitStats(h, completions, new Date(), undefined);
                 const showStreak =
                   (s.streakContinuable && s.previousStreak >= 2) ||
                   (!s.streakContinuable && s.currentStreak >= 2);

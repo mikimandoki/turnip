@@ -25,6 +25,7 @@ const makeHabit = (id: string, name: string, groupId: string): Habit => ({
   sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-01-01',
+  startDate: '2026-01-01',
   groupId,
 });
 

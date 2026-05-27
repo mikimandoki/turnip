@@ -12,6 +12,7 @@ const baseHabit: Habit = {
   name: 'Drink water',
   sortOrder: 0,
   createdAt: '2025-01-01',
+  startDate: '2025-01-01',
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
 };
 

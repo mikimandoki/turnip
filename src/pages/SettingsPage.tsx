@@ -56,6 +56,8 @@ export default function SettingsPage() {
     notifPermissionPrompt,
     dismissNotifPrompt,
     confirmNotifPrompt,
+    weekStartsOn,
+    setWeekStartsOnSetting,
   } = useHabitContext();
   const { showToast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -277,6 +279,23 @@ export default function SettingsPage() {
                 >
                   <Switch.Thumb className='switch-thumb' />
                 </Switch.Root>
+              </div>
+            </div>
+          </div>
+
+          <div className='card'>
+            <div className='settings-section'>
+              <div className='settings-item'>
+                <span className='settings-item-label'>First day of week</span>
+                <select
+                  value={weekStartsOn}
+                  onChange={e => void setWeekStartsOnSetting(Number(e.target.value) as 0 | 1)}
+                  className='text-input'
+                  style={{ maxWidth: '150px' }}
+                >
+                  <option value={1}>Monday</option>
+                  <option value={0}>Sunday</option>
+                </select>
               </div>
             </div>
           </div>
