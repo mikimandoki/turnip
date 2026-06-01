@@ -31,10 +31,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .periodBlock {
-  flex: 1;
+  flex: 1 1 auto;
   background: var(--color-background-secondary);
   border-radius: 6px;
   padding: 8px;
@@ -51,19 +52,9 @@
 }
 
 .periodDates {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.periodContinues {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-secondary);
-  padding: 0 4px;
+  line-height: 1.3;
 }
 
 .periodTimelineFooter {

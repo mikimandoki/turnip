@@ -1,5 +1,4 @@
 import { addDays, parseISO, startOfDay } from 'date-fns';
-import { ArrowRight } from 'lucide-react';
 
 import type { Frequency } from '../types';
 
@@ -86,9 +85,6 @@ export default function PeriodTimeline({ frequency, startDate }: PeriodTimelineP
             <div
               className={styles.periodDates}
             >{`${namedDayOrDateShort(period2Start)} - ${namedDayOrDateShort(period2End)}`}</div>
-          </div>
-          <div className={styles.periodContinues}>
-            <ArrowRight size={16} />
           </div>
         </div>
       </div>

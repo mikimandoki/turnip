@@ -249,6 +249,14 @@ export default function AddHabitPage() {
                     } else {
                       const unit = e.target.value as Frequency['periodUnit'];
                       setPeriodUnit(unit);
+                      userOverrodeDate.current = false;
+                      if (unit === 'day') {
+                        setStartDate(todayStr);
+                      } else if (unit === 'week') {
+                        setStartDate(toDateString(startOfWeek(today, { weekStartsOn })));
+                      } else if (unit === 'month') {
+                        setStartDate(toDateString(startOfMonth(today)));
+                      }
                       setNotif(n => ({ ...n, mode: notifModeForUnit('custom') }));
                     }
                   }}
@@ -272,6 +280,14 @@ export default function AddHabitPage() {
                   } else {
                     const unit = e.target.value as Frequency['periodUnit'];
                     setPeriodUnit(unit);
+                    userOverrodeDate.current = false;
+                    if (unit === 'day') {
+                      setStartDate(todayStr);
+                    } else if (unit === 'week') {
+                      setStartDate(toDateString(startOfWeek(today, { weekStartsOn })));
+                    } else if (unit === 'month') {
+                      setStartDate(toDateString(startOfMonth(today)));
+                    }
                     setPeriodLengthStr('1');
                     setNotif(n => ({ ...n, mode: notifModeForUnit(unit) }));
                   }

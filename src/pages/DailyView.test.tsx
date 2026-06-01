@@ -120,8 +120,18 @@ describe('DailyView visible habits filter', () => {
       ...baseContext,
       displayDate: new Date('2026-04-11'),
       habits: [
-        makeHabit({ id: 'h1', name: 'Old habit', createdAt: '2026-04-01', startDate: '2026-04-01' }),
-        makeHabit({ id: 'h2', name: 'Future habit', createdAt: '2026-04-01', startDate: '2026-04-12' }),
+        makeHabit({
+          id: 'h1',
+          name: 'Old habit',
+          createdAt: '2026-04-01',
+          startDate: '2026-04-01',
+        }),
+        makeHabit({
+          id: 'h2',
+          name: 'Future habit',
+          createdAt: '2026-04-01',
+          startDate: '2026-04-12',
+        }),
       ],
     } as never);
     render(<DailyView />);
@@ -133,7 +143,14 @@ describe('DailyView visible habits filter', () => {
     vi.mocked(useHabitContext).mockReturnValue({
       ...baseContext,
       displayDate: new Date('2026-04-11'),
-      habits: [makeHabit({ id: 'h1', name: 'Same day habit', createdAt: '2026-04-11', startDate: '2026-04-11' })],
+      habits: [
+        makeHabit({
+          id: 'h1',
+          name: 'Same day habit',
+          createdAt: '2026-04-11',
+          startDate: '2026-04-11',
+        }),
+      ],
     } as never);
     render(<DailyView />);
     expect(screen.getByText('Same day habit')).toBeInTheDocument();
