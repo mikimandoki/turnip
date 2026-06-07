@@ -14,7 +14,7 @@ import {
   parseISO,
 } from 'date-fns';
 
-import type { Frequency, Habit } from '../types';
+import type { Completion, Frequency, Habit } from '../types';
 
 const unitOps: Record<
   Frequency['periodUnit'],
@@ -37,7 +37,15 @@ const unitOps: Record<
   },
 };
 
-export function startDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, now: Date): string {
+export function startDatePeriod(
+  habit: Pick<Habit, 'frequency' | 'startDate'>,
+  now: Date,
+  completions?: Completion[]
+): string {
+  if (habit.frequency.flexiblePeriod && completions) {
+    return flexibleStartDatePeriod(habit, now, completions);
+  }
+
   const ops = unitOps[habit.frequency.periodUnit];
 
   // Daily habits with periodLength 1 reset each day
@@ -53,8 +61,59 @@ export function startDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, n
   return toDateString(ops.add(anchor, elapsedPeriods * habit.frequency.periodLength));
 }
 
-export function endDatePeriod(habit: Pick<Habit, 'frequency' | 'startDate'>, date: Date): string {
-  const periodStart = parseISO(startDatePeriod(habit, date));
+function flexibleStartDatePeriod(
+  habit: Pick<Habit, 'frequency' | 'startDate'> & { id?: string },
+  now: Date,
+  completions: Completion[]
+): string {
+  const ops = unitOps[habit.frequency.periodUnit];
+  const nowStr = toDateString(now);
+  if (nowStr <= habit.startDate) return habit.startDate;
+
+  // Daily/1 fast path — each day is its own period regardless of flexibility
+  if (habit.frequency.periodUnit === 'day' && habit.frequency.periodLength === 1) {
+    return nowStr;
+  }
+
+  // Walk completions chronologically to determine period boundaries
+  // Only consider completions strictly before `now` so we don't overshoot
+  const habitCompletions = completions
+    .filter(
+      c => (!habit.id || c.habitId === habit.id) && c.date >= habit.startDate && c.date < nowStr
+    )
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (habitCompletions.length === 0) return habit.startDate;
+
+  let periodStart = parseISO(habit.startDate);
+  let countInPeriod = 0;
+
+  for (const completion of habitCompletions) {
+    const compDate = parseISO(completion.date);
+    const periodEnd = addDays(ops.add(periodStart, habit.frequency.periodLength), -1);
+
+    // If completion is past period end, period was missed — advance to next boundary
+    if (compDate > periodEnd) {
+      periodStart = addDays(periodEnd, 1);
+      countInPeriod = 0;
+    }
+
+    countInPeriod += completion.count;
+    if (countInPeriod >= habit.frequency.times) {
+      periodStart = addDays(compDate, 1);
+      countInPeriod = 0;
+    }
+  }
+
+  return toDateString(periodStart);
+}
+
+export function endDatePeriod(
+  habit: Pick<Habit, 'frequency' | 'startDate'>,
+  date: Date,
+  completions?: Completion[]
+): string {
+  const periodStart = parseISO(startDatePeriod(habit, date, completions));
   const ops = unitOps[habit.frequency.periodUnit];
 
   // End date is start + periodLength units, then subtract 1 day to get the last day of the period

@@ -56,6 +56,13 @@ export default function PeriodTimeline({ frequency, startDate }: PeriodTimelineP
       frequency.periodLength === 1
         ? frequency.periodUnit
         : `${frequency.periodLength} ${frequency.periodUnit}s`;
+    if (frequency.flexiblePeriod) {
+      const unit =
+        frequency.periodLength === 1
+          ? frequency.periodUnit
+          : `${frequency.periodLength} ${frequency.periodUnit}s`;
+      return `Complete ${times} per ${unit} — each completion starts a new period.`;
+    }
     return `Complete ${times} per ${period} to maintain your streak.`;
   }
 

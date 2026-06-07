@@ -45,3 +45,25 @@
   color: var(--color-text-secondary);
   font-style: italic;
 }
+
+.flexibleRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.flexibleLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.flexibleExplainer {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}

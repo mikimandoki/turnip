@@ -103,17 +103,18 @@ export function describeFrequency(frequency: Frequency) {
       ? frequency.periodUnit
       : `${frequency.periodLength} ${frequency.periodUnit}s`;
   const times = frequency.times === 1 ? '' : `${frequency.times}x `;
+  const flex = frequency.flexiblePeriod ? ' (flexible)' : '';
   if (frequency.periodLength === 1) {
     switch (frequency.periodUnit) {
       case 'day':
-        return `${times}daily`;
+        return `${times}daily${flex}`;
       case 'month':
-        return `${times}monthly`;
+        return `${times}monthly${flex}`;
       case 'week':
-        return `${times}weekly`;
+        return `${times}weekly${flex}`;
     }
   } else {
-    return `${times}every ${unit}`;
+    return `${times}every ${unit}${flex}`;
   }
 }
 
@@ -135,7 +136,7 @@ export function getCompletionsInPeriod(
   completions: Completion[],
   date: Date
 ): number {
-  const periodStart = startDatePeriod(habit, date);
+  const periodStart = startDatePeriod(habit, date, completions);
   return getCompletionsInRange(habit, completions, periodStart, toDateString(date));
 }
 
@@ -171,8 +172,8 @@ export function calculateHabitStats(
     : 0;
 
   while (true) {
-    const periodStart = startDatePeriod(habit, checkDate);
-    const periodEnd = endDatePeriod(habit, checkDate);
+    const periodStart = startDatePeriod(habit, checkDate, completions);
+    const periodEnd = endDatePeriod(habit, checkDate, completions);
 
     if (periodEnd < habit.startDate) break;
 

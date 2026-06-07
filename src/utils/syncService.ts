@@ -15,6 +15,7 @@ const SyncHabitRowSchema = z.object({
   times: z.number(),
   periodLength: z.number(),
   periodUnit: z.enum(['day', 'week', 'month']),
+  flexible_period: z.number().nullable(),
   groupId: z.string().nullable(),
   sortOrder: z.number(),
   updated_at: z.string().nullable(),
@@ -55,6 +56,7 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
     times: habit.frequency.times,
     period_length: habit.frequency.periodLength,
     period_unit: habit.frequency.periodUnit,
+    flexible_period: habit.frequency.flexiblePeriod ? 1 : 0,
     sort_order: sortOrder,
     group_id: habit.groupId ?? null,
     archive_runs: habit.archiveRuns ? JSON.stringify(habit.archiveRuns) : null,
@@ -304,7 +306,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
-    `SELECT id, name, note, createdAt, startDate, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs
+    `SELECT id, name, note, createdAt, startDate, times, periodLength, periodUnit, flexible_period, groupId, sortOrder, updated_at, archive_runs
      FROM habits WHERE deleted_at IS NULL`
   );
   const remoteHabits: ReturnType<typeof toRemoteHabit>[] = [];
@@ -325,6 +327,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
       times: row.times,
       period_length: row.periodLength,
       period_unit: row.periodUnit,
+      flexible_period: row.flexible_period ?? 0,
       sort_order: row.sortOrder,
       group_id: row.groupId,
       archive_runs: row.archive_runs,

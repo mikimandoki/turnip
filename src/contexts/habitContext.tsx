@@ -68,7 +68,7 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
     const habitResult = await db.query(
       `SELECT id, name, note, groupId, createdAt, startDate, times, periodLength, periodUnit, sortOrder,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
-              notif_customMessage, notif_intervalN, notif_intervalUnit, archive_runs
+              notif_customMessage, notif_intervalN, notif_intervalUnit, flexible_period, archive_runs
        FROM habits
        ORDER BY sortOrder ASC;`
     );
@@ -85,6 +85,7 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
         times: row.times,
         periodLength: row.periodLength,
         periodUnit: row.periodUnit,
+        flexiblePeriod: Boolean(row.flexible_period),
       },
       notification:
         row.notif_mode !== null
@@ -230,8 +231,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const maxSort =
         (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
       await db.run(
-        `INSERT INTO habits (id, name, note, createdAt, startDate, times, periodLength, periodUnit, sortOrder, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, note, createdAt, startDate, times, periodLength, periodUnit, flexible_period, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newHabit.id,
           newHabit.name,
@@ -241,6 +242,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           newHabit.frequency.times,
           newHabit.frequency.periodLength,
           newHabit.frequency.periodUnit,
+          newHabit.frequency.flexiblePeriod ? 1 : 0,
           maxSort + 1,
           new Date().toISOString(),
         ]
@@ -281,13 +283,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Update core habit fields
       await db.run(
-        `UPDATE habits SET name = ?, note = ?, times = ?, periodLength = ?, periodUnit = ?, updated_at = ? WHERE id = ?;`,
+        `UPDATE habits SET name = ?, note = ?, times = ?, periodLength = ?, periodUnit = ?, flexible_period = ?, updated_at = ? WHERE id = ?;`,
         [
           merged.name.trim(),
           merged.note ?? null,
           merged.frequency.times,
           merged.frequency.periodLength,
           merged.frequency.periodUnit,
+          merged.frequency.flexiblePeriod ? 1 : 0,
           new Date().toISOString(),
           habit.id,
         ]

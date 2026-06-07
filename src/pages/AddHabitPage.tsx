@@ -1,6 +1,7 @@
 import { startOfMonth, startOfWeek } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { Switch } from 'radix-ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -60,6 +61,7 @@ export default function AddHabitPage() {
   const [startDate, setStartDate] = useState<string>(toDateString(new Date()));
   const [dateWarningOpen, setDateWarningOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [flexiblePeriod, setFlexiblePeriod] = useState(false);
   const userOverrodeDate = useRef(false);
 
   const today = useMemo(() => new Date(), []);
@@ -107,7 +109,7 @@ export default function AddHabitPage() {
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
-    const frequency: Frequency = { times, periodLength, periodUnit };
+    const frequency: Frequency = { times, periodLength, periodUnit, flexiblePeriod };
     const inputErrors = validateInputs({ name: trimmedName, frequency });
     if (inputErrors.length > 0) {
       setErrors(inputErrors);
@@ -317,10 +319,26 @@ export default function AddHabitPage() {
             />
             {!(periodUnit === 'day' && periodLength === 1) && (
               <PeriodTimeline
-                frequency={{ times, periodLength, periodUnit }}
+                frequency={{ times, periodLength, periodUnit, flexiblePeriod }}
                 startDate={startDate}
               />
             )}
+            <div className={styles.flexibleRow}>
+              <label className={styles.flexibleLabel}>
+                <span>Flexible periods</span>
+                <Switch.Root
+                  checked={flexiblePeriod}
+                  onCheckedChange={setFlexiblePeriod}
+                  className='switch-root'
+                  aria-label='Flexible periods'
+                >
+                  <Switch.Thumb className='switch-thumb' />
+                </Switch.Root>
+              </label>
+              <span className={styles.flexibleExplainer}>
+                Next period starts the day after you complete, not on a fixed schedule.
+              </span>
+            </div>
           </div>
           <NotificationPicker
             value={notif}

@@ -43,7 +43,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 7;
+const CURRENT_VERSION = 8;
 
 async function writeMigrationLog(
   db: SQLiteDBConnection,
@@ -226,6 +226,18 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
         await db.execute(`UPDATE habits SET startDate = createdAt WHERE startDate IS NULL`);
       }
       await db.execute(`PRAGMA user_version = 7`);
+    }
+
+    if (currentVersion < 8) {
+      await writeMigrationLog(db, 'info', 'db', 'Migration v8: adding flexible_period column');
+      const h8 = await db.query(`PRAGMA table_info(habits)`);
+      const hCols8 = new Set((h8.values ?? []).map((r: { name: string }) => r.name));
+      if (!hCols8.has('flexible_period')) {
+        await db.execute(
+          `ALTER TABLE habits ADD COLUMN flexible_period INTEGER NOT NULL DEFAULT 0`
+        );
+      }
+      await db.execute(`PRAGMA user_version = 8`);
     }
 
     await writeMigrationLog(db, 'info', 'db', `Migration complete (v${CURRENT_VERSION})`);

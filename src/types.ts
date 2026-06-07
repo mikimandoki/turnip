@@ -4,6 +4,7 @@ export const FrequencySchema = z.object({
   times: z.number().min(1),
   periodLength: z.number().min(1),
   periodUnit: z.enum(['day', 'week', 'month']),
+  flexiblePeriod: z.boolean().optional(),
 });
 
 // How often the habit should be done
@@ -15,6 +16,8 @@ export const FrequencySchema = z.object({
 //   Every 2 weeks:          { times: 1, periodLength: 2, periodUnit: "week" }
 //   5x every 3 weeks:       { times: 5, periodLength: 3, periodUnit: "week" }
 //   10x per month:          { times: 10, periodLength: 1, periodUnit: "month" }
+//
+// flexiblePeriod: period resets the day after a completion instead of fixed startDate anchor
 export type Frequency = z.infer<typeof FrequencySchema>;
 
 export const HabitGroupSchema = z.object({
@@ -53,6 +56,7 @@ export const HabitSchema = z.object({
       monthDays: z.array(z.number().min(1).max(31)).default([]),
     })
     .optional(),
+  flexiblePeriod: z.boolean().optional(),
   archiveRuns: z.array(ArchiveRunSchema).optional(),
 });
 
@@ -80,6 +84,7 @@ export const HabitRowSchema = z.object({
   notif_customMessage: z.string().nullable(),
   notif_intervalN: z.number().nullable(),
   notif_intervalUnit: z.enum(['days', 'weeks']).nullable(),
+  flexible_period: z.number().nullable(),
   archive_runs: z.string().nullable(),
 });
 
@@ -147,6 +152,7 @@ export type AriaLabel =
   | 'Email address'
   | 'Email verification code'
   | 'Expand group'
+  | 'Flexible periods'
   | 'Frequency unit'
   | 'Go back'
   | 'Group actions'

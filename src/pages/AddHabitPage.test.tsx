@@ -183,7 +183,7 @@ describe('AddHabitPage', () => {
       expect(addHabit).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Exercise',
-          frequency: { times: 2, periodLength: 1, periodUnit: 'week' },
+          frequency: { times: 2, periodLength: 1, periodUnit: 'week', flexiblePeriod: false },
         })
       );
     });
@@ -196,7 +196,7 @@ describe('AddHabitPage', () => {
       await user.click(screen.getByRole('button', { name: 'Add habit' }));
       expect(addHabit).toHaveBeenCalledWith(
         expect.objectContaining({
-          frequency: { times: 1, periodLength: 3, periodUnit: 'day' },
+          frequency: { times: 1, periodLength: 3, periodUnit: 'day', flexiblePeriod: false },
         })
       );
     });
