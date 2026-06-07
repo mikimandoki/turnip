@@ -87,9 +87,9 @@ export default function AddHabitPage() {
       case 'day':
         return '';
       case 'week':
-        return 'Weekly habits run between Monday and Sunday. You can change your start date if you want to.';
+        return `Weekly habits start on ${weekStartsOn === 0 ? 'Sunday' : 'Monday'} by default. You can change your start date if you want to.`;
       case 'month':
-        return 'Monthly habits run for an entire month. You can change your start date if you want to.';
+        return 'Monthly habits start on the 1st by default. You can change your start date if you want to.';
     }
   }
 

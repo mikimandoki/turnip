@@ -289,7 +289,7 @@ export default function HabitDetail() {
               ))}
               <div className={styles.habitCardSubtitle}>{describeFrequency(habit.frequency)}</div>
               <div className={styles.habitCardSubtitle}>
-                Created {namedDayOrDateShort(habit.createdAt)}
+                Started {namedDayOrDateShort(habit.startDate ?? habit.createdAt)}
               </div>
               {isNative && !isEditing && habit.notification?.enabled && (
                 <div className={styles.habitCardSubtitle}>

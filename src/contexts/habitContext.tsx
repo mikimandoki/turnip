@@ -573,15 +573,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function loadDemoData() {
-    const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
+    const { habits: demoHabits, completions: demoCompletions, groups: demoGroups } = generateDemoData(weekStartsOn);
     const db = await getDB();
 
     await cancelAllHabitNotifications();
     await db.executeSet(
       [
         { statement: `DELETE FROM habits`, values: [] },
+        { statement: `DELETE FROM habit_groups`, values: [] },
+        ...demoGroups.map(g => ({
+          statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+          values: [g.id, g.name, g.sortOrder ?? 0],
+        })),
         ...demoHabits.map((h, i) => ({
-          statement: `INSERT INTO habits (id, name, createdAt, startDate, times, periodLength, periodUnit, sortOrder, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          statement: `INSERT INTO habits (id, name, createdAt, startDate, times, periodLength, periodUnit, sortOrder, groupId, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           values: [
             h.id,
             h.name,
@@ -591,6 +596,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             h.frequency.periodLength,
             h.frequency.periodUnit,
             i,
+            h.groupId ?? null,
             h.archiveRuns ? JSON.stringify(h.archiveRuns) : '[]',
           ],
         })),
@@ -802,7 +808,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
     const currentGroups = groups;
-    const visibleHabits = currentHabits.filter(h => h.createdAt <= toDateString(displayDate));
+    const visibleHabits = currentHabits.filter(
+      h => (h.startDate ?? h.createdAt) <= toDateString(displayDate)
+    );
 
     const items: SectionItem[] = [];
     for (const h of standaloneHabits) {

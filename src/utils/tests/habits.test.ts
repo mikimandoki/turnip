@@ -10,6 +10,7 @@ import {
   getActiveIntervals,
   getArchiveRuns,
   getCompletionsInPeriod,
+  getTotalCompletions,
   isInArchivedInterval,
   validateGroupName,
 } from '../habits';
@@ -148,6 +149,46 @@ describe('getCompletionsInPeriod', () => {
     expect(getCompletionsInPeriod(habit, [c('h1', '2026-03-25', 5)], parseISO('2026-03-25'))).toBe(
       5
     );
+  });
+});
+
+describe('getTotalCompletions', () => {
+  it('counts completions from startDate', () => {
+    const habit: Habit = {
+      id: 'h1',
+      name: 'test',
+      sortOrder: 0,
+      createdAt: '2026-01-01',
+      startDate: '2026-03-24',
+      frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
+    };
+    const completions = [c('h1', '2026-01-15'), c('h1', '2026-03-24'), c('h1', '2026-03-25')];
+    expect(getTotalCompletions(habit, completions, parseISO('2026-03-25'))).toBe(2);
+  });
+
+  it('ignores completions before startDate', () => {
+    const habit: Habit = {
+      id: 'h1',
+      name: 'test',
+      sortOrder: 0,
+      createdAt: '2026-01-01',
+      startDate: '2026-03-24',
+      frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
+    };
+    const completions = [c('h1', '2026-01-15'), c('h1', '2026-03-23'), c('h1', '2026-03-25')];
+    expect(getTotalCompletions(habit, completions, parseISO('2026-03-25'))).toBe(1);
+  });
+
+  it('falls back to createdAt when startDate is not set', () => {
+    const habit: Habit = {
+      id: 'h1',
+      name: 'test',
+      sortOrder: 0,
+      createdAt: '2026-01-01',
+      frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
+    } as Habit;
+    const completions = [c('h1', '2026-01-01'), c('h1', '2026-01-15')];
+    expect(getTotalCompletions(habit, completions, parseISO('2026-01-15'))).toBe(2);
   });
 });
 

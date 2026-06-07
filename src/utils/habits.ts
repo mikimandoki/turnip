@@ -140,7 +140,12 @@ export function getCompletionsInPeriod(
 }
 
 export function getTotalCompletions(habit: Habit, completions: Completion[], date: Date): number {
-  return getCompletionsInRange(habit, completions, habit.createdAt, toDateString(date));
+  return getCompletionsInRange(
+    habit,
+    completions,
+    habit.startDate ?? habit.createdAt,
+    toDateString(date)
+  );
 }
 
 export function calculateHabitStats(

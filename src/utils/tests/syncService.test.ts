@@ -25,6 +25,7 @@ describe('toRemoteHabit', () => {
       name: 'Drink water',
       note: null,
       created_at: '2025-01-01',
+      start_date: '2025-01-01',
       times: 1,
       period_length: 1,
       period_unit: 'day',

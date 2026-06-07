@@ -11,6 +11,7 @@ const SyncHabitRowSchema = z.object({
   name: z.string(),
   note: z.string().nullable(),
   createdAt: z.string(),
+  startDate: z.string().nullable(),
   times: z.number(),
   periodLength: z.number(),
   periodUnit: z.enum(['day', 'week', 'month']),
@@ -49,6 +50,7 @@ export function toRemoteHabit(habit: Habit, userId: string, sortOrder: number, n
     name: habit.name,
     note: habit.note ?? null,
     created_at: habit.createdAt,
+    start_date: habit.startDate,
     times: habit.frequency.times,
     period_length: habit.frequency.periodLength,
     period_unit: habit.frequency.periodUnit,
@@ -228,6 +230,7 @@ type RemoteHabitRow = {
   name: string;
   note: string | null;
   created_at: string;
+  start_date: string | null;
   times: number;
   period_length: number;
   period_unit: string;
@@ -268,7 +271,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
-    `SELECT id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs
+    `SELECT id, name, note, createdAt, startDate, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs
      FROM habits WHERE deleted_at IS NULL`
   );
   const remoteHabits: ReturnType<typeof toRemoteHabit>[] = [];
@@ -285,6 +288,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
       name: row.name,
       note: row.note ?? null,
       created_at: row.createdAt,
+      start_date: row.startDate ?? row.createdAt,
       times: row.times,
       period_length: row.periodLength,
       period_unit: row.periodUnit,
@@ -432,18 +436,19 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
       ?.updated_at;
     if (!localUpdatedAt || new Date(row.updated_at) >= new Date(localUpdatedAt)) {
       await db.run(
-        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO habits (id, name, note, createdAt, startDate, times, periodLength, periodUnit, groupId, sortOrder, updated_at, archive_runs)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            name = excluded.name, note = excluded.note, times = excluded.times,
            periodLength = excluded.periodLength, periodUnit = excluded.periodUnit,
-           groupId = excluded.groupId, sortOrder = excluded.sortOrder,
+           groupId = excluded.groupId, sortOrder = excluded.sortOrder, startDate = excluded.startDate,
            updated_at = excluded.updated_at, archive_runs = excluded.archive_runs`,
         [
           row.id,
           row.name,
           row.note ?? null,
           row.created_at,
+          row.start_date ?? null,
           row.times,
           row.period_length,
           row.period_unit,

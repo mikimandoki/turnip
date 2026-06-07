@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useHabitContext } from '../contexts/useHabitContext';
 import { validateInputs } from '../utils/utils';
@@ -67,13 +67,6 @@ vi.mock('../components/NotificationPicker', () => ({
   ),
 }));
 
-vi.mock('../utils/date', () => ({
-  toDateString: () => '2026-04-01',
-  startDatePeriod: () => '2026-04-01',
-  endDatePeriod: () => '2026-04-07',
-  namedDayOrDateShort: () => 'Apr 1, 2026',
-}));
-
 let addHabit: ReturnType<typeof vi.fn>;
 
 function setup() {
@@ -88,6 +81,7 @@ beforeEach(() => {
     addHabit,
     displayDate: new Date('2026-04-01'),
     recheckNotificationPermission: vi.fn(),
+    weekStartsOn: 1,
   } as unknown as ReturnType<typeof useHabitContext>);
   mockNavigate.mockReset();
 });
@@ -304,6 +298,126 @@ describe('AddHabitPage', () => {
       const { user } = setup();
       await user.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+  });
+
+  describe('start date integration', () => {
+    beforeAll(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-04-15'));
+    });
+
+    afterAll(() => {
+      vi.useRealTimers();
+    });
+
+    describe('weekStartsOn=1 (Monday)', () => {
+      beforeEach(() => {
+        addHabit = vi.fn();
+        vi.mocked(useHabitContext).mockReturnValue({
+          addHabit,
+          displayDate: new Date('2026-04-01'),
+          recheckNotificationPermission: vi.fn(),
+          weekStartsOn: 1,
+        } as unknown as ReturnType<typeof useHabitContext>);
+        mockNavigate.mockReset();
+      });
+
+      it('defaults to today for daily', () => {
+        setup();
+        const dateInput = screen.getByLabelText('Start date');
+        expect(dateInput).toHaveValue('2026-04-15');
+      });
+
+      it('snaps to Monday when switching to weekly', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(screen.getByLabelText('Start date')).toHaveValue('2026-04-13');
+      });
+
+      it('shows correct period timeline for weekly', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(screen.getByText('First week')).toBeInTheDocument();
+        expect(screen.getByText('Second week')).toBeInTheDocument();
+        expect(screen.getByText('Apr 13, 2026 - Apr 19, 2026')).toBeInTheDocument();
+        expect(screen.getByText('Apr 20, 2026 - Apr 26, 2026')).toBeInTheDocument();
+      });
+
+      it('snaps to 1st when switching to monthly', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'month');
+        expect(screen.getByLabelText('Start date')).toHaveValue('2026-04-01');
+      });
+
+      it('shows correct period timeline for monthly', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'month');
+        expect(screen.getByText('First month')).toBeInTheDocument();
+        expect(screen.getByText('Second month')).toBeInTheDocument();
+        expect(screen.getByText('Apr 1, 2026 - Apr 30, 2026')).toBeInTheDocument();
+        expect(screen.getByText('May 1, 2026 - May 31, 2026')).toBeInTheDocument();
+      });
+
+      it('snaps back to Monday when going month→week', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'month');
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(screen.getByLabelText('Start date')).toHaveValue('2026-04-13');
+        expect(screen.getByText('Apr 13, 2026 - Apr 19, 2026')).toBeInTheDocument();
+      });
+
+      it('overridden date snaps back on unit change', async () => {
+        const { user } = setup();
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        const dateInput = screen.getByLabelText('Start date');
+        fireEvent.change(dateInput, { target: { value: '2026-04-15' } });
+        await user.selectOptions(screen.getByRole('combobox'), 'month');
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(dateInput).toHaveValue('2026-04-13');
+      });
+
+      it('no timeline shown for daily habits', () => {
+        setup();
+        expect(screen.queryByText('Your first periods')).not.toBeInTheDocument();
+      });
+    });
+
+    describe('weekStartsOn=0 (Sunday)', () => {
+      function setupSunday() {
+        addHabit = vi.fn();
+        vi.mocked(useHabitContext).mockReturnValue({
+          addHabit,
+          displayDate: new Date('2026-04-01'),
+          recheckNotificationPermission: vi.fn(),
+          weekStartsOn: 0,
+        } as unknown as ReturnType<typeof useHabitContext>);
+        mockNavigate.mockReset();
+        const user = userEvent.setup();
+        render(<AddHabitPage />);
+        return { user };
+      }
+
+      it('snaps to Sunday when switching to weekly', async () => {
+        const { user } = setupSunday();
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(screen.getByLabelText('Start date')).toHaveValue('2026-04-12');
+      });
+
+      it('shows correct timeline for weekly (Sunday start)', async () => {
+        const { user } = setupSunday();
+        await user.selectOptions(screen.getByRole('combobox'), 'week');
+        expect(screen.getByText('First week')).toBeInTheDocument();
+        expect(screen.getByText('Second week')).toBeInTheDocument();
+        expect(screen.getByText('Apr 12, 2026 - Apr 18, 2026')).toBeInTheDocument();
+        expect(screen.getByText('Apr 19, 2026 - Apr 25, 2026')).toBeInTheDocument();
+      });
+
+      it('monthly defaults to 1st regardless of weekStartsOn', async () => {
+        const { user } = setupSunday();
+        await user.selectOptions(screen.getByRole('combobox'), 'month');
+        expect(screen.getByLabelText('Start date')).toHaveValue('2026-04-01');
+      });
     });
   });
 });
