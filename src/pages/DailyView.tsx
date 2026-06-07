@@ -50,7 +50,7 @@ function DailyViewInner() {
   );
 
   const visibleHabits = habits.filter(
-    h => h.createdAt <= toDateString(displayDate) && !isHabitArchived(h)
+    h => (h.startDate ?? h.createdAt) <= toDateString(displayDate) && !isHabitArchived(h)
   );
   const standaloneHabits = [...visibleHabits.filter(h => !h.groupId)].sort(
     (a, b) => a.sortOrder - b.sortOrder

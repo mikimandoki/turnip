@@ -119,7 +119,7 @@ export function describeFrequency(frequency: Frequency) {
 
 // Count completions between any two dates
 function getCompletionsInRange(
-  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
+  habit: Pick<Habit, 'id'>,
   completions: Completion[],
   start: string,
   end: string
@@ -131,7 +131,7 @@ function getCompletionsInRange(
 
 // How many completions have been logged in the current period
 export function getCompletionsInPeriod(
-  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
+  habit: Pick<Habit, 'frequency' | 'id' | 'startDate'>,
   completions: Completion[],
   date: Date
 ): number {
@@ -140,11 +140,16 @@ export function getCompletionsInPeriod(
 }
 
 export function getTotalCompletions(habit: Habit, completions: Completion[], date: Date): number {
-  return getCompletionsInRange(habit, completions, habit.createdAt, toDateString(date));
+  return getCompletionsInRange(
+    habit,
+    completions,
+    habit.startDate ?? habit.createdAt,
+    toDateString(date)
+  );
 }
 
 export function calculateHabitStats(
-  habit: Pick<Habit, 'createdAt' | 'frequency' | 'id'>,
+  habit: Pick<Habit, 'frequency' | 'id' | 'startDate'>,
   completions: Completion[],
   date: Date,
   archiveRuns?: ArchiveRun[]
@@ -160,7 +165,7 @@ export function calculateHabitStats(
   const todayString = toDateString(date);
   let checkDate = date;
 
-  const intervals = archiveRuns ? getActiveIntervals(habit.createdAt, archiveRuns) : undefined;
+  const intervals = archiveRuns ? getActiveIntervals(habit.startDate, archiveRuns) : undefined;
   const currentIntervalIndex = intervals
     ? intervals.findIndex(i => toDateString(date) >= i.start && toDateString(date) <= i.end)
     : 0;
@@ -169,7 +174,7 @@ export function calculateHabitStats(
     const periodStart = startDatePeriod(habit, checkDate);
     const periodEnd = endDatePeriod(habit, checkDate);
 
-    if (periodEnd < habit.createdAt) break;
+    if (periodEnd < habit.startDate) break;
 
     const isActive = intervals
       ? intervals.some(i => periodStart >= i.start && periodStart <= i.end)
@@ -209,10 +214,10 @@ export function calculateHabitStats(
       currentRun = 0;
     }
 
-    if (periodStart < habit.createdAt) break;
+    if (periodStart < habit.startDate) break;
 
     checkDate = subDays(parseISO(periodStart), 1);
-    if (toDateString(checkDate) < habit.createdAt) break;
+    if (toDateString(checkDate) < habit.startDate) break;
   }
 
   if (currentRun > 0) runs.push(currentRun);
@@ -257,7 +262,7 @@ export function calculateGroupStats(
   const memberHabits = habits.filter(h => h.groupId === group.id);
   if (memberHabits.length === 0) return null;
 
-  const stats = memberHabits.map(h => calculateHabitStats(h, completions, date));
+  const stats = memberHabits.map(h => calculateHabitStats(h, completions, date, undefined));
 
   return {
     currentStreak: Math.max(...stats.map(s => s.currentStreak)),

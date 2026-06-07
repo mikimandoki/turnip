@@ -29,3 +29,19 @@
   color: var(--color-text-secondary);
   text-align: right;
 }
+
+.startDateSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.startDateSection label {
+  color: var(--color-text-primary);
+}
+
+.startDateExplainer {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}

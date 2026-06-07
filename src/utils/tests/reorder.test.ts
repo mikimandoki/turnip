@@ -12,6 +12,7 @@ describe('calculateReorder', () => {
       sortOrder: i,
       frequency: { times: 1, periodLength: 1, periodUnit: 'day' as const },
       createdAt: '2026-01-01',
+      startDate: '2026-01-01',
     }));
 
   describe('basic reordering', () => {
@@ -152,6 +153,7 @@ describe('calculateReorder', () => {
           sortOrder: 0,
           frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
           createdAt: '2026-01-01',
+          startDate: '2026-01-01',
         },
         {
           id: 'b',
@@ -159,6 +161,7 @@ describe('calculateReorder', () => {
           sortOrder: 1,
           frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
           createdAt: '2026-01-01',
+          startDate: '2026-01-01',
           groupId: 'group1',
         },
         {
@@ -167,6 +170,7 @@ describe('calculateReorder', () => {
           sortOrder: 2,
           frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
           createdAt: '2026-01-01',
+          startDate: '2026-01-01',
         },
       ];
       const standaloneHabits = [...habits.filter(h => !h.groupId)].sort(

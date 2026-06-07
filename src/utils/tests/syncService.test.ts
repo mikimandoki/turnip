@@ -12,6 +12,7 @@ const baseHabit: Habit = {
   name: 'Drink water',
   sortOrder: 0,
   createdAt: '2025-01-01',
+  startDate: '2025-01-01',
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
 };
 
@@ -24,6 +25,7 @@ describe('toRemoteHabit', () => {
       name: 'Drink water',
       note: null,
       created_at: '2025-01-01',
+      start_date: '2025-01-01',
       times: 1,
       period_length: 1,
       period_unit: 'day',

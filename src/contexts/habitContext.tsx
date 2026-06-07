@@ -32,6 +32,7 @@ import {
   HasOnboardedSchema,
   loadFromStorage,
   saveToStorage,
+  WeekStartsOnSchema,
 } from '../utils/localStorage';
 import { logger, pruneLogs } from '../utils/logger';
 import { cancelNotificationsForHabit, syncHabitNotification } from '../utils/notificationService';
@@ -64,7 +65,7 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
 
   try {
     const habitResult = await db.query(
-      `SELECT id, name, note, groupId, createdAt, times, periodLength, periodUnit, sortOrder,
+      `SELECT id, name, note, groupId, createdAt, startDate, times, periodLength, periodUnit, sortOrder,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays,
               notif_customMessage, notif_intervalN, notif_intervalUnit, archive_runs
        FROM habits
@@ -78,6 +79,7 @@ async function loadDataFromDB(showToast: (message: string, type?: ToastType) => 
       groupId: row.groupId ?? undefined,
       sortOrder: row.sortOrder,
       createdAt: row.createdAt,
+      startDate: row.startDate ?? row.createdAt,
       frequency: {
         times: row.times,
         periodLength: row.periodLength,
@@ -129,6 +131,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [hasOnboarded, setHasOnboarded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
+  const [weekStartsOn, setWeekStartsOn] = useState<0 | 1>(1);
   const isFutureDate = import.meta.env.MODE !== 'development' && isFuture(displayDate);
   const syncOnSignInInFlight = useRef(false);
   const habitsRef = useRef(habits);
@@ -155,6 +158,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     confirmNotifPrompt,
     onVisible: onNotifVisible,
   } = useNotificationPermission();
+
+  async function setWeekStartsOnSetting(value: 0 | 1) {
+    setWeekStartsOn(value);
+    await saveToStorage('weekStartsOn', value);
+  }
 
   async function updateCompletion(habitId: string, increment: number) {
     const today = toDateString(displayDate);
@@ -221,13 +229,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const maxSort =
         (sortResult.values?.[0] as { maxSort: number | null } | undefined)?.maxSort ?? -1;
       await db.run(
-        `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, sortOrder, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO habits (id, name, note, createdAt, startDate, times, periodLength, periodUnit, sortOrder, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           newHabit.id,
           newHabit.name,
           newHabit.note ?? null,
           newHabit.createdAt,
+          newHabit.startDate,
           newHabit.frequency.times,
           newHabit.frequency.periodLength,
           newHabit.frequency.periodUnit,
@@ -371,9 +380,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void (async () => {
       const db = await getDB();
-      const [dbData, onboarded] = await Promise.all([
+      const [dbData, onboarded, weekStart] = await Promise.all([
         loadDataFromDB(showToast),
         loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
+        loadFromStorage('weekStartsOn', 1, WeekStartsOnSchema),
       ]);
 
       const { data } = await supabase.auth.getSession();
@@ -390,6 +400,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       setHasOnboarded(onboarded || dbData.habits.length > 0);
+      setWeekStartsOn(weekStart as 0 | 1);
       setLoading(false);
       void pruneLogs();
     })();
@@ -562,23 +573,30 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function loadDemoData() {
-    const { habits: demoHabits, completions: demoCompletions } = generateDemoData();
+    const { habits: demoHabits, completions: demoCompletions, groups: demoGroups } = generateDemoData(weekStartsOn);
     const db = await getDB();
 
     await cancelAllHabitNotifications();
     await db.executeSet(
       [
         { statement: `DELETE FROM habits`, values: [] },
+        { statement: `DELETE FROM habit_groups`, values: [] },
+        ...demoGroups.map(g => ({
+          statement: `INSERT INTO habit_groups (id, name, sortOrder) VALUES (?, ?, ?)`,
+          values: [g.id, g.name, g.sortOrder ?? 0],
+        })),
         ...demoHabits.map((h, i) => ({
-          statement: `INSERT INTO habits (id, name, createdAt, times, periodLength, periodUnit, sortOrder, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          statement: `INSERT INTO habits (id, name, createdAt, startDate, times, periodLength, periodUnit, sortOrder, groupId, archive_runs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           values: [
             h.id,
             h.name,
             h.createdAt,
+            h.startDate,
             h.frequency.times,
             h.frequency.periodLength,
             h.frequency.periodUnit,
             i,
+            h.groupId ?? null,
             h.archiveRuns ? JSON.stringify(h.archiveRuns) : '[]',
           ],
         })),
@@ -790,7 +808,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
     const currentGroups = groups;
-    const visibleHabits = currentHabits.filter(h => h.createdAt <= toDateString(displayDate));
+    const visibleHabits = currentHabits.filter(
+      h => (h.startDate ?? h.createdAt) <= toDateString(displayDate)
+    );
 
     const items: SectionItem[] = [];
     for (const h of standaloneHabits) {
@@ -1014,14 +1034,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             values: [g.id, g.name, g.sortOrder ?? 0],
           })),
           ...parsed.habits.map((h, i) => ({
-            statement: `INSERT INTO habits (id, name, note, createdAt, times, periodLength, periodUnit, groupId, sortOrder, updated_at,
+            statement: `INSERT INTO habits (id, name, note, createdAt, startDate, times, periodLength, periodUnit, groupId, sortOrder, updated_at,
               notif_enabled, notif_mode, notif_time, notif_days, notif_monthDays, notif_customMessage, notif_intervalN, notif_intervalUnit)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             values: [
               h.id,
               h.name,
               h.note ?? null,
               h.createdAt,
+              h.startDate,
               h.frequency.times,
               h.frequency.periodLength,
               h.frequency.periodUnit,
@@ -1129,6 +1150,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         isFutureDate,
         hasOnboarded,
         darkMode,
+        weekStartsOn,
         addHabit,
         updateCompletion,
         deleteHabit,
@@ -1152,6 +1174,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         addToGroup,
         removeFromGroup,
         toggleDarkMode,
+        setWeekStartsOnSetting,
         osNotificationsGranted,
         recheckNotificationPermission,
         notifPermissionPrompt,

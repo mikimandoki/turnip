@@ -44,11 +44,18 @@ export function importData(json: string): ImportResult {
     const raw: unknown = JSON.parse(json);
     const result = ImportSchema.safeParse(raw);
     if (!result.success) return { success: false, error: 'Invalid data format' };
+
+    const data = result.data;
+    const habitsWithStartDate = data.habits.map(h => ({
+      ...h,
+      startDate: h.startDate ?? h.createdAt,
+    }));
+
     return {
       success: true,
-      habits: result.data.habits,
-      completions: result.data.completions,
-      groups: result.data.groups,
+      habits: habitsWithStartDate,
+      completions: data.completions,
+      groups: data.groups,
     };
   } catch {
     return { success: false, error: 'Failed to parse JSON' };

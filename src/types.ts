@@ -40,6 +40,7 @@ export const HabitSchema = z.object({
   sortOrder: z.number().optional().default(0),
   frequency: FrequencySchema,
   createdAt: z.string(),
+  startDate: z.string(),
   notification: z
     .object({
       enabled: z.boolean(),
@@ -65,6 +66,7 @@ export const HabitRowSchema = z.object({
   note: z.string().nullable(),
   groupId: z.string().nullable(),
   createdAt: z.string(),
+  startDate: z.string().nullable(),
   times: z.number(),
   periodLength: z.number(),
   periodUnit: z.enum(['day', 'week', 'month']),

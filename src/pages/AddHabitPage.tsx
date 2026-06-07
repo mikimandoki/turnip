@@ -1,12 +1,14 @@
+import { startOfMonth, startOfWeek } from 'date-fns';
 import { ChevronLeft } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import type { Frequency } from '../types';
 
 import Alert from '../components/Alert';
 import NotificationPicker from '../components/NotificationPicker';
+import PeriodTimeline from '../components/PeriodTimeline';
 import { useHabitContext } from '../contexts/useHabitContext';
 import { toDateString } from '../utils/date';
 import {
@@ -39,7 +41,7 @@ const placeholderExamples = [
 
 export default function AddHabitPage() {
   const navigate = useNavigate();
-  const { addHabit, displayDate, recheckNotificationPermission } = useHabitContext();
+  const { addHabit, recheckNotificationPermission, weekStartsOn } = useHabitContext();
   const [name, setName] = useState('');
   const [timesStr, setTimesStr] = useState('1');
   const [periodLengthStr, setPeriodLengthStr] = useState('1');
@@ -55,6 +57,52 @@ export default function AddHabitPage() {
   const [notif, setNotif] = useState<NotificationValue>(defaultNotificationValue);
   const [notifValidated, setNotifValidated] = useState(false);
   const [notifBlockedOpen, setNotifBlockedOpen] = useState(false);
+  const [startDate, setStartDate] = useState<string>(toDateString(new Date()));
+  const [dateWarningOpen, setDateWarningOpen] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
+  const userOverrodeDate = useRef(false);
+
+  const today = useMemo(() => new Date(), []);
+  const todayStr = toDateString(today);
+
+  const defaultStartDate = useMemo(() => {
+    if (isCustom) {
+      return todayStr;
+    }
+    switch (periodUnit) {
+      case 'day':
+        return todayStr;
+      case 'week':
+        return toDateString(startOfWeek(today, { weekStartsOn }));
+      case 'month':
+        return toDateString(startOfMonth(today));
+    }
+  }, [isCustom, periodUnit, today, todayStr, weekStartsOn]);
+
+  function getPeriodExplainer(): string {
+    if (isCustom) {
+      return 'Custom habits start on your chosen start date.';
+    }
+    switch (periodUnit) {
+      case 'day':
+        return '';
+      case 'week':
+        return `Weekly habits start on ${weekStartsOn === 0 ? 'Sunday' : 'Monday'} by default. You can change your start date if you want to.`;
+      case 'month':
+        return 'Monthly habits start on the 1st by default. You can change your start date if you want to.';
+    }
+  }
+
+  useEffect(() => {
+    if (!userOverrodeDate.current) {
+      setStartDate(defaultStartDate);
+    }
+  }, [defaultStartDate]);
+
+  function handleStartDateChange(value: string) {
+    userOverrodeDate.current = true;
+    setStartDate(value);
+  }
 
   async function handleSubmit(e: React.SyntheticEvent) {
     e.preventDefault();
@@ -69,6 +117,15 @@ export default function AddHabitPage() {
       setNotifValidated(true);
       return;
     }
+
+    const start = new Date(startDate);
+    const daysDiff = Math.floor((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (Math.abs(daysDiff) > 90 && !pendingSubmit) {
+      setDateWarningOpen(true);
+      setPendingSubmit(true);
+      return;
+    }
+
     setErrors([]);
     await addHabit({
       id: nanoid(),
@@ -76,21 +133,22 @@ export default function AddHabitPage() {
       note: note.trim() || undefined,
       sortOrder: 0,
       frequency,
-      createdAt: toDateString(displayDate),
+      createdAt: todayStr,
+      startDate,
       notification: notif.enabled ? notif : undefined,
     });
     if (isNative && notif.enabled) {
       const permStatus = await checkNotificationPermission();
       if (permStatus === 'blocked') {
         setNotifBlockedOpen(true);
-        return; // navigate on alert dismiss
+        return;
       }
       if (permStatus === 'prompt') {
         const result = await requestNotificationPermission();
         void recheckNotificationPermission();
         if (result === 'blocked') {
           setNotifBlockedOpen(true);
-          return; // navigate on alert dismiss
+          return;
         }
       }
     }
@@ -191,6 +249,14 @@ export default function AddHabitPage() {
                     } else {
                       const unit = e.target.value as Frequency['periodUnit'];
                       setPeriodUnit(unit);
+                      userOverrodeDate.current = false;
+                      if (unit === 'day') {
+                        setStartDate(todayStr);
+                      } else if (unit === 'week') {
+                        setStartDate(toDateString(startOfWeek(today, { weekStartsOn })));
+                      } else if (unit === 'month') {
+                        setStartDate(toDateString(startOfMonth(today)));
+                      }
                       setNotif(n => ({ ...n, mode: notifModeForUnit('custom') }));
                     }
                   }}
@@ -214,6 +280,14 @@ export default function AddHabitPage() {
                   } else {
                     const unit = e.target.value as Frequency['periodUnit'];
                     setPeriodUnit(unit);
+                    userOverrodeDate.current = false;
+                    if (unit === 'day') {
+                      setStartDate(todayStr);
+                    } else if (unit === 'week') {
+                      setStartDate(toDateString(startOfWeek(today, { weekStartsOn })));
+                    } else if (unit === 'month') {
+                      setStartDate(toDateString(startOfMonth(today)));
+                    }
                     setPeriodLengthStr('1');
                     setNotif(n => ({ ...n, mode: notifModeForUnit(unit) }));
                   }
@@ -224,6 +298,28 @@ export default function AddHabitPage() {
                 <option value='month'>month</option>
                 <option value='custom'>custom…</option>
               </select>
+            )}
+          </div>
+          <div className={styles.startDateSection}>
+            <label className='form-label' htmlFor='start-date'>
+              Start date
+            </label>
+            {getPeriodExplainer() && (
+              <span className={styles.startDateExplainer}>{getPeriodExplainer()}</span>
+            )}
+            <input
+              id='start-date'
+              type='date'
+              value={startDate}
+              onChange={e => handleStartDateChange(e.target.value)}
+              className='text-input'
+              style={{ marginTop: '8px' }}
+            />
+            {!(periodUnit === 'day' && periodLength === 1) && (
+              <PeriodTimeline
+                frequency={{ times, periodLength, periodUnit }}
+                startDate={startDate}
+              />
             )}
           </div>
           <NotificationPicker
@@ -276,6 +372,28 @@ export default function AddHabitPage() {
           ))}
         </form>
       </div>
+      <Alert
+        open={dateWarningOpen}
+        title='Start date is far in the past or future'
+        description={
+          startDate > todayStr
+            ? `This habit will start on ${startDate}, which is more than 3 months from today. It won't appear in your daily view until then.\n\nAre you sure you want to continue?`
+            : `This habit will start on ${startDate}, which is more than 3 months ago. Your completions will be counted from this date forward.\n\nAre you sure you want to continue?`
+        }
+        confirm='Continue'
+        cancel='Change date'
+        variant='primary'
+        onOpenChange={isOpen => {
+          setDateWarningOpen(isOpen);
+          if (!isOpen) setPendingSubmit(false);
+        }}
+        onConfirm={() => {
+          setDateWarningOpen(false);
+          setPendingSubmit(false);
+          const fakeEvent = { preventDefault: () => {} } as React.SyntheticEvent;
+          void handleSubmit(fakeEvent);
+        }}
+      />
       <Alert
         open={notifBlockedOpen}
         title='Notifications blocked'

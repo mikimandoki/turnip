@@ -47,13 +47,14 @@ export default function Heatmap({
 }) {
   const today = new Date();
   const createdAt = parseISO(habit.createdAt);
+  const startDate = habit.startDate ? parseISO(habit.startDate) : createdAt;
   const [heatmapMonth, setHeatmapMonth] = useState(today);
   const canGoForward =
     import.meta.env.MODE === 'development' ||
     isBefore(startOfMonth(heatmapMonth), startOfMonth(today));
   const canGoBack =
     import.meta.env.MODE === 'development' ||
-    isBefore(startOfMonth(createdAt), startOfMonth(heatmapMonth));
+    isBefore(startOfMonth(startDate), startOfMonth(heatmapMonth));
   const days = eachDayOfInterval({
     start: startOfMonth(heatmapMonth),
     end: endOfMonth(heatmapMonth),
@@ -64,8 +65,13 @@ export default function Heatmap({
   const padding = Array(mondayOffset).fill(null);
 
   const completionMap = useMemo(
-    () => new Map(completions.filter(c => c.habitId === habit.id).map(c => [c.date, c.count])),
-    [completions, habit.id]
+    () =>
+      new Map(
+        completions
+          .filter(c => c.habitId === habit.id && c.date >= (habit.startDate ?? habit.createdAt))
+          .map(c => [c.date, c.count])
+      ),
+    [completions, habit.id, habit.startDate, habit.createdAt]
   );
 
   const isDailyPeriod = habit.frequency.periodUnit === 'day' && habit.frequency.periodLength === 1;
@@ -91,9 +97,11 @@ export default function Heatmap({
       days.length > 0 &&
       days.every(d => {
         const ds = toDateString(d);
-        return ds < habit.createdAt || isInArchivedInterval(ds, habit.archiveRuns);
+        return (
+          ds < (habit.startDate ?? habit.createdAt) || isInArchivedInterval(ds, habit.archiveRuns)
+        );
       }),
-    [days, habit.createdAt, habit.archiveRuns]
+    [days, habit.createdAt, habit.startDate, habit.archiveRuns]
   );
 
   return (
@@ -130,9 +138,10 @@ export default function Heatmap({
         {days.map(day => {
           const dateStr = toDateString(day);
           const count = completionMap.get(dateStr) ?? 0;
-          const periodComplete = completedPeriods.has(startDatePeriod(habit, day));
+          const periodComplete =
+            dateStr >= habit.startDate && completedPeriods.has(startDatePeriod(habit, day));
           const archived =
-            dateStr >= habit.createdAt && isInArchivedInterval(dateStr, habit.archiveRuns);
+            dateStr >= habit.startDate && isInArchivedInterval(dateStr, habit.archiveRuns);
           const label =
             `${format(day, 'MMMM d')}: ${count} of ${habit.frequency.times} completion${habit.frequency.times === 1 ? '' : 's'}` as AriaLabel;
           return (

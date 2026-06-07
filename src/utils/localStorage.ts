@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { logger } from './logger';
 
 export const HasOnboardedSchema = z.boolean();
+export const WeekStartsOnSchema = z.number().min(0).max(6).default(1); // 0=Sunday, 1=Monday, etc.
 
 export async function loadFromStorage<T>(
   key: string,
@@ -28,5 +29,6 @@ export async function clearStorage(): Promise<void> {
   await Promise.all([
     Preferences.remove({ key: 'hasOnboarded' }),
     Preferences.remove({ key: 'darkMode' }),
+    Preferences.remove({ key: 'weekStartsOn' }),
   ]);
 }

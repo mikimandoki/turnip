@@ -24,7 +24,7 @@ export async function syncDB() {
  *   - Each version block must be idempotent (CREATE IF NOT EXISTS, column existence checks).
  *   - Bump CURRENT_VERSION when adding a new block.
  */
-const CURRENT_VERSION = 6;
+const CURRENT_VERSION = 7;
 
 async function writeMigrationLog(
   db: SQLiteDBConnection,
@@ -198,6 +198,17 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       await db.execute(`PRAGMA user_version = 6`);
     }
 
+    if (currentVersion < 7) {
+      await writeMigrationLog(db, 'info', 'db', 'Migration v7: adding startDate column');
+      const h7 = await db.query(`PRAGMA table_info(habits)`);
+      const hCols7 = new Set((h7.values ?? []).map((r: { name: string }) => r.name));
+      if (!hCols7.has('startDate')) {
+        await db.execute(`ALTER TABLE habits ADD COLUMN startDate TEXT`);
+        await db.execute(`UPDATE habits SET startDate = createdAt WHERE startDate IS NULL`);
+      }
+      await db.execute(`PRAGMA user_version = 7`);
+    }
+
     await writeMigrationLog(db, 'info', 'db', `Migration complete (v${CURRENT_VERSION})`);
   } catch (e) {
     await writeMigrationLog(
@@ -211,7 +222,10 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
 
   // Post-migration consistency: verify all expected columns actually exist.
   // Handles cases where PRAGMA was bumped but ALTER TABLE silently failed.
-  const expectedCols: [string, string][] = [['archive_runs', 'TEXT']];
+  const expectedCols: [string, string][] = [
+    ['archive_runs', 'TEXT'],
+    ['startDate', 'TEXT'],
+  ];
   const postCheck = await db.query(`PRAGMA table_info(habits)`);
   const postCols = new Set((postCheck.values ?? []).map((r: { name: string }) => r.name));
   for (const [col, def] of expectedCols) {

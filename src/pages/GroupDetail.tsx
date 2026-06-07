@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, Pencil, Trash2, X } from 'lucide-react';
+import { Check, CheckCheck, ChevronLeft, Pencil, Percent, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
@@ -160,13 +160,19 @@ export default function GroupDetail() {
           <div className={habitStyles.statsGrid}>
             <div className={habitStyles.statBox}>
               <div className={habitStyles.statValue}>{totalTimesLogged}</div>
-              <div className={habitStyles.statLabel}>total times logged</div>
+              <div className={habitStyles.statLabel}>
+                <CheckCheck size={12} className={habitStyles.statIcon} />
+                total times logged
+              </div>
             </div>
             <div className={habitStyles.statBox}>
               <div className={habitStyles.statValue}>
                 {Math.round((groupStats?.completionRate ?? 0) * 100)}%
               </div>
-              <div className={habitStyles.statLabel}>average completion rate</div>
+              <div className={habitStyles.statLabel}>
+                <Percent size={12} className={habitStyles.statIcon} />
+                average completion rate
+              </div>
             </div>
           </div>
         </div>
@@ -180,7 +186,7 @@ export default function GroupDetail() {
             ) : (
               memberHabits.map(h => {
                 const { emoji: hEmoji, cleanName: hCleanName } = parseHabitEmoji(h.name);
-                const s = calculateHabitStats(h, completions, new Date());
+                const s = calculateHabitStats(h, completions, new Date(), undefined);
                 const showStreak =
                   (s.streakContinuable && s.previousStreak >= 2) ||
                   (!s.streakContinuable && s.currentStreak >= 2);

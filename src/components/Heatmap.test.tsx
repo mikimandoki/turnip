@@ -11,6 +11,7 @@ const dailyHabit: Habit = {
   sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-03-01',
+  startDate: '2026-03-01',
 };
 
 const multiDailyHabit: Habit = {
@@ -19,6 +20,7 @@ const multiDailyHabit: Habit = {
   sortOrder: 1,
   frequency: { times: 4, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-03-01',
+  startDate: '2026-03-01',
 };
 
 const weeklyHabit: Habit = {
@@ -27,6 +29,7 @@ const weeklyHabit: Habit = {
   sortOrder: 2,
   frequency: { times: 3, periodLength: 1, periodUnit: 'week' },
   createdAt: '2026-03-02',
+  startDate: '2026-03-02',
 };
 
 const monthlyHabit: Habit = {
@@ -35,6 +38,7 @@ const monthlyHabit: Habit = {
   sortOrder: 3,
   frequency: { times: 2, periodLength: 1, periodUnit: 'month' },
   createdAt: '2026-03-01',
+  startDate: '2026-03-01',
 };
 
 beforeEach(() => {
@@ -228,7 +232,7 @@ describe('Heatmap', () => {
     // fireEvent instead of userEvent: fake timers are active in this file and userEvent's
     // internal setTimeout delays hang indefinitely when the clock is frozen.
     it('navigates back to previous month and shows correct day count', () => {
-      const habit: Habit = { ...dailyHabit, createdAt: '2026-01-01' };
+      const habit: Habit = { ...dailyHabit, createdAt: '2026-01-01', startDate: '2026-01-01' };
       const { container } = render(<Heatmap habit={habit} completions={[]} />);
       fireEvent.click(screen.getByRole('button', { name: /previous month/i }));
       const cells = container.querySelectorAll('.heatmapCell:not(.heatmapPad)');

@@ -16,6 +16,8 @@ export interface HabitContextType {
   isFutureDate: boolean;
   hasOnboarded: boolean;
   darkMode: boolean;
+  weekStartsOn: 0 | 1;
+  setWeekStartsOnSetting: (value: 0 | 1) => Promise<void>;
   addHabit: (habit: Habit) => Promise<void>;
   updateCompletion: (habitId: string, increment: number) => Promise<void>;
   deleteHabit: (habit: Habit) => Promise<void>;

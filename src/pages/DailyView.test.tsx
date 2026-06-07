@@ -43,6 +43,7 @@ const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
   sortOrder: 0,
   frequency: { times: 1, periodLength: 1, periodUnit: 'day' },
   createdAt: '2026-04-01',
+  startDate: '2026-04-01',
   ...overrides,
 });
 
@@ -114,13 +115,23 @@ describe('DailyView onboarding states', () => {
 });
 
 describe('DailyView visible habits filter', () => {
-  it('hides habits created after the display date', () => {
+  it('hides habits with start date after the display date', () => {
     vi.mocked(useHabitContext).mockReturnValue({
       ...baseContext,
       displayDate: new Date('2026-04-11'),
       habits: [
-        makeHabit({ id: 'h1', name: 'Old habit', createdAt: '2026-04-01' }),
-        makeHabit({ id: 'h2', name: 'Future habit', createdAt: '2026-04-12' }),
+        makeHabit({
+          id: 'h1',
+          name: 'Old habit',
+          createdAt: '2026-04-01',
+          startDate: '2026-04-01',
+        }),
+        makeHabit({
+          id: 'h2',
+          name: 'Future habit',
+          createdAt: '2026-04-01',
+          startDate: '2026-04-12',
+        }),
       ],
     } as never);
     render(<DailyView />);
@@ -128,11 +139,18 @@ describe('DailyView visible habits filter', () => {
     expect.soft(screen.queryByText('Future habit')).not.toBeInTheDocument();
   });
 
-  it('shows habits created on the display date', () => {
+  it('shows habits with start date on the display date', () => {
     vi.mocked(useHabitContext).mockReturnValue({
       ...baseContext,
       displayDate: new Date('2026-04-11'),
-      habits: [makeHabit({ id: 'h1', name: 'Same day habit', createdAt: '2026-04-11' })],
+      habits: [
+        makeHabit({
+          id: 'h1',
+          name: 'Same day habit',
+          createdAt: '2026-04-11',
+          startDate: '2026-04-11',
+        }),
+      ],
     } as never);
     render(<DailyView />);
     expect(screen.getByText('Same day habit')).toBeInTheDocument();
