@@ -35,6 +35,7 @@ function handleSyncResult(op: string, error: unknown): void {
     if (isSupabasePausedError(error)) reportFailure();
   } else {
     reportSuccess();
+    logger.info('sync', 'pullAll: done');
   }
 }
 
@@ -264,10 +265,42 @@ type RemoteCompletionRow = {
  * Then pull to bring down anything newer or missing locally.
  * Net result: union of both sides, with remote winning on conflict.
  */
+async function pushGroupsOnSignIn(db: SQLiteDBConnection, userId: string): Promise<void> {
+  const groupRows = await db.query(`SELECT id, name, sortOrder FROM habit_groups`);
+  if (!groupRows.values || groupRows.values.length === 0) return;
+  const rawGroups = z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        sortOrder: z.number(),
+      })
+    )
+    .parse(groupRows.values);
+  const remoteGroups = rawGroups.map(g =>
+    toRemoteGroup(
+      { id: g.id, name: g.name, sortOrder: g.sortOrder },
+      userId,
+      new Date().toISOString()
+    )
+  );
+  const { error } = await supabase
+    .from('habit_groups')
+    .upsert(remoteGroups, { onConflict: 'id', ignoreDuplicates: true });
+  handleSyncResult('syncOnSignIn groups', error);
+}
+
 export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
-  if (!shouldAttempt()) return;
+  if (!shouldAttempt()) {
+    logger.info('sync', 'syncOnSignIn: skipped — shouldAttempt false');
+    return;
+  }
   const user = await getUser();
-  if (!user) return;
+  if (!user) {
+    logger.info('sync', 'syncOnSignIn: skipped — no user');
+    return;
+  }
+  logger.info('sync', 'syncOnSignIn: start');
 
   // Read habits with their actual updated_at from SQLite
   const habitRows = await db.query(
@@ -300,36 +333,15 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     });
   }
 
+  // Push groups up FIRST so FK constraints are satisfied when habits reference them
+  await pushGroupsOnSignIn(db, user.id);
+
+  logger.info('sync', `syncOnSignIn: pushing ${remoteHabits.length} habits`);
   if (remoteHabits.length > 0) {
     const { error } = await supabase
       .from('habits')
       .upsert(remoteHabits, { onConflict: 'id', ignoreDuplicates: true });
     handleSyncResult('syncOnSignIn habits', error);
-  }
-
-  // Push groups up
-  const groupRows = await db.query(`SELECT id, name, sortOrder FROM habit_groups`);
-  if (groupRows.values && groupRows.values.length > 0) {
-    const rawGroups = z
-      .array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          sortOrder: z.number(),
-        })
-      )
-      .parse(groupRows.values);
-    const remoteGroups = rawGroups.map(g =>
-      toRemoteGroup(
-        { id: g.id, name: g.name, sortOrder: g.sortOrder },
-        user.id,
-        new Date().toISOString()
-      )
-    );
-    const { error } = await supabase
-      .from('habit_groups')
-      .upsert(remoteGroups, { onConflict: 'id', ignoreDuplicates: true });
-    handleSyncResult('syncOnSignIn groups', error);
   }
 
   // Pull remote groups after push (gets remote group_id on habits)
@@ -362,6 +374,7 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     });
   }
 
+  logger.info('sync', `syncOnSignIn: pushing ${remoteCompletions.length} completions`);
   if (remoteCompletions.length > 0) {
     const { error } = await supabase
       .from('completions')
@@ -369,15 +382,22 @@ export async function syncOnSignIn(db: SQLiteDBConnection): Promise<void> {
     handleSyncResult('syncOnSignIn completions', error);
   }
 
+  logger.info('sync', 'syncOnSignIn: pulling remote data');
   await pullAll(db);
+  logger.info('sync', 'syncOnSignIn: done');
 }
 
 export async function pullAllGroups(db: SQLiteDBConnection): Promise<void> {
-  if (!shouldAttempt()) return;
+  if (!shouldAttempt()) {
+    logger.info('sync', 'pullAllGroups: skipped — shouldAttempt false');
+    return;
+  }
   const user = await getUser();
-  if (!user) return;
+  if (!user) {
+    logger.info('sync', 'pullAllGroups: skipped — no user');
+    return;
+  }
 
-  // --- Groups ---
   const { data: remoteGroups, error: groupsError } = await supabase
     .from('habit_groups')
     .select('*')
@@ -388,6 +408,7 @@ export async function pullAllGroups(db: SQLiteDBConnection): Promise<void> {
     return;
   }
 
+  logger.info('sync', `pullAllGroups: ${remoteGroups?.length ?? 0} remote groups`);
   for (const row of (remoteGroups ?? []) as RemoteGroupRow[]) {
     if (row.deleted_at) {
       await db.run(`DELETE FROM habit_groups WHERE id = ?`, [row.id]);
@@ -409,13 +430,19 @@ export async function pullAllGroups(db: SQLiteDBConnection): Promise<void> {
  * Caller should reload from DB and update React state after this resolves.
  */
 export async function pullAll(db: SQLiteDBConnection): Promise<void> {
-  if (!shouldAttempt()) return;
+  if (!shouldAttempt()) {
+    logger.info('sync', 'pullAll: skipped — shouldAttempt false');
+    return;
+  }
   const user = await getUser();
-  if (!user) return;
+  if (!user) {
+    logger.info('sync', 'pullAll: skipped — no user');
+    return;
+  }
+  logger.info('sync', 'pullAll: start');
 
   await pullAllGroups(db);
 
-  // --- Habits ---
   const { data: remoteHabits, error: habitsError } = await supabase
     .from('habits')
     .select('*')
@@ -426,6 +453,7 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
     return;
   }
 
+  logger.info('sync', `pullAll: ${remoteHabits?.length ?? 0} remote habits`);
   for (const row of (remoteHabits ?? []) as RemoteHabitRow[]) {
     if (row.deleted_at) {
       await db.run(`DELETE FROM habits WHERE id = ?`, [row.id]);
@@ -466,6 +494,7 @@ export async function pullAll(db: SQLiteDBConnection): Promise<void> {
     .from('completions')
     .select('*')
     .eq('user_id', user.id);
+  logger.info('sync', `pullAll: ${remoteCompletions?.length ?? 0} remote completions`);
   if (completionsError) {
     logger.error('sync', 'pullAll completions failed', completionsError.message);
     if (isSupabasePausedError(completionsError)) reportFailure();

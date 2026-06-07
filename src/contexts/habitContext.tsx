@@ -36,11 +36,12 @@ import {
 } from '../utils/localStorage';
 import { logger, pruneLogs } from '../utils/logger';
 import { cancelNotificationsForHabit, syncHabitNotification } from '../utils/notificationService';
-import { getDB, syncDB } from '../utils/sqlite';
+import { getDB, reopenDB, syncDB } from '../utils/sqlite';
 import { APP_NAME } from '../utils/strings';
 import { supabase } from '../utils/supabase';
 import {
   onStatusChange as onSupabaseStatusChange,
+  reportSuccess as supabaseReportSuccess,
   shouldAttempt as supabaseShouldAttempt,
 } from '../utils/supabaseMonitor';
 import {
@@ -379,30 +380,35 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     void (async () => {
-      const db = await getDB();
-      const [dbData, onboarded, weekStart] = await Promise.all([
-        loadDataFromDB(showToast),
-        loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
-        loadFromStorage('weekStartsOn', 1, WeekStartsOnSchema),
-      ]);
+      try {
+        const db = await getDB();
+        const [dbData, onboarded, weekStart] = await Promise.all([
+          loadDataFromDB(showToast),
+          loadFromStorage('hasOnboarded', false, HasOnboardedSchema),
+          loadFromStorage('weekStartsOn', 1, WeekStartsOnSchema),
+        ]);
 
-      const { data } = await supabase.auth.getSession();
-      if (data.session && supabaseShouldAttempt()) {
-        await pullAll(db);
-        const synced = await loadDataFromDB(showToast);
-        setHabits(synced.habits);
-        setCompletions(synced.completions);
-        setGroups(synced.groups);
-      } else {
-        setHabits(dbData.habits);
-        setCompletions(dbData.completions);
-        setGroups(dbData.groups);
+        const { data } = await supabase.auth.getSession();
+        if (data.session && supabaseShouldAttempt()) {
+          await pullAll(db);
+          const synced = await loadDataFromDB(showToast);
+          setHabits(synced.habits);
+          setCompletions(synced.completions);
+          setGroups(synced.groups);
+        } else {
+          setHabits(dbData.habits);
+          setCompletions(dbData.completions);
+          setGroups(dbData.groups);
+        }
+
+        setHasOnboarded(onboarded || dbData.habits.length > 0);
+        setWeekStartsOn(weekStart as 0 | 1);
+        void pruneLogs();
+      } catch (e) {
+        logger.error('app', 'App initialization failed', e);
+      } finally {
+        setLoading(false);
       }
-
-      setHasOnboarded(onboarded || dbData.habits.length > 0);
-      setWeekStartsOn(weekStart as 0 | 1);
-      setLoading(false);
-      void pruneLogs();
     })();
   }, [showToast]);
 
@@ -413,14 +419,22 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         syncOnSignInInFlight.current = true;
         void (async () => {
           try {
-            const db = await getDB();
+            logger.info('sync', 'SIGNED_IN event — starting syncOnSignIn');
+            supabaseReportSuccess();
+            const db = await reopenDB();
             await syncOnSignIn(db);
             const synced = await loadDataFromDB(showToast);
+            logger.info(
+              'sync',
+              `syncOnSignIn complete: ${synced.habits.length} habits, ${synced.completions.length} completions`
+            );
             setHabits(synced.habits);
             setCompletions(synced.completions);
             setGroups(synced.groups);
           } catch (e) {
             logger.error('sync', 'syncOnSignIn failed', e);
+            const msg = e instanceof Error ? e.message : String(e);
+            showToast(`Sync failed: ${msg}`, 'error');
           } finally {
             syncOnSignInInFlight.current = false;
           }

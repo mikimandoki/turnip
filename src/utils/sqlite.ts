@@ -7,6 +7,25 @@ const sqlite = new SQLiteConnection(CapacitorSQLite);
 
 let dbPromise: Promise<SQLiteDBConnection> | null = null;
 
+// Buffers [db] logs before DB is ready, flushed via flushDbLogs() once init completes.
+const dbLogBuffer: string[] = [];
+function dbLog(msg: string): void {
+  console.log('[db]', msg);
+  dbLogBuffer.push(msg);
+}
+export async function flushDbLogs(): Promise<void> {
+  if (dbLogBuffer.length === 0) return;
+  const { logger } = await import('./logger');
+  for (const msg of dbLogBuffer) {
+    try {
+      logger.info('db', msg);
+    } catch {
+      /* best-effort */
+    }
+  }
+  dbLogBuffer.length = 0;
+}
+
 /**
  * Syncs the in-memory web DB to IndexedDB.
  * No-op on native iOS/Android.
@@ -239,38 +258,51 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
  * Initialize DB if needed and return connection.
  * Only runs setup once per app session.
  */
+async function initDB(): Promise<SQLiteDBConnection> {
+  if (!isNative) {
+    defineJeepSqlite(window);
+    const jeepEl = document.querySelector('jeep-sqlite');
+    if (jeepEl) {
+      await sqlite.initWebStore();
+      await jeepEl.componentOnReady();
+    } else {
+      throw new Error('jeep-sqlite element not found in DOM');
+    }
+  }
+
+  let db: SQLiteDBConnection;
+  try {
+    db = await sqlite.createConnection('turnip', false, 'no-encryption', 1, false);
+    dbLog('initDB: created new connection');
+  } catch {
+    db = await sqlite.retrieveConnection('turnip', false);
+    dbLog('initDB: retrieved existing connection');
+  }
+
+  await db.open();
+  await db.execute(`PRAGMA foreign_keys = ON;`);
+  await runMigrations(db);
+
+  void flushDbLogs();
+
+  return db;
+}
+
 export async function getDB(): Promise<SQLiteDBConnection> {
   if (!dbPromise) {
-    dbPromise = (async () => {
-      if (!isNative) {
-        defineJeepSqlite(window);
-        const jeepEl = document.querySelector('jeep-sqlite');
-        if (jeepEl) {
-          await sqlite.initWebStore();
-          await jeepEl.componentOnReady();
-        } else {
-          throw new Error('jeep-sqlite element not found in DOM');
-        }
-      }
-
-      let db: SQLiteDBConnection;
-      try {
-        db = await sqlite.createConnection('turnip', false, 'no-encryption', 1, false);
-      } catch {
-        db = await sqlite.retrieveConnection('turnip', false);
-      }
-
-      await db.open();
-      // foreign_keys is connection-scoped — must be set every open
-      await db.execute(`PRAGMA foreign_keys = ON;`);
-      await runMigrations(db);
-
-      return db;
-    })().catch((e: unknown) => {
+    dbLog('getDB: cache miss — initializing');
+    dbPromise = initDB().catch((e: unknown) => {
       dbPromise = null;
       throw e;
     });
   }
-
   return dbPromise;
+}
+/** Close and reinitialize the DB connection (e.g. after OS killed it). */
+export async function reopenDB(): Promise<SQLiteDBConnection> {
+  dbLog('reopenDB: forcing new connection');
+  dbPromise = null;
+  const db = await initDB();
+  dbPromise = Promise.resolve(db);
+  return db;
 }
