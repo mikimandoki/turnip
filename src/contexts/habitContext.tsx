@@ -573,7 +573,11 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function loadDemoData() {
-    const { habits: demoHabits, completions: demoCompletions, groups: demoGroups } = generateDemoData(weekStartsOn);
+    const {
+      habits: demoHabits,
+      completions: demoCompletions,
+      groups: demoGroups,
+    } = generateDemoData(weekStartsOn);
     const db = await getDB();
 
     await cancelAllHabitNotifications();
