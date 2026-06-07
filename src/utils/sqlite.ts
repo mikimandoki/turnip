@@ -7,23 +7,70 @@ const sqlite = new SQLiteConnection(CapacitorSQLite);
 
 let dbPromise: Promise<SQLiteDBConnection> | null = null;
 
+// Serialization queue: ensures only one DB operation runs at a time.
+// Prevents transaction interleaving bugs in jeep-sqlite (web) and
+// avoids bridge concurrency issues on native.
+let dbQueue: Promise<void> = Promise.resolve();
+
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = dbQueue;
+  dbQueue = prev.then(
+    () => undefined,
+    () => undefined
+  );
+  return dbQueue.then(() => fn());
+}
+
+function wrapDB<T extends SQLiteDBConnection>(db: T): T {
+  return new Proxy(db, {
+    get(target, prop): unknown {
+      const value: unknown = Reflect.get(target, prop, target);
+      if (typeof value === 'function') {
+        const fn = value as (...args: unknown[]) => unknown;
+        return (...args: unknown[]) => enqueue(() => fn.apply(target, args) as Promise<unknown>);
+      }
+      return value;
+    },
+  });
+}
+
 // Buffers [db] logs before DB is ready, flushed via flushDbLogs() once init completes.
 const dbLogBuffer: string[] = [];
 function dbLog(msg: string): void {
   console.log('[db]', msg);
   dbLogBuffer.push(msg);
 }
-export async function flushDbLogs(): Promise<void> {
+let flushDbHandle: Promise<void> | null = null;
+
+export async function flushDbLogs(db?: SQLiteDBConnection): Promise<void> {
   if (dbLogBuffer.length === 0) return;
-  const { logger } = await import('./logger');
-  for (const msg of dbLogBuffer) {
-    try {
-      logger.info('db', msg);
-    } catch {
-      /* best-effort */
-    }
-  }
+
+  // Deduplicate concurrent calls — only the first caller writes the buffer.
+  if (flushDbHandle) return flushDbHandle;
+
+  const records = [...dbLogBuffer];
   dbLogBuffer.length = 0;
+
+  flushDbHandle = (async () => {
+    const conn = db ?? (await getDB());
+    try {
+      for (const msg of records) {
+        try {
+          // Write directly without going through logger — avoids reentrant getDB().
+          await conn.run(
+            `INSERT INTO app_logs (level, tag, message, data, created_at) VALUES (?, ?, ?, ?, ?)`,
+            ['info', 'db', msg, null, new Date().toISOString()]
+          );
+        } catch {
+          /* best-effort */
+        }
+      }
+    } finally {
+      flushDbHandle = null;
+    }
+  })();
+
+  return flushDbHandle;
 }
 
 /**
@@ -130,7 +177,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
         }
       }
 
-      await db.run(`PRAGMA user_version = 1`);
+      await db.execute(`PRAGMA user_version = 1`);
     }
 
     if (currentVersion < 2) {
@@ -158,7 +205,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
         await db.execute(`UPDATE completions SET updated_at = date WHERE updated_at IS NULL`);
       }
 
-      await db.run(`PRAGMA user_version = 2`);
+      await db.execute(`PRAGMA user_version = 2`);
     }
 
     if (currentVersion < 3) {
@@ -176,7 +223,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       await db.execute(
         `CREATE INDEX IF NOT EXISTS idx_app_logs_created_at ON app_logs (created_at);`
       );
-      await db.run(`PRAGMA user_version = 3`);
+      await db.execute(`PRAGMA user_version = 3`);
     }
 
     if (currentVersion < 4) {
@@ -186,7 +233,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       if (!hCols4.has('note')) {
         await db.execute(`ALTER TABLE habits ADD COLUMN note TEXT`);
       }
-      await db.run(`PRAGMA user_version = 4`);
+      await db.execute(`PRAGMA user_version = 4`);
     }
 
     if (currentVersion < 5) {
@@ -203,7 +250,7 @@ async function runMigrations(db: SQLiteDBConnection): Promise<void> {
       if (!hCols5.has('groupId')) {
         await db.execute(`ALTER TABLE habits ADD COLUMN groupId TEXT REFERENCES habit_groups(id)`);
       }
-      await db.run(`PRAGMA user_version = 5`);
+      await db.execute(`PRAGMA user_version = 5`);
     }
 
     if (currentVersion < 6) {
@@ -283,18 +330,21 @@ async function initDB(): Promise<SQLiteDBConnection> {
   await db.execute(`PRAGMA foreign_keys = ON;`);
   await runMigrations(db);
 
-  void flushDbLogs();
-
-  return db;
+  return wrapDB(db);
 }
 
 export async function getDB(): Promise<SQLiteDBConnection> {
   if (!dbPromise) {
     dbLog('getDB: cache miss — initializing');
-    dbPromise = initDB().catch((e: unknown) => {
-      dbPromise = null;
-      throw e;
-    });
+    dbPromise = initDB()
+      .then(db => {
+        void flushDbLogs(db);
+        return db;
+      })
+      .catch((e: unknown) => {
+        dbPromise = null;
+        throw e;
+      });
   }
   return dbPromise;
 }
@@ -304,5 +354,6 @@ export async function reopenDB(): Promise<SQLiteDBConnection> {
   dbPromise = null;
   const db = await initDB();
   dbPromise = Promise.resolve(db);
+  void flushDbLogs(db);
   return db;
 }
