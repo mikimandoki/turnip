@@ -2,9 +2,11 @@ import { format, startOfMonth, startOfWeek } from 'date-fns';
 
 import type { ArchiveRun, Completion, Habit, HabitGroup } from '../types';
 
-export function generateDemoData(
-  weekStartsOn: 0 | 1 = 1
-): { habits: Habit[]; completions: Completion[]; groups: HabitGroup[] } {
+export function generateDemoData(weekStartsOn: 0 | 1 = 1): {
+  habits: Habit[];
+  completions: Completion[];
+  groups: HabitGroup[];
+} {
   function daysAgo(n: number): string {
     const d = new Date();
     d.setDate(d.getDate() - n);
@@ -27,9 +29,7 @@ export function generateDemoData(
   const restoredAt = daysAgo(15);
   const archiveRun: ArchiveRun = { archivedAt, restoredAt };
 
-  const groups: HabitGroup[] = [
-    { id: 'demo-group-1', name: '🌅 Morning routine', sortOrder: 0 },
-  ];
+  const groups: HabitGroup[] = [{ id: 'demo-group-1', name: '🌅 Morning routine', sortOrder: 0 }];
 
   const habits: Habit[] = [
     {
