@@ -41,6 +41,7 @@ import { APP_NAME } from '../utils/strings';
 import { supabase } from '../utils/supabase';
 import {
   onStatusChange as onSupabaseStatusChange,
+  reportFailure as supabaseReportFailure,
   reportSuccess as supabaseReportSuccess,
   shouldAttempt as supabaseShouldAttempt,
 } from '../utils/supabaseMonitor';
@@ -366,14 +367,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         onNotifVisible(habits),
         (async () => {
           if (!supabaseShouldAttempt()) return;
-          const { data } = await supabase.auth.getSession();
-          if (!data.session) return;
-          const db = await getDB();
-          await pullAll(db);
-          const synced = await loadDataFromDB(showToast);
-          setHabits(synced.habits);
-          setCompletions(synced.completions);
-          setGroups(synced.groups);
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) return;
+            const db = await getDB();
+            await pullAll(db);
+            const synced = await loadDataFromDB(showToast);
+            setHabits(synced.habits);
+            setCompletions(synced.completions);
+            setGroups(synced.groups);
+          } catch (e) {
+            logger.error('sync', 'Visibility sync failed', e);
+          }
         })(),
       ]);
     };
@@ -416,8 +421,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   }, [showToast]);
 
   // On sign-in: push local data up, then pull remote down, then refresh UI
+  // On sign-out (e.g. invalid refresh token): backoff sync attempts
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        logger.info('sync', 'SIGNED_OUT — session invalid, backoff sync');
+        supabaseReportFailure();
+        return;
+      }
       if (event === 'SIGNED_IN' && session && !syncOnSignInInFlight.current) {
         syncOnSignInInFlight.current = true;
         void (async () => {
